@@ -87,13 +87,18 @@ export const Header = () => {
   ];
 
   const profileMenu = [
-    { name: 'Profile', icon: <User className="w-4 h-4" />, action: () => navigate('/profile') },
-    { name: 'My Bookings', icon: <Calendar className="w-4 h-4" />, action: () => navigate('/profile') },
+    { name: 'Profile', icon: <User className="w-4 h-4" />, action: () => navigate('/app/profile') },
+    { name: 'My Bookings', icon: <Calendar className="w-4 h-4" />, action: () => navigate('/app/bookings') },
     { name: 'Logout', icon: <LogOut className="w-4 h-4" />, action: handleLogout, isDanger: true },
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow-lg dark:shadow-gray-800/30 transition-colors duration-300">
+    <nav className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow-lg dark:shadow-gray-800/30 transition-colors duration-300 header-nav">
+      <style>{`
+        body.modal-open .header-nav {
+          display: none;
+        }
+      `}</style>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           

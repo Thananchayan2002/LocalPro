@@ -23,7 +23,6 @@ export const Topbar = ({ onMenuClick }) => {
     if (path === '/services') return { title: 'Services', icon: Briefcase };
     if (path === '/bookings') return { title: 'Bookings', icon: Calendar };
     if (path === '/payments') return { title: 'Payments', icon: CreditCard };
-    if (path === '/revenue') return { title: 'Revenue', icon: TrendingUp };
     if (path === '/notifications') return { title: 'Notifications', icon: Bell };
     if (path === '/account') return { title: 'Account', icon: UserCog };
     return { title: 'Dashboard', icon: LayoutDashboard };

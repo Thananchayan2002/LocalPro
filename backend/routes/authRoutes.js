@@ -24,4 +24,10 @@ router.put('/update-email', protect, authController.updateEmail);
 // PUT /api/auth/update-password
 router.put('/update-password', protect, authController.updatePassword);
 
+// GET /api/auth/user/:id
+router.get('/user/:id', protect, authController.getUserById);
+
+// GET /api/auth/user/phone/:phone
+router.get('/user/phone/:phone', authController.getUserByPhone);
+
 module.exports = router;

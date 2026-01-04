@@ -374,3 +374,57 @@ exports.updatePassword = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
     }
 };
+
+// Get user by ID
+exports.getUserById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const user = await User.findById(id).select('name email phone location role');
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: user
+        });
+    } catch (error) {
+        console.error('Get user by ID error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again later.'
+        });
+    }
+};
+
+// Get user by phone number
+exports.getUserByPhone = async (req, res) => {
+    try {
+        const { phone } = req.params;
+
+        const user = await User.findOne({ phone }).select('name email phone location role');
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: user
+        });
+    } catch (error) {
+        console.error('Get user by phone error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again later.'
+        });
+    }
+};

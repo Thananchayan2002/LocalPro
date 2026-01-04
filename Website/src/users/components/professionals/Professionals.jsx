@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
-import { 
+import React, { useState, useEffect } from 'react';
+import * as LucideIcons from 'lucide-react';
+const { 
   Search, Filter, Star, MapPin, Briefcase, Award, 
   Clock, CheckCircle, Users, Phone, Mail, MessageSquare,
-  ChevronRight, X, Sparkles, Shield, Award as AwardIcon,
-  ThumbsUp, Calendar, ArrowRight, Download
-} from 'lucide-react';
+  ChevronRight, X, Sparkles, Shield, Award: AwardIcon,
+  ThumbsUp, Calendar, ArrowRight, Download, Loader
+} = LucideIcons;
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+};
 
 export const Professionals = () => {
   const [selectedService, setSelectedService] = useState('all');
@@ -12,6 +20,12 @@ export const Professionals = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfessional, setSelectedProfessional] = useState(null);
   const [showReviews, setShowReviews] = useState(false);
+  const [professionals, setProfessionals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [services, setServices] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   const sriLankaDistricts = [
     'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
@@ -21,370 +35,130 @@ export const Professionals = () => {
     'Moneragala', 'Ratnapura', 'Kegalle'
   ];
 
+  // Map icon names to Lucide icon components dynamically
+  const getIconComponent = (iconName) => {
+    if (!iconName) return Briefcase;
+    const IconComponent = LucideIcons[iconName];
+    return IconComponent || Briefcase;
+  };
+
+  // Generate service categories dynamically from services state
   const serviceCategories = [
-    { id: 'all', name: 'All Professionals', count: 156 },
-    { id: 'electrical', name: 'Electrical', count: 28 },
-    { id: 'plumbing', name: 'Plumbing', count: 24 },
-    { id: 'ac-repair', name: 'AC Repair', count: 18 },
-    { id: 'cleaning', name: 'Cleaning', count: 32 },
-    { id: 'painting', name: 'Painting', count: 16 },
-    { id: 'carpentry', name: 'Carpentry', count: 20 },
-    { id: 'appliance', name: 'Appliance Repair', count: 22 },
-    { id: 'pest-control', name: 'Pest Control', count: 12 },
+    { id: 'all', name: 'All Professionals', icon: Briefcase, count: professionals.length },
+    ...services.map(service => ({
+      id: service._id,
+      name: service.service,
+      icon: getIconComponent(service.iconName),
+      count: professionals.filter(p => p.serviceId?._id === service._id).length
+    }))
   ];
 
-  const professionals = [
-    // Electrical Professionals
-    {
-      id: 1,
-      name: 'Kamal Perera',
-      title: 'Senior Electrician',
-      category: 'electrical',
-      district: 'Colombo',
-      rating: 4.9,
-      completedJobs: 1245,
-      experienceYears: 12,
-      hourlyRate: 'LKR 1,500',
-      description: 'Expert in electrical wiring, switch installations, and home automation systems with 12+ years of experience.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kamal',
-      verified: true,
-      featured: true,
-      skills: ['Wiring Installation', 'Circuit Breakers', 'Home Automation', 'Switch Boards'],
-      certifications: ['Certified Electrician', 'Safety Certified', 'Government Licensed'],
-      availability: 'Available Today',
-      feedbacks: [
-        { id: 1, customer: 'Rajesh Kumar', issue: 'Complete House Wiring', comment: 'Excellent work! Professional and timely completion.', rating: 5, date: '2024-01-15' },
-        { id: 2, customer: 'Priya Silva', issue: 'Switch Installation', comment: 'Very professional and cleaned up after work.', rating: 5, date: '2024-01-10' },
-        { id: 3, customer: 'Sunil Fernando', issue: 'Electrical Fault Finding', comment: 'Quickly identified and fixed the issue. Highly recommended.', rating: 4, date: '2024-01-05' }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Nimal Silva',
-      title: 'Electrical Technician',
-      category: 'electrical',
-      district: 'Gampaha',
-      rating: 4.7,
-      completedJobs: 876,
-      experienceYears: 8,
-      hourlyRate: 'LKR 1,200',
-      description: 'Specialized in electrical repairs, maintenance, and troubleshooting for residential properties.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nimal',
-      verified: true,
-      featured: false,
-      skills: ['Electrical Repairs', 'Troubleshooting', 'Maintenance', 'Wiring'],
-      certifications: ['Electrical Technician', 'Safety Certified'],
-      availability: 'Available Tomorrow',
-      feedbacks: [
-        { id: 1, customer: 'Amara Perera', issue: 'Fan Repair', comment: 'Fixed the ceiling fan quickly and efficiently.', rating: 4, date: '2024-01-12' },
-        { id: 2, customer: 'Dinesh Rajapaksa', issue: 'Light Installation', comment: 'Good service at reasonable rates.', rating: 5, date: '2024-01-08' }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Sunil Jayasinghe',
-      title: 'Industrial Electrician',
-      category: 'electrical',
-      district: 'Kalutara',
-      rating: 4.8,
-      completedJobs: 654,
-      experienceYears: 10,
-      hourlyRate: 'LKR 1,800',
-      description: 'Industrial electrical systems expert with experience in commercial and factory setups.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sunil',
-      verified: true,
-      featured: false,
-      skills: ['Industrial Wiring', '3-Phase Systems', 'Motor Controls', 'Panel Boards'],
-      certifications: ['Industrial Electrician', 'Advanced Certification'],
-      availability: 'Available Next Week',
-      feedbacks: [
-        { id: 1, customer: 'Factory Solutions Ltd', issue: 'Factory Wiring', comment: 'Professional industrial electrical work.', rating: 5, date: '2024-01-14' }
-      ]
-    },
+  useEffect(() => {
+    fetchProfessionals();
+    fetchServices();
+  }, []);
 
-    // Plumbing Professionals
-    {
-      id: 4,
-      name: 'Sarath Fernando',
-      title: 'Master Plumber',
-      category: 'plumbing',
-      district: 'Colombo',
-      rating: 4.9,
-      completedJobs: 987,
-      experienceYears: 15,
-      hourlyRate: 'LKR 1,400',
-      description: '15 years of plumbing experience specializing in pipe installations and bathroom fittings.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarath',
-      verified: true,
-      featured: true,
-      skills: ['Pipe Installation', 'Bathroom Fittings', 'Water Heater', 'Leak Repair'],
-      certifications: ['Master Plumber', 'Water System Certified'],
-      availability: 'Available Today',
-      feedbacks: [
-        { id: 1, customer: 'Lakshmi De Silva', issue: 'Bathroom Renovation', comment: 'Excellent plumbing work for our new bathroom.', rating: 5, date: '2024-01-13' },
-        { id: 2, customer: 'Kumar Ratnayake', issue: 'Pipe Leak Repair', comment: 'Fixed the leak permanently. Very satisfied.', rating: 5, date: '2024-01-07' }
-      ]
-    },
-    {
-      id: 5,
-      name: 'Prasanna Jayawardena',
-      title: 'Plumbing Technician',
-      category: 'plumbing',
-      district: 'Kandy',
-      rating: 4.6,
-      completedJobs: 432,
-      experienceYears: 6,
-      hourlyRate: 'LKR 1,000',
-      description: 'Expert in drain cleaning, leak repairs, and basic plumbing installations.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Prasanna',
-      verified: true,
-      featured: false,
-      skills: ['Drain Cleaning', 'Leak Detection', 'Basic Installations', 'Repairs'],
-      certifications: ['Plumbing Technician', 'Certified'],
-      availability: 'Available Today',
-      feedbacks: [
-        { id: 1, customer: 'Nimali Perera', issue: 'Kitchen Sink Blockage', comment: 'Quick and efficient service.', rating: 4, date: '2024-01-11' }
-      ]
-    },
+  const fetchProfessionals = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/professionals?status=accepted&limit=1000`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      if (data.success) {
+        setProfessionals(data.data || []);
+      } else {
+        setError(data.message || 'Failed to fetch professionals');
+      }
+    } catch (error) {
+      console.error('Error fetching professionals:', error);
+      setError('Failed to load professionals. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // AC Repair Professionals
-    {
-      id: 6,
-      name: 'Ravi Kumar',
-      title: 'AC Specialist',
-      category: 'ac-repair',
-      district: 'Colombo',
-      rating: 4.8,
-      completedJobs: 765,
-      experienceYears: 9,
-      hourlyRate: 'LKR 2,000',
-      description: 'Specialized in AC installation, gas charging, and all types of AC repairs.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ravi',
-      verified: true,
-      featured: true,
-      skills: ['AC Installation', 'Gas Charging', 'PCB Repair', 'Cleaning'],
-      certifications: ['AC Specialist', 'Certified Technician'],
-      availability: 'Available Today',
-      feedbacks: [
-        { id: 1, customer: 'Office Solutions Ltd', issue: 'AC Installation', comment: 'Professional installation of 10 AC units.', rating: 5, date: '2024-01-16' },
-        { id: 2, customer: 'Shirley Fernando', issue: 'AC Gas Charging', comment: 'Excellent service, AC cooling perfectly now.', rating: 5, date: '2024-01-09' }
-      ]
-    },
+  const fetchServices = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/services`, {
+        headers: getAuthHeaders()
+      });
+      const data = await response.json();
+      if (data.success) {
+        setServices(data.data || []);
+        console.log('Services fetched:', data.data);
+      } else {
+        console.error('Failed to fetch services:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    }
+  };
 
-    // Cleaning Professionals
-    {
-      id: 7,
-      name: 'Anoma Perera',
-      title: 'Cleaning Specialist',
-      category: 'cleaning',
-      district: 'Gampaha',
-      rating: 4.7,
-      completedJobs: 543,
-      experienceYears: 5,
-      hourlyRate: 'LKR 800',
-      description: 'Professional home and office cleaning with eco-friendly products.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Anoma',
-      verified: true,
-      featured: false,
-      skills: ['Deep Cleaning', 'Office Cleaning', 'Carpet Cleaning', 'Window Cleaning'],
-      certifications: ['Cleaning Certified', 'Eco-friendly'],
-      availability: 'Available Tomorrow',
-      feedbacks: [
-        { id: 1, customer: 'Tech Company Ltd', issue: 'Office Deep Clean', comment: 'Very thorough cleaning service.', rating: 4, date: '2024-01-14' }
-      ]
-    },
+  const fetchReviews = async (professionalPhone) => {
+    try {
+      setLoadingReviews(true);
+      setReviews([]);
+      
+      // First, find the User ID by phone number
+      const userResponse = await fetch(`${API_BASE_URL}/api/auth/user/phone/${professionalPhone}`, {
+        headers: getAuthHeaders()
+      });
+      const userData = await userResponse.json();
+      
+      if (!userData.success || !userData.data) {
+        console.log('No user found for phone:', professionalPhone);
+        setLoadingReviews(false);
+        return;
+      }
+      
+      const userId = userData.data._id;
+      console.log('Found user ID:', userId);
+      
+      // Now fetch reviews using the User ID
+      const reviewsResponse = await fetch(`${API_BASE_URL}/api/reviews/professional/${userId}`, {
+        headers: getAuthHeaders()
+      });
+      const reviewsData = await reviewsResponse.json();
+      
+      if (reviewsData.success) {
+        setReviews(reviewsData.reviews || []);
+        console.log('Reviews fetched:', reviewsData.reviews);
+      } else {
+        console.error('Failed to fetch reviews:', reviewsData.message);
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
 
-    // Painting Professionals
-    {
-      id: 8,
-      name: 'Dilshan Rajapakse',
-      title: 'Painting Expert',
-      category: 'painting',
-      district: 'Colombo',
-      rating: 4.9,
-      completedJobs: 321,
-      experienceYears: 7,
-      hourlyRate: 'LKR 1,500',
-      description: 'Interior and exterior painting with attention to detail and quality finishes.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dilshan',
-      verified: true,
-      featured: false,
-      skills: ['Interior Painting', 'Exterior Painting', 'Wall Texture', 'Wood Painting'],
-      certifications: ['Painting Expert', 'Quality Certified'],
-      availability: 'Available Next Week',
-      feedbacks: [
-        { id: 1, customer: 'Hotel Management', issue: 'Hotel Room Painting', comment: 'Excellent painting work, very professional.', rating: 5, date: '2024-01-13' }
-      ]
-    },
 
-    // Carpentry Professionals
-    {
-      id: 9,
-      name: 'Saman Kumara',
-      title: 'Master Carpenter',
-      category: 'carpentry',
-      district: 'Kandy',
-      rating: 4.8,
-      completedJobs: 456,
-      experienceYears: 11,
-      hourlyRate: 'LKR 1,600',
-      description: 'Custom furniture making and woodwork with traditional craftsmanship.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Saman',
-      verified: true,
-      featured: true,
-      skills: ['Furniture Making', 'Cabinet Installation', 'Wood Flooring', 'Door Repair'],
-      certifications: ['Master Carpenter', 'Traditional Craftsman'],
-      availability: 'Available Today',
-      feedbacks: [
-        { id: 1, customer: 'Restaurant Owner', issue: 'Custom Furniture', comment: 'Beautiful custom furniture made to perfection.', rating: 5, date: '2024-01-15' }
-      ]
-    },
-
-    // Appliance Repair Professionals
-    {
-      id: 10,
-      name: 'Chaminda Silva',
-      title: 'Appliance Technician',
-      category: 'appliance',
-      district: 'Colombo',
-      rating: 4.7,
-      completedJobs: 789,
-      experienceYears: 8,
-      hourlyRate: 'LKR 1,200',
-      description: 'Repair of all home appliances including refrigerators, washing machines, and TVs.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Chaminda',
-      verified: true,
-      featured: false,
-      skills: ['Refrigerator Repair', 'Washing Machine', 'TV Repair', 'Microwave'],
-      certifications: ['Appliance Technician', 'Certified'],
-      availability: 'Available Today',
-      feedbacks: [
-        { id: 1, customer: 'Family Home', issue: 'Refrigerator Repair', comment: 'Fixed our fridge quickly and efficiently.', rating: 4, date: '2024-01-12' }
-      ]
-    },
-
-    // Pest Control Professionals
-    {
-      id: 11,
-      name: 'Nishantha Perera',
-      title: 'Pest Control Expert',
-      category: 'pest-control',
-      district: 'Gampaha',
-      rating: 4.9,
-      completedJobs: 234,
-      experienceYears: 6,
-      hourlyRate: 'LKR 1,800',
-      description: 'Eco-friendly pest control solutions for homes and businesses.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nishantha',
-      verified: true,
-      featured: false,
-      skills: ['Termite Control', 'Rodent Control', 'Mosquito Fogging', 'Cockroach'],
-      certifications: ['Pest Control Expert', 'Eco-friendly Certified'],
-      availability: 'Available Tomorrow',
-      feedbacks: [
-        { id: 1, customer: 'Hotel Chain', issue: 'Termite Treatment', comment: 'Effective termite control service.', rating: 5, date: '2024-01-10' }
-      ]
-    },
-
-    // More professionals for variety
-    {
-      id: 12,
-      name: 'Malith Fernando',
-      title: 'Electrical Engineer',
-      category: 'electrical',
-      district: 'Matara',
-      rating: 4.8,
-      completedJobs: 432,
-      experienceYears: 9,
-      hourlyRate: 'LKR 1,700',
-      description: 'Electrical design and implementation for residential and commercial projects.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Malith',
-      verified: true,
-      featured: false,
-      skills: ['Electrical Design', 'Commercial Wiring', 'Safety Systems', 'Automation'],
-      certifications: ['Electrical Engineer', 'Professional License'],
-      availability: 'Available Next Week',
-      feedbacks: []
-    },
-
-    {
-      id: 13,
-      name: 'Kasun Rathnayake',
-      title: 'Plumbing Contractor',
-      category: 'plumbing',
-      district: 'Kurunegala',
-      rating: 4.5,
-      completedJobs: 321,
-      experienceYears: 7,
-      hourlyRate: 'LKR 1,100',
-      description: 'Complete plumbing solutions for homes and small businesses.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kasun',
-      verified: true,
-      featured: false,
-      skills: ['Complete Plumbing', 'Water Systems', 'Pipe Networks', 'Repairs'],
-      certifications: ['Plumbing Contractor', 'Certified'],
-      availability: 'Available Today',
-      feedbacks: []
-    },
-
-    {
-      id: 14,
-      name: 'Sanjeewa Bandara',
-      title: 'AC Technician',
-      category: 'ac-repair',
-      district: 'Galle',
-      rating: 4.7,
-      completedJobs: 543,
-      experienceYears: 8,
-      hourlyRate: 'LKR 1,500',
-      description: 'Specialized in split AC maintenance and repairs.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sanjeewa',
-      verified: true,
-      featured: false,
-      skills: ['Split AC Repair', 'Maintenance', 'Cleaning', 'Installation'],
-      certifications: ['AC Technician', 'Certified'],
-      availability: 'Available Today',
-      feedbacks: []
-    },
-
-    {
-      id: 15,
-      name: 'Nadeesha Silva',
-      title: 'Cleaning Professional',
-      category: 'cleaning',
-      district: 'Ratnapura',
-      rating: 4.6,
-      completedJobs: 210,
-      experienceYears: 4,
-      hourlyRate: 'LKR 700',
-      description: 'Professional home cleaning with attention to detail.',
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nadeesha',
-      verified: true,
-      featured: false,
-      skills: ['Home Cleaning', 'Deep Cleaning', 'Post-construction', 'Regular'],
-      certifications: ['Cleaning Professional', 'Certified'],
-      availability: 'Available Tomorrow',
-      feedbacks: []
-    },
-  ];
 
   const filteredProfessionals = professionals.filter(professional => {
-    const matchesService = selectedService === 'all' || professional.category === selectedService;
+    const matchesService = selectedService === 'all' || professional.serviceId?._id === selectedService;
     const matchesDistrict = selectedDistrict === 'all' || professional.district === selectedDistrict;
     const matchesSearch = professional.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         professional.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         professional.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         (professional.serviceId?.service || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (professional.location || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesService && matchesDistrict && matchesSearch;
   });
 
   const openProfessionalModal = (professional) => {
     setSelectedProfessional(professional);
     setShowReviews(false);
+    setReviews([]);
+    // Fetch reviews using professional's phone number
+    if (professional.phone) {
+      fetchReviews(professional.phone);
+    }
   };
 
   const closeModal = () => {
     setSelectedProfessional(null);
     setShowReviews(false);
+    setReviews([]);
   };
 
   return (
@@ -426,22 +200,26 @@ export const Professionals = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  {serviceCategories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => setSelectedService(category.id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                        selectedService === category.id
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      <span className="font-medium">{category.name}</span>
-                      <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full text-xs">
-                        {category.count}
-                      </span>
-                    </button>
-                  ))}
+                  {serviceCategories.map((category) => {
+                    const IconComponent = category.icon;
+                    return (
+                      <button
+                        key={category.id}
+                        onClick={() => setSelectedService(category.id)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                          selectedService === category.id
+                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <IconComponent className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-medium flex-1 text-left">{category.name}</span>
+                        <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full text-xs">
+                          {category.count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -486,19 +264,25 @@ export const Professionals = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Total Professionals</span>
-                    <span className="font-bold">156</span>
+                    <span className="font-bold">{professionals.length}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Verified</span>
-                    <span className="font-bold text-green-600">100%</span>
+                    <span className="font-bold text-green-600">
+                      {professionals.length > 0 ? Math.round((professionals.filter(p => p.status === 'accepted').length / professionals.length) * 100) : 0}%
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Avg. Rating</span>
-                    <span className="font-bold text-yellow-600">4.8 ★</span>
+                    <span className="font-bold text-yellow-600">
+                      {professionals.length > 0 ? (professionals.reduce((sum, p) => sum + (p.rating || 0), 0) / professionals.length).toFixed(1) : '0'} ★
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-600 dark:text-gray-400">Jobs Completed</span>
-                    <span className="font-bold">15,000+</span>
+                    <span className="font-bold">
+                      {professionals.reduce((sum, p) => sum + (p.totalJobs || 0), 0).toLocaleString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -533,49 +317,30 @@ export const Professionals = () => {
               </div>
             </div>
 
-            {/* Featured Professionals */}
-            {selectedService === 'all' && selectedDistrict === 'all' && searchQuery === '' && (
-              <div className="mb-8">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-yellow-500" />
-                  Featured Professionals
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  {professionals.filter(p => p.featured).slice(0, 2).map((pro) => (
-                    <div
-                      key={pro.id}
-                      onClick={() => openProfessionalModal(pro)}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl p-6 cursor-pointer hover:shadow-xl transition-shadow duration-300"
-                    >
-                      <div className="flex items-center gap-4 mb-4">
-                        <img src={pro.image} alt={pro.name} className="w-16 h-16 rounded-full border-4 border-white/20" />
-                        <div>
-                          <h4 className="font-bold text-lg">{pro.name}</h4>
-                          <p className="text-blue-100">{pro.title}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center">
-                          <Star className="w-4 h-4 fill-current" />
-                          <span className="ml-1">{pro.rating}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Briefcase className="w-4 h-4" />
-                          <span className="ml-1">{pro.experienceYears} years</span>
-                        </div>
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4" />
-                          <span className="ml-1">{pro.district}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+
+
+            {/* Loading State */}
+            {loading ? (
+              <div className="flex justify-center items-center py-20">
+                <div className="text-center">
+                  <Loader className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400">Loading professionals...</p>
                 </div>
               </div>
-            )}
-
-            {/* Professionals Grid */}
-            {filteredProfessionals.length === 0 ? (
+            ) : error ? (
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-8 text-center">
+                <X className="w-12 h-12 text-red-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-red-900 dark:text-red-200 mb-2">
+                  {error}
+                </h3>
+                <button
+                  onClick={fetchProfessionals}
+                  className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : filteredProfessionals.length === 0 ? (
               <div className="text-center py-12">
                 <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -589,14 +354,18 @@ export const Professionals = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredProfessionals.map((professional) => (
                   <div
-                    key={professional.id}
+                    key={professional._id}
                     className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border border-gray-200 dark:border-gray-700"
                   >
                     <div className="p-6">
                       {/* Professional Header */}
                       <div className="flex items-start gap-4 mb-4">
                         <img
-                          src={professional.image}
+                          src={
+                            professional.profileImage?.trim()
+                              ? `${import.meta.env.VITE_API_BASE_URL}/${professional.profileImage}`
+                              : `https://api.dicebear.com/7.x/initials/svg?seed=${professional.name}`
+                          }
                           alt={professional.name}
                           className="w-20 h-20 rounded-xl object-cover border-2 border-blue-100 dark:border-blue-900"
                         />
@@ -605,17 +374,17 @@ export const Professionals = () => {
                             <div>
                               <h3 className="font-bold text-gray-900 dark:text-white text-lg">
                                 {professional.name}
-                                {professional.verified && (
+                                {professional.status === 'accepted' && (
                                   <Shield className="inline ml-2 w-4 h-4 text-green-600" />
                                 )}
                               </h3>
                               <p className="text-blue-600 dark:text-blue-400 font-medium">
-                                {professional.title}
+                                {professional.serviceId?.service || 'Professional'}
                               </p>
                             </div>
-                            {professional.featured && (
-                              <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full text-xs font-medium">
-                                Featured
+                            {professional.isAvailable && (
+                              <span className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-xs font-medium">
+                                Available
                               </span>
                             )}
                           </div>
@@ -624,9 +393,9 @@ export const Professionals = () => {
                           <div className="flex items-center gap-4 mt-2">
                             <div className="flex items-center">
                               <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                              <span className="ml-1 font-medium">{professional.rating}</span>
+                              <span className="ml-1 font-medium">{professional.rating || 4}</span>
                               <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
-                                ({professional.completedJobs} jobs)
+                                ({professional.totalJobs || 0} jobs)
                               </span>
                             </div>
                             <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -637,27 +406,13 @@ export const Professionals = () => {
                         </div>
                       </div>
 
-                      {/* Description */}
-                      <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-                        {professional.description}
-                      </p>
-
-                      {/* Skills */}
-                      <div className="mb-4">
-                        <div className="flex flex-wrap gap-2">
-                          {professional.skills.slice(0, 3).map((skill, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                          {professional.skills.length > 3 && (
-                            <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs">
-                              +{professional.skills.length - 3} more
-                            </span>
-                          )}
+                      {/* Location Info */}
+                      <div className="mb-4 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {professional.location}
+                          </span>
                         </div>
                       </div>
 
@@ -667,13 +422,13 @@ export const Professionals = () => {
                           <div className="flex items-center gap-2">
                             <Briefcase className="w-4 h-4 text-blue-600" />
                             <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {professional.experienceYears} years experience
+                              {professional.experience} years experience
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-green-600" />
+                            <Award className="w-4 h-4 text-green-600" />
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {professional.hourlyRate}/hour
+                              {selectedService === 'all' ? professional.serviceId?.service : professional.district}
                             </span>
                           </div>
                         </div>
@@ -737,7 +492,7 @@ export const Professionals = () => {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {selectedProfessional.name}
                 </h2>
-                <p className="text-blue-600 dark:text-blue-400">{selectedProfessional.title}</p>
+                <p className="text-blue-600 dark:text-blue-400">{selectedProfessional.serviceId?.service || 'Professional'}</p>
               </div>
               <button
                 onClick={closeModal}
@@ -753,18 +508,26 @@ export const Professionals = () => {
               <div className="flex flex-col md:flex-row gap-6 mb-8">
                 <div className="md:w-1/3">
                   <img
-                    src={selectedProfessional.image}
+                      src={
+                        selectedProfessional.profileImage?.trim()
+                          ? `${import.meta.env.VITE_API_BASE_URL}/${selectedProfessional.profileImage}`
+                          : `https://api.dicebear.com/7.x/initials/svg?seed=${selectedProfessional.name}`
+                      }
                     alt={selectedProfessional.name}
                     className="w-48 h-48 rounded-2xl object-cover border-4 border-blue-100 dark:border-blue-900 mx-auto"
                   />
-                  <div className="text-center mt-4">
-                    <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 mb-3">
-                      Book This Professional
-                    </button>
-                    <button className="w-full border-2 border-blue-600 text-blue-600 dark:text-blue-400 py-3 rounded-lg font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
-                      <Phone className="inline w-4 h-4 mr-2" />
-                      Contact Now
-                    </button>
+                  <div className="text-center mt-4 space-y-3">
+                    {selectedProfessional.status === 'accepted' && (
+                      <div className="px-3 py-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg font-semibold flex items-center justify-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Verified Professional
+                      </div>
+                    )}
+                    {selectedProfessional.isAvailable && (
+                      <div className="px-3 py-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg font-semibold">
+                        Available Now
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -772,153 +535,134 @@ export const Professionals = () => {
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
                       <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                        {selectedProfessional.rating}
+                        {selectedProfessional.rating || 4}
                       </div>
                       <div className="flex items-center mb-1">
                         {[...Array(5)].map((_, i) => (
                           <Star
                             key={i}
-                            className={`w-4 h-4 ${i < Math.floor(selectedProfessional.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300 dark:text-gray-600'}`}
+                            className={`w-4 h-4 ${i < Math.floor(selectedProfessional.rating || 4) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300 dark:text-gray-600'}`}
                           />
                         ))}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {selectedProfessional.completedJobs} jobs completed
+                        {selectedProfessional.totalJobs || 0} jobs completed
                       </div>
                     </div>
                     
                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
                       <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                        {selectedProfessional.experienceYears}
+                        {selectedProfessional.experience}
                       </div>
                       <div className="text-gray-600 dark:text-gray-400">Years Experience</div>
                     </div>
                     
                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
                       <div className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                        {selectedProfessional.hourlyRate}
+                        <MapPin className="inline w-5 h-5 mb-1" /> {selectedProfessional.district}
                       </div>
-                      <div className="text-gray-600 dark:text-gray-400">Hourly Rate</div>
+                      <div className="text-gray-600 dark:text-gray-400">District</div>
                     </div>
                     
                     <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
                       <div className="text-xl font-bold text-green-600 mb-1">
-                        {selectedProfessional.availability}
+                        {selectedProfessional.isAvailable ? 'Available' : 'Not Available'}
                       </div>
                       <div className="text-gray-600 dark:text-gray-400">Availability</div>
                     </div>
                   </div>
 
                   <div className="mb-6">
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-3">About</h3>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      {selectedProfessional.description}
-                    </p>
-                  </div>
-
-                  <div className="mb-6">
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-3">Skills & Expertise</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProfessional.skills.map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-3">Certifications</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProfessional.certifications.map((cert, idx) => (
-                        <span
-                          key={idx}
-                          className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium flex items-center gap-2"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          {cert}
-                        </span>
-                      ))}
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-3">Professional Details</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Award className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-white">Service</div>
+                          <div className="text-gray-600 dark:text-gray-400">{selectedProfessional.serviceId?.service || 'N/A'}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-white">Location</div>
+                          <div className="text-gray-600 dark:text-gray-400">{selectedProfessional.location}</div>
+                        </div>
+                      </div>
+                      {selectedProfessional.serviceId?.description && (
+                        <div className="flex items-start gap-3">
+                          <MessageSquare className="w-5 h-5 text-blue-600 mt-0.5" />
+                          <div>
+                            <div className="font-semibold text-gray-900 dark:text-white">Service Description</div>
+                            <div className="text-gray-600 dark:text-gray-400">{selectedProfessional.serviceId.description}</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Reviews Toggle */}
+              {/* Reviews Section */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Customer Feedback
+                    Customer Feedback ({reviews.length})
                   </h3>
-                  <button
-                    onClick={() => setShowReviews(!showReviews)}
-                    className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-2"
-                  >
-                    {showReviews ? 'Hide Reviews' : `Show All Reviews (${selectedProfessional.feedbacks.length})`}
-                    <ChevronRight className={`w-4 h-4 transition-transform ${showReviews ? 'rotate-90' : ''}`} />
-                  </button>
+                  {reviews.length > 0 && (
+                    <button
+                      onClick={() => setShowReviews(!showReviews)}
+                      className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-2"
+                    >
+                      {showReviews ? 'Hide Reviews' : 'Show All Reviews'}
+                      <ChevronRight className={`w-4 h-4 transition-transform ${showReviews ? 'rotate-90' : ''}`} />
+                    </button>
+                  )}
                 </div>
 
-                {/* Reviews Section */}
-                {showReviews && (
-                  <div className="space-y-4">
-                    {selectedProfessional.feedbacks.length > 0 ? (
-                      selectedProfessional.feedbacks.map((feedback) => (
-                        <div key={feedback.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h4 className="font-bold text-gray-900 dark:text-white">{feedback.customer}</h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {feedback.issue} • {feedback.date}
-                              </p>
-                            </div>
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-4 h-4 ${i < feedback.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300 dark:text-gray-600'}`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-gray-700 dark:text-gray-300 italic">"{feedback.comment}"</p>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-                        No reviews yet. Be the first to book this professional!
-                      </div>
-                    )}
+                {/* Reviews Display */}
+                {loadingReviews ? (
+                  <div className="text-center py-8">
+                    <Loader className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
+                    <p className="text-gray-600 dark:text-gray-400">Loading reviews...</p>
                   </div>
-                )}
-
-                {/* Show only first review if not expanded */}
-                {!showReviews && selectedProfessional.feedbacks.length > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-bold text-gray-900 dark:text-white">
-                          {selectedProfessional.feedbacks[0].customer}
-                        </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {selectedProfessional.feedbacks[0].issue} • {selectedProfessional.feedbacks[0].date}
-                        </p>
+                ) : reviews.length === 0 ? (
+                  <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No reviews yet</p>
+                    <p className="text-sm mt-1">Be the first to book and review this professional!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Show all reviews if showReviews is true, otherwise just first review */}
+                    {(showReviews ? reviews : reviews.slice(0, 1)).map((review) => (
+                      <div key={review._id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-bold text-gray-900 dark:text-white">
+                              {review.customerId?.name || 'Customer'}
+                            </h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {review.bookingId?.service || 'Service'} • {review.bookingId?.issueType || ''}
+                              {review.createdAt && ` • ${new Date(review.createdAt).toLocaleDateString()}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i < review.rating
+                                    ? 'text-yellow-500 fill-yellow-500'
+                                    : 'text-gray-300 dark:text-gray-600'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-gray-700 dark:text-gray-300 italic">"{review.comment}"</p>
                       </div>
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${i < selectedProfessional.feedbacks[0].rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300 dark:text-gray-600'}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-gray-700 dark:text-gray-300 italic">
-                      "{selectedProfessional.feedbacks[0].comment}"
-                    </p>
+                    ))}
                   </div>
                 )}
               </div>

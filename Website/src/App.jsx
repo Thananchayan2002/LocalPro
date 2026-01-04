@@ -9,6 +9,7 @@ import { Feedback } from './users/components/feedback/Feedback';
 import { Professionals } from './users/components/professionals/Professionals';
 import { Profile } from './users/components/profile/Profile';
 import RegisterProfessional from './users/components/professionalRegister/RegisterProfessional';
+import CustomerBookings from './users/components/bookService/Bookings';
 import UserProtectedRoute from './users/components/auth/ProtectedRoute';
 import { AuthProvider } from './worker/context/AuthContext';
 import { ProtectedRoute as WorkerProtectedRoute } from './worker/components/auth/ProtectedRoute';
@@ -16,7 +17,6 @@ import { Layout as WorkerLayout } from './worker/components/layout/Layout';
 import { Dashboard } from './worker/components/dashboard/Dashboard';
 import { Bookings } from './worker/components/bookings/Bookings';
 import { Payments } from './worker/components/payments/Payments';
-import { Revenue } from './worker/components/revenue/Revenue';
 import { Notifications } from './worker/components/notifications/Notifications';
 import { Account } from './worker/components/account/Account';
 import WorkerServices from './worker/components/services/Services';
@@ -50,6 +50,9 @@ function App() {
             <Route path='professionals' element={<Professionals />} />
             <Route path='become-pro' element={<RegisterProfessional />} />
           </Route>
+
+          <Route path='/app/bookings' element={<CustomerBookings />} />
+
           <Route
             path='/app/profile'
             element={(
@@ -74,7 +77,6 @@ function App() {
             <Route path='bookings' element={<Bookings />} />
             <Route path='payments' element={<Payments />} />
             <Route path='services' element={<WorkerServices />} />
-            <Route path='revenue' element={<Revenue />} />
             <Route path='notifications' element={<Notifications />} />
             <Route path='account' element={<Account />} />
             <Route path='*' element={<Navigate to="/worker/dashboard" replace />} />

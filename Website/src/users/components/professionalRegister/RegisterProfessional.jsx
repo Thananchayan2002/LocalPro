@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Upload, Phone, MapPin, Briefcase, IdCard, Mail, Image } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Upload, Phone, MapPin, Briefcase, IdCard, Mail, Image, Navigation, Loader, X } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
@@ -27,7 +27,7 @@ const initialForm = {
   nicNumber: ''
 };
 
-const RegisterProfessional = () => {
+const RegisterProfessional = ({ isOpen, onClose }) => {
   const [services, setServices] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [imageFile, setImageFile] = useState(null);
@@ -35,6 +35,9 @@ const RegisterProfessional = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [servicesLoading, setServicesLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const locationInputRef = useRef(null);
+  const autocompleteRef = useRef(null);
 
   // Pre-fill form with logged-in user data
   useEffect(() => {
@@ -54,6 +57,134 @@ const RegisterProfessional = () => {
       console.error('Error loading user data:', error);
     }
   }, []);
+
+  // Load Google Maps script
+  useEffect(() => {
+    const loadGoogleMapsScript = () => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        initializeAutocomplete();
+        return;
+      }
+
+      window.initGoogleMaps = () => {
+        initializeAutocomplete();
+      };
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    };
+
+    loadGoogleMapsScript();
+  }, []);
+
+  const initializeAutocomplete = () => {
+    if (locationInputRef.current && window.google && window.google.maps.places) {
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        locationInputRef.current,
+        {
+          types: ['geocode'],
+          componentRestrictions: { country: 'lk' }
+        }
+      );
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        
+        if (!place.geometry) {
+          setMessage({ type: 'error', text: 'Please select a valid location from the suggestions' });
+          return;
+        }
+
+        let city = '';
+        let district = '';
+        
+        if (place.address_components) {
+          place.address_components.forEach(component => {
+            const types = component.types;
+            
+            if (types.includes('locality')) {
+              city = component.long_name;
+            } else if (types.includes('administrative_area_level_2')) {
+              district = component.long_name;
+            } else if (types.includes('administrative_area_level_1') && !district) {
+              district = component.long_name;
+            }
+          });
+        }
+
+        setForm(prev => ({
+          ...prev,
+          location: place.formatted_address,
+          district: district || prev.district
+        }));
+      });
+
+      autocompleteRef.current = autocomplete;
+    }
+  };
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setMessage({ type: 'error', text: 'Geolocation is not supported by your browser' });
+      return;
+    }
+
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          const geocoder = new window.google.maps.Geocoder();
+          const latlng = { lat: latitude, lng: longitude };
+          
+          geocoder.geocode({ location: latlng }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+              let city = '';
+              let district = '';
+              
+              if (results[0].address_components) {
+                results[0].address_components.forEach(component => {
+                  const types = component.types;
+                  
+                  if (types.includes('locality')) {
+                    city = component.long_name;
+                  } else if (types.includes('administrative_area_level_2')) {
+                    district = component.long_name;
+                  } else if (types.includes('administrative_area_level_1') && !district) {
+                    district = component.long_name;
+                  }
+                });
+              }
+              
+              setForm(prev => ({
+                ...prev,
+                location: results[0].formatted_address,
+                district: district || prev.district
+              }));
+              
+              if (locationInputRef.current) {
+                locationInputRef.current.value = results[0].formatted_address;
+              }
+            } else {
+              setMessage({ type: 'error', text: 'Failed to get address details' });
+            }
+            setLocationLoading(false);
+          });
+        } catch (err) {
+          setMessage({ type: 'error', text: 'Failed to get address details' });
+          setLocationLoading(false);
+        }
+      },
+      (error) => {
+        setMessage({ type: 'error', text: 'Unable to retrieve your location' });
+        setLocationLoading(false);
+      }
+    );
+  };
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -144,20 +275,69 @@ const RegisterProfessional = () => {
 
   const disabledSubmit = submitting || servicesLoading;
 
+  // Hide header when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
+  // If not in modal mode (no isOpen prop), render normally
+  if (isOpen === undefined) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-purple-50 px-4 py-10">
+        {renderContent()}
+      </div>
+    );
+  }
+
+  // Modal mode
+  if (!isOpen) return null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-purple-50 px-4 py-10">
-      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl border border-purple-100/60 p-6 md:p-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-purple-600 font-semibold">Join Our Network</p>
-            <h1 className="text-3xl font-bold text-gray-900 mt-1">Register as a Professional</h1>
-            <p className="text-gray-600 mt-2">Provide your details. We keep your status pending and review website submissions before approval.</p>
-          </div>
-          <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full border border-purple-100">
-            <Image size={18} />
-            <span className="text-sm font-semibold">Profile review required</span>
-          </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto">
+      <div className="min-h-screen flex items-start justify-center py-8 px-4">
+        <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full">
+          {renderContent()}
         </div>
+      </div>
+    </div>
+  );
+
+  function renderContent() {
+    return (
+      <div className={isOpen ? "p-6 md:p-10" : "max-w-4xl mx-auto bg-white rounded-3xl shadow-xl border border-purple-100/60 p-6 md:p-10"}>
+        {!isOpen && (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+              <p className="text-sm uppercase tracking-wide text-purple-600 font-semibold">Join Our Network</p>
+              <h1 className="text-3xl font-bold text-gray-900 mt-1">Register as a Professional</h1>
+              <p className="text-gray-600 mt-2">Provide your details. We keep your status pending and review website submissions before approval.</p>
+            </div>
+            <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full border border-purple-100">
+              <Image size={18} />
+              <span className="text-sm font-semibold">Profile review required</span>
+            </div>
+          </div>
+        )}
+        
+        {isOpen && (
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Register as Professional</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition"
+              type="button"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+          </div>
+        )}
 
         {message.text && (
           <div className={`mb-4 rounded-xl px-4 py-3 border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
@@ -254,18 +434,38 @@ const RegisterProfessional = () => {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+              
+              <div className="flex items-center gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={getCurrentLocation}
+                  disabled={locationLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition disabled:opacity-50"
+                >
+                  {locationLoading ? (
+                    <Loader className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Navigation className="w-4 h-4" />
+                  )}
+                  Use Current Location
+                </button>
+              </div>
+              
               <div className="relative">
                 <input
+                  ref={locationInputRef}
                   type="text"
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  placeholder="Enter your location or use autocomplete"
                   required
                 />
                 <MapPin className="absolute right-3 top-3 text-gray-400" size={18} />
               </div>
+              <p className="text-xs text-gray-500 mt-2">Start typing to see suggestions or use your current location</p>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">NIC Number *</label>
@@ -306,8 +506,8 @@ const RegisterProfessional = () => {
           </button>
         </form>
       </div>
-    </div>
-  );
+    );
+  }
 };
 
 export default RegisterProfessional;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Zap, Droplets, Snowflake, Camera, Paintbrush, Sparkles, GraduationCap, Wrench,
@@ -7,9 +7,13 @@ import {
   PlayCircle, TrendingUp, UserCheck, BadgeCheck, ShoppingBag, PhoneCall,
   Plug, Scissors, Wifi, Cctv, Lock, Hammer, Thermometer, Printer
 } from 'lucide-react';
+import BookService from '../bookService/BookService';
+import RegisterProfessional from '../professionalRegister/RegisterProfessional';
 
 export const Home = () => {
   const navigate = useNavigate();
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showProfessionalModal, setShowProfessionalModal] = useState(false);
 
   const serviceCategories = [
     { id: '1', name: 'Electrical', description: 'Wiring, switches, installations', icon: 'Zap', color: 'from-yellow-500 to-orange-500' },
@@ -109,14 +113,14 @@ export const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <button
-                onClick={() => navigate('/services')}
+                onClick={() => setShowBookingModal(true)}
                 className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300 flex items-center justify-center gap-2"
               >
                 Book a Service Now
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <button
-                onClick={() => navigate('/app/become-pro')}
+                onClick={() => setShowProfessionalModal(true)}
                 className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white px-8 py-4 rounded-xl font-semibold text-lg hover:border-blue-500 dark:hover:border-blue-500 transition-all duration-300"
               >
                 Become a Professional
@@ -330,7 +334,7 @@ export const Home = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => navigate('/services')}
+              onClick={() => setShowBookingModal(true)}
               className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
               Book a Service Now
@@ -344,6 +348,16 @@ export const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Modals */}
+      <BookService 
+        isOpen={showBookingModal} 
+        onClose={() => setShowBookingModal(false)} 
+      />
+      <RegisterProfessional 
+        isOpen={showProfessionalModal} 
+        onClose={() => setShowProfessionalModal(false)} 
+      />
 
       <style>{`
         .bg-grid-pattern {

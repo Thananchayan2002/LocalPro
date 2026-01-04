@@ -8,11 +8,11 @@ const fs = require('fs');
 
 // Ensure a matching User account exists for a professional by phone/password
 const ensureUserAccount = async ({ name, email, phone, password }) => {
-    if (!phone || !password) {
+    if (!phone ) {
         return { error: 'Phone and password are required to create the linked user account' };
     }
 
-    // Check if user already exists by phone
+    // Check if user already exists by phone 
     const existingByPhone = await User.findOne({ phone });
     if (existingByPhone) {
         return { user: existingByPhone, created: false };

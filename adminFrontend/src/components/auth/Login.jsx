@@ -42,7 +42,7 @@ export const Login = () => {
 
             if (result.success) {
                 navigate('/dashboard');
-            } else {
+            } else { 
                 setError(result.message);
             }
         } catch (err) {

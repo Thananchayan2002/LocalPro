@@ -17,7 +17,6 @@ export const Sidebar = ({ isOpen, onClose }) => {
     { path: '/worker/bookings', icon: Calendar, label: 'Bookings' },
     { path: '/worker/payments', icon: CreditCard, label: 'Payments' },
     { path: '/worker/services', icon: Briefcase, label: 'Services' },
-    { path: '/worker/revenue', icon: TrendingUp, label: 'Revenue' },
     { path: '/worker/notifications', icon: Bell, label: 'Notifications' },
     { path: '/worker/account', icon: UserCog, label: 'Account' },
   ];

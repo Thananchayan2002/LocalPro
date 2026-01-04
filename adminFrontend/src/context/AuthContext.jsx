@@ -37,6 +37,11 @@ export const AuthProvider = ({ children }) => {
                 throw new Error(data.message || 'Login failed');
             }
 
+            // Check if user role is admin
+            if (data.user.role !== 'admin') {
+                return { success: false, message: 'Invalid credentials' };
+            }
+
             // Store token and user data
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
