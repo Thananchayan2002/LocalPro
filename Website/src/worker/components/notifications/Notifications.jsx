@@ -9,6 +9,49 @@ const getAuthHeaders = (token) => {
   return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 };
 
+// Calculate distance between two coordinates using Haversine formula (in km)
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+};
+
+// Check if booking should be shown based on time and distance
+const shouldShowBooking = (booking, professionalLat, professionalLng) => {
+  const createdAt = new Date(booking.createdAt);
+  const now = new Date();
+  const timeDiffMinutes = (now - createdAt) / (1000 * 60);
+
+  // If booking is older than 30 minutes, show to all professionals in same district
+  if (timeDiffMinutes > 30) {
+    console.log(`Booking ${booking._id} is ${timeDiffMinutes.toFixed(0)} minutes old, showing to all in district`);
+    return true;
+  }
+
+  // If booking is less than 30 minutes old, check distance
+  if (!professionalLat || !professionalLng || !booking.location?.lat || !booking.location?.lng) {
+    // If coordinates not available, fall back to showing all in district
+    console.log(`Booking ${booking._id} or professional missing coordinates, showing anyway`);
+    return true;
+  }
+
+  const distance = calculateDistance(
+    professionalLat,
+    professionalLng,
+    booking.location.lat,
+    booking.location.lng
+  );
+
+  console.log(`Booking ${booking._id} is ${timeDiffMinutes.toFixed(0)} minutes old, distance: ${distance.toFixed(2)} km`);
+  return distance <= 10; // Show only if within 10km
+};
+
 export const Notifications = () => {
   const { user: contextUser, token } = useAuth();
   const [bookings, setBookings] = useState([]);
@@ -22,6 +65,89 @@ export const Notifications = () => {
   const [loadingCustomer, setLoadingCustomer] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successBooking, setSuccessBooking] = useState(null);
+  const [pushSubscription, setPushSubscription] = useState(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  // Register Service Worker and request push notification permission
+  useEffect(() => {
+    const setupPushNotifications = async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.log('Push notifications not supported');
+        return;
+      }
+
+      try {
+        // Register service worker
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered:', registration);
+
+        // Request notification permission
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
+
+        if (permission === 'granted') {
+          setNotificationsEnabled(true);
+        }
+      } catch (error) {
+        console.error('Service Worker registration failed:', error);
+      }
+    };
+
+    setupPushNotifications();
+  }, []);
+
+  // Subscribe to push notifications when user and service are available
+  useEffect(() => {
+    if (!userWithService || !userWithService.service || !userWithService.district || !notificationsEnabled || !token) {
+      return;
+    }
+
+    const subscribeToPush = async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+
+        // Get VAPID public key from backend
+        const keyResponse = await fetch(`${API_BASE_URL}/api/push/vapid-public-key`);
+        const keyData = await keyResponse.json();
+        
+        if (!keyData.success || !keyData.publicKey) {
+          console.error('Failed to get VAPID public key');
+          return;
+        }
+
+        // Subscribe to push notifications
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: keyData.publicKey
+        });
+
+        console.log('Push subscription created:', subscription);
+        setPushSubscription(subscription);
+
+        // Send subscription to backend
+        const response = await fetch(`${API_BASE_URL}/api/push/subscribe`, {
+          method: 'POST',
+          headers: getAuthHeaders(token),
+          body: JSON.stringify({
+            subscription: subscription.toJSON(),
+            service: userWithService.service,
+            district: userWithService.district
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          console.log('Successfully subscribed to push notifications');
+          setMessage({ type: 'success', text: '🔔 Push notifications enabled!' });
+          setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        }
+      } catch (error) {
+        console.error('Push subscription failed:', error);
+      }
+    };
+
+    subscribeToPush();
+  }, [userWithService?.service, userWithService?.district, notificationsEnabled, token]);
 
   // Fetch professional details using same logic as Account.jsx
   useEffect(() => {
@@ -74,10 +200,14 @@ export const Notifications = () => {
           setUserWithService({
             ...contextUser,
             service: serviceName,
-            district: professionalData.district
+            district: professionalData.district,
+            location: professionalData.location,
+            lat: professionalData.lat,
+            lng: professionalData.lng
           });
           console.log('Professional data loaded:', professionalData);
           console.log('Service extracted:', serviceName);
+          console.log('Coordinates:', { lat: professionalData.lat, lng: professionalData.lng });
         } else {
           setUserWithService(contextUser);
         }
@@ -108,22 +238,17 @@ export const Notifications = () => {
         if (data.success) {
           const allBookings = Array.isArray(data.bookings) ? data.bookings : Array.isArray(data.data) ? data.data : [];
           const filtered = allBookings.filter(booking => {
-            const matches = (
+            // First check service and district match
+            const basicMatch = (
               booking.status === 'requested' &&
               booking.service === userWithService.service &&
               booking.location?.district === userWithService.district
             );
-            console.log('Filtering booking:', {
-              service: booking.service,
-              userService: userWithService.service,
-              serviceMatch: booking.service === userWithService.service,
-              district: booking.location?.district,
-              userDistrict: userWithService.district,
-              districtMatch: booking.location?.district === userWithService.district,
-              statusMatch: booking.status === 'requested',
-              matches
-            });
-            return matches;
+            
+            if (!basicMatch) return false;
+            
+            // Then check time and distance
+            return shouldShowBooking(booking, userWithService.lat, userWithService.lng);
           });
           console.log('Filtered bookings:', filtered);
           setBookings(filtered);
@@ -156,11 +281,13 @@ export const Notifications = () => {
       
       // Check if this booking matches professional's service and district
       const booking = data.booking;
-      if (
+      const basicMatch = (
         booking.status === 'requested' &&
         booking.service === userWithService.service &&
         booking.location?.district === userWithService.district
-      ) {
+      );
+      
+      if (basicMatch && shouldShowBooking(booking, userWithService.lat, userWithService.lng)) {
         console.log('Adding new matching booking to list');
         setBookings(prevBookings => {
           // Check if booking already exists
@@ -178,6 +305,26 @@ export const Notifications = () => {
       }
     });
 
+    socket.on('bookingStatusUpdate', (data) => {
+      console.log('Booking status update received via WebSocket:', data);
+      
+      // If a booking is assigned, remove it from the list
+      if (data.status === 'assigned') {
+        setBookings(prevBookings => {
+          const filtered = prevBookings.filter(b => b._id !== data.bookingId);
+          // Show message only if the booking was in our list
+          if (filtered.length < prevBookings.length) {
+            setMessage({ 
+              type: 'info', 
+              text: 'A job was just accepted by another professional' 
+            });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          }
+          return filtered;
+        });
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log('WebSocket disconnected');
     });
@@ -185,7 +332,19 @@ export const Notifications = () => {
     return () => {
       socket.disconnect();
     };
-  }, [userWithService?.service, userWithService?.district]);
+  }, [userWithService?.service, userWithService?.district, userWithService?.lat, userWithService?.lng]);
+
+  // Periodic check to refresh bookings (for bookings that pass the 30-minute threshold)
+  useEffect(() => {
+    if (!userWithService || !userWithService.service || !userWithService.district) return;
+
+    const interval = setInterval(() => {
+      // Re-fetch bookings every minute to update the list based on time threshold
+      fetchBookings();
+    }, 60000); // Check every 1 minute
+
+    return () => clearInterval(interval);
+  }, [userWithService?.service, userWithService?.district, userWithService?.lat, userWithService?.lng, token]);
 
   // Calculate deadline time (scheduled time + duration)
   const getDeadlineTime = (scheduledTime, duration) => {
@@ -213,22 +372,17 @@ export const Notifications = () => {
       if (data.success) {
         const allBookings = Array.isArray(data.bookings) ? data.bookings : Array.isArray(data.data) ? data.data : [];
         const filtered = allBookings.filter(booking => {
-          const matches = (
+          // First check service and district match
+          const basicMatch = (
             booking.status === 'requested' &&
             booking.service === userWithService.service &&
             booking.location?.district === userWithService.district
           );
-          console.log('Filtering booking:', {
-            service: booking.service,
-            userService: userWithService.service,
-            serviceMatch: booking.service === userWithService.service,
-            district: booking.location?.district,
-            userDistrict: userWithService.district,
-            districtMatch: booking.location?.district === userWithService.district,
-            statusMatch: booking.status === 'requested',
-            matches
-          });
-          return matches;
+          
+          if (!basicMatch) return false;
+          
+          // Then check time and distance
+          return shouldShowBooking(booking, userWithService.lat, userWithService.lng);
         });
         console.log('Filtered bookings:', filtered);
         setBookings(filtered);
@@ -364,7 +518,7 @@ export const Notifications = () => {
     );
   }
 
-  const userInfo = `Service: ${userWithService.service || 'N/A'}, District: ${userWithService.district || 'N/A'}`;
+  const userInfo = `Service: ${userWithService.service || 'N/A'}, District: ${userWithService.district || 'N/A'}${userWithService.location ? `, Location: ${userWithService.location}` : ''}`;
 
   return (
     <div className="p-6">
@@ -411,7 +565,33 @@ export const Notifications = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {bookings.map((booking) => (
+          {bookings.map((booking) => {
+            // Calculate distance if coordinates are available
+            let distance = null;
+            if (userWithService.lat && userWithService.lng && booking.location?.lat && booking.location?.lng) {
+              distance = calculateDistance(
+                userWithService.lat,
+                userWithService.lng,
+                booking.location.lat,
+                booking.location.lng
+              );
+              console.log('Distance calculated:', {
+                professionalLat: userWithService.lat,
+                professionalLng: userWithService.lng,
+                bookingLat: booking.location.lat,
+                bookingLng: booking.location.lng,
+                distance: distance.toFixed(1)
+              });
+            } else {
+              console.log('Missing coordinates for distance calculation:', {
+                professionalLat: userWithService.lat,
+                professionalLng: userWithService.lng,
+                bookingLat: booking.location?.lat,
+                bookingLng: booking.location?.lng
+              });
+            }
+
+            return (
             <div key={booking._id} className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden hover:shadow-md transition">
               <div className="p-4">
                 {/* Top Section - Service and Status */}
@@ -430,11 +610,22 @@ export const Notifications = () => {
 
                 {/* Details Grid */}
                 <div className="space-y-2 mb-3">
-                  {/* Location */}
+                  {/* Location with Distance */}
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 font-medium">Location</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-500 font-medium">Location</p>
+                        {distance !== null ? (
+                          <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">
+                            {distance.toFixed(1)} km away
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded">
+                            Distance N/A
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-900 truncate">{booking.location?.address}</p>
                     </div>
                   </div>
@@ -454,6 +645,24 @@ export const Notifications = () => {
                       </p>
                     </div>
                   </div>
+
+                  {/* Booked Time */}
+                  {booking.createdAt && (
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500 font-medium">Booked At</p>
+                        <p className="text-sm text-gray-900">
+                          {new Date(booking.createdAt).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Button */}
@@ -468,7 +677,8 @@ export const Notifications = () => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -544,6 +754,16 @@ export const Notifications = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <MapPin className="w-4 h-4 text-green-600" />
                   <p className="text-xs text-green-700 font-semibold uppercase">Location</p>
+                  {userWithService.lat && userWithService.lng && selectedBooking.location?.lat && selectedBooking.location?.lng && (
+                    <span className="ml-auto text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded">
+                      {calculateDistance(
+                        userWithService.lat,
+                        userWithService.lng,
+                        selectedBooking.location.lat,
+                        selectedBooking.location.lng
+                      ).toFixed(1)} km away
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-900">{selectedBooking.location?.address}</p>
                 {selectedBooking.location?.district && (

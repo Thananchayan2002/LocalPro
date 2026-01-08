@@ -9,6 +9,7 @@ import { Dashboard } from './components/dashboard/Dashboard';
 import { Services } from './components/services/Services';
 import { Professionals } from './components/professionals/Professionals';
 import { Bookings } from './components/bookings/Bookings';
+import { ActiveBookings } from './components/bookings/ActiveBookings';
 import { Payments } from './components/payments/Payments';
 import { Revenue } from './components/revenue/Revenue';
 import { Notifications } from './components/notifications/Notifications';
@@ -33,6 +34,7 @@ function App() {
             <Route path='dashboard' element={<Dashboard />} />
             <Route path='services' element={<Services />} />
             <Route path='professionals' element={<Professionals />} />
+            <Route path='active-bookings' element={<ActiveBookings />} />
             <Route path='bookings' element={<Bookings />} />
             <Route path='payments' element={<Payments />} />
             <Route path='revenue' element={<Revenue />} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import {
     Users,
@@ -49,6 +49,8 @@ export const Professionals = () => {
         experience: '',
         district: '',
         location: '',
+        lat: null,
+        lng: null,
         nicNumber: '',
         password: '',
         confirmPassword: ''
@@ -56,6 +58,10 @@ export const Professionals = () => {
     const [imagePreview, setImagePreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const locationInputRef = useRef(null);
+    const autocompleteRef = useRef(null);
+    const editLocationInputRef = useRef(null);
+    const editAutocompleteRef = useRef(null);
 
     // Confirm modal state for status toggle
     const [confirmModal, setConfirmModal] = useState({
@@ -70,6 +76,8 @@ export const Professionals = () => {
     const [deniedProfessionals, setDeniedProfessionals] = useState([]);
     const [approveProfessional, setApproveProfessional] = useState(null);
     const [approveForm, setApproveForm] = useState({});
+    const [viewPendingProfessional, setViewPendingProfessional] = useState(null);
+    const [viewDeniedProfessional, setViewDeniedProfessional] = useState(null);
 
     // Fetch services
     const fetchServices = async () => {
@@ -81,6 +89,144 @@ export const Professionals = () => {
             }
         } catch (error) {
             toast.error('Failed to fetch services');
+        }
+    };
+
+    // Load Google Maps script
+    useEffect(() => {
+        const loadGoogleMapsScript = () => {
+            if (window.google && window.google.maps && window.google.maps.places) {
+                initializeAutocomplete();
+                return;
+            }
+
+            window.initGoogleMaps = () => {
+                initializeAutocomplete();
+            };
+
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        };
+
+        if (activeTab === 'manual') {
+            loadGoogleMapsScript();
+        }
+    }, [activeTab]);
+
+    // Initialize edit autocomplete when edit modal opens
+    useEffect(() => {
+        if (editProfessional) {
+            const loadAndInitialize = () => {
+                if (window.google && window.google.maps && window.google.maps.places) {
+                    setTimeout(() => initializeEditAutocomplete(), 200);
+                } else {
+                    // Load script if not loaded
+                    if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
+                        const script = document.createElement('script');
+                        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+                        script.async = true;
+                        script.onload = () => {
+                            setTimeout(() => initializeEditAutocomplete(), 200);
+                        };
+                        document.head.appendChild(script);
+                    } else {
+                        // Script is loading, wait for it
+                        setTimeout(loadAndInitialize, 500);
+                    }
+                }
+            };
+            loadAndInitialize();
+        }
+    }, [editProfessional]);
+
+    // Initialize Google Maps Autocomplete
+    const initializeAutocomplete = () => {
+        if (locationInputRef.current && window.google && window.google.maps.places) {
+            const autocomplete = new window.google.maps.places.Autocomplete(
+                locationInputRef.current,
+                {
+                    types: ['geocode'],
+                    componentRestrictions: { country: 'lk' }
+                }
+            );
+
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                
+                if (!place.geometry) {
+                    toast.error('Please select a valid location from the suggestions');
+                    return;
+                }
+
+                let district = '';
+                if (place.address_components) {
+                    place.address_components.forEach(component => {
+                        const types = component.types;
+                        if (types.includes('administrative_area_level_2')) {
+                            district = component.long_name;
+                        } else if (types.includes('administrative_area_level_1') && !district) {
+                            district = component.long_name;
+                        }
+                    });
+                }
+
+                setManualForm(prev => ({
+                    ...prev,
+                    location: place.formatted_address,
+                    lat: place.geometry.location.lat(),
+                    lng: place.geometry.location.lng(),
+                    district: district || prev.district
+                }));
+            });
+
+            autocompleteRef.current = autocomplete;
+        }
+    };
+
+    // Initialize autocomplete for edit modal
+    const initializeEditAutocomplete = () => {
+        if (editLocationInputRef.current && window.google && window.google.maps.places) {
+            const autocomplete = new window.google.maps.places.Autocomplete(
+                editLocationInputRef.current,
+                {
+                    types: ['geocode'],
+                    componentRestrictions: { country: 'lk' }
+                }
+            );
+
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                
+                if (!place.geometry) {
+                    toast.error('Please select a valid location from the suggestions');
+                    return;
+                }
+
+                let district = '';
+                if (place.address_components) {
+                    place.address_components.forEach(component => {
+                        const types = component.types;
+                        if (types.includes('administrative_area_level_2')) {
+                            district = component.long_name;
+                        } else if (types.includes('administrative_area_level_1') && !district) {
+                            district = component.long_name;
+                        }
+                    });
+                }
+
+                setEditForm(prev => ({
+                    ...prev,
+                    location: place.formatted_address,
+                    lat: place.geometry.location.lat(),
+                    lng: place.geometry.location.lng(),
+                    district: district || prev.district
+                }));
+            });
+
+            editAutocompleteRef.current = autocomplete;
         }
     };
 
@@ -218,6 +364,8 @@ export const Professionals = () => {
             formData.append('experience', manualForm.experience);
             formData.append('district', manualForm.district);
             formData.append('location', manualForm.location);
+            if (manualForm.lat) formData.append('lat', manualForm.lat);
+            if (manualForm.lng) formData.append('lng', manualForm.lng);
             formData.append('nicNumber', manualForm.nicNumber);
             formData.append('password', manualForm.password);
             formData.append('way', 'manual');
@@ -247,6 +395,8 @@ export const Professionals = () => {
                     experience: '',
                     district: '',
                     location: '',
+                    lat: null,
+                    lng: null,
                     nicNumber: '',
                     password: '',
                     confirmPassword: ''
@@ -612,6 +762,8 @@ export const Professionals = () => {
                                                                     experience: prof.experience,
                                                                     district: prof.district,
                                                                     location: prof.location,
+                                                                    lat: prof.lat || null,
+                                                                    lng: prof.lng || null,
                                                                     nicNumber: prof.nicNumber
                                                                 });
                                                             }}
@@ -738,15 +890,22 @@ export const Professionals = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Location *
+                                        Location * (Select from Google suggestions)
                                     </label>
                                     <input
+                                        ref={locationInputRef}
                                         type="text"
                                         value={manualForm.location}
                                         onChange={(e) => setManualForm({ ...manualForm, location: e.target.value })}
+                                        placeholder="Start typing to search location..."
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
                                         required
                                     />
+                                    {manualForm.lat && manualForm.lng && (
+                                        <p className="text-xs text-green-600 mt-1">
+                                            ✓ Location coordinates captured
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -875,6 +1034,13 @@ export const Professionals = () => {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
+                                                            onClick={() => setViewPendingProfessional(prof)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            title="View Details"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        <button
                                                             onClick={() => {
                                                                 setApproveProfessional(prof);
                                                                 setApproveForm({
@@ -929,12 +1095,13 @@ export const Professionals = () => {
                                         <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">District</th>
                                         <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Experience</th>
                                         <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">NIC</th>
+                                        <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                     {deniedProfessionals.length === 0 ? (
                                         <tr>
-                                            <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
+                                            <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
                                                 No denied professionals
                                             </td>
                                         </tr>
@@ -960,6 +1127,17 @@ export const Professionals = () => {
                                                 <td className="px-6 py-4 text-sm text-gray-600">{prof.district}</td>
                                                 <td className="px-6 py-4 text-sm text-gray-600">{prof.experience} years</td>
                                                 <td className="px-6 py-4 text-sm text-gray-600">{prof.nicNumber}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center justify-center">
+                                                        <button
+                                                            onClick={() => setViewDeniedProfessional(prof)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            title="View Details"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -1000,9 +1178,18 @@ export const Professionals = () => {
                                 <div><strong>Rating:</strong> ⭐ {viewProfessional.rating}</div>
                                 <div><strong>Total Jobs:</strong> {viewProfessional.totalJobs}</div>
                                 <div><strong>District:</strong> {viewProfessional.district}</div>
-                                <div><strong>Location:</strong> {viewProfessional.location}</div>
+                                <div className="col-span-2">
+                                    <strong>Location:</strong>
+                                    <div className="mt-1 p-2 bg-gray-50 rounded border border-gray-200 text-gray-700">
+                                        {viewProfessional.location}
+                                    </div>
+                                    {viewProfessional.lat && viewProfessional.lng && (
+                                        <div className="mt-1 text-xs text-gray-500">
+                                            📍 Coordinates: {viewProfessional.lat.toFixed(6)}, {viewProfessional.lng.toFixed(6)}
+                                        </div>
+                                    )}
+                                </div>
                                 <div><strong>NIC:</strong> {viewProfessional.nicNumber}</div>
-                                <div><strong>Email (Login):</strong> {viewProfessional.email || 'N/A'}</div>
                                 <div><strong>Status:</strong> {viewProfessional.status}</div>
                             </div>
                         </div>
@@ -1101,14 +1288,21 @@ export const Professionals = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Location * (Select from Google suggestions)</label>
                                     <input
+                                        ref={editLocationInputRef}
                                         type="text"
                                         value={editForm.location || ''}
                                         onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                                        placeholder="Start typing to search location..."
                                         className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
                                         required
                                     />
+                                    {editForm.lat && editForm.lng && (
+                                        <p className="text-xs text-green-600 mt-1">
+                                            ✓ Location coordinates captured
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">NIC *</label>
@@ -1332,6 +1526,102 @@ export const Professionals = () => {
                             >
                                 Cancel
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Pending Professional Modal */}
+            {viewPendingProfessional && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-gray-800">Pending Professional Details</h3>
+                            <button
+                                onClick={() => setViewPendingProfessional(null)}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            {viewPendingProfessional.profileImage && (
+                                <img
+                                    src={`${API_BASE_URL}/${viewPendingProfessional.profileImage}`}
+                                    alt={viewPendingProfessional.name}
+                                    className="w-32 h-32 object-cover rounded-lg mx-auto"
+                                />
+                            )}
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div><strong>Name:</strong> {viewPendingProfessional.name}</div>
+                                <div><strong>Email:</strong> {viewPendingProfessional.email || 'N/A'}</div>
+                                <div><strong>Phone:</strong> {viewPendingProfessional.phone}</div>
+                                <div><strong>Service:</strong> {viewPendingProfessional.serviceId?.service || 'N/A'}</div>
+                                <div><strong>Experience:</strong> {viewPendingProfessional.experience} years</div>
+                                <div><strong>District:</strong> {viewPendingProfessional.district}</div>
+                                <div className="col-span-2">
+                                    <strong>Location:</strong>
+                                    <div className="mt-1 p-2 bg-gray-50 rounded border border-gray-200 text-gray-700">
+                                        {viewPendingProfessional.location}
+                                    </div>
+                                    {viewPendingProfessional.lat && viewPendingProfessional.lng && (
+                                        <div className="mt-1 text-xs text-gray-500">
+                                            📍 Coordinates: {viewPendingProfessional.lat.toFixed(6)}, {viewPendingProfessional.lng.toFixed(6)}
+                                        </div>
+                                    )}
+                                </div>
+                                <div><strong>NIC:</strong> {viewPendingProfessional.nicNumber}</div>
+                                <div><strong>Status:</strong> <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">Pending</span></div>
+                                <div className="col-span-2"><strong>Registration Method:</strong> {viewPendingProfessional.way}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Denied Professional Modal */}
+            {viewDeniedProfessional && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-gray-800">Denied Professional Details</h3>
+                            <button
+                                onClick={() => setViewDeniedProfessional(null)}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            {viewDeniedProfessional.profileImage && (
+                                <img
+                                    src={`${API_BASE_URL}/${viewDeniedProfessional.profileImage}`}
+                                    alt={viewDeniedProfessional.name}
+                                    className="w-32 h-32 object-cover rounded-lg mx-auto"
+                                />
+                            )}
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div><strong>Name:</strong> {viewDeniedProfessional.name}</div>
+                                <div><strong>Email:</strong> {viewDeniedProfessional.email || 'N/A'}</div>
+                                <div><strong>Phone:</strong> {viewDeniedProfessional.phone}</div>
+                                <div><strong>Service:</strong> {viewDeniedProfessional.serviceId?.service || 'N/A'}</div>
+                                <div><strong>Experience:</strong> {viewDeniedProfessional.experience} years</div>
+                                <div><strong>District:</strong> {viewDeniedProfessional.district}</div>
+                                <div className="col-span-2">
+                                    <strong>Location:</strong>
+                                    <div className="mt-1 p-2 bg-gray-50 rounded border border-gray-200 text-gray-700">
+                                        {viewDeniedProfessional.location}
+                                    </div>
+                                    {viewDeniedProfessional.lat && viewDeniedProfessional.lng && (
+                                        <div className="mt-1 text-xs text-gray-500">
+                                            📍 Coordinates: {viewDeniedProfessional.lat.toFixed(6)}, {viewDeniedProfessional.lng.toFixed(6)}
+                                        </div>
+                                    )}
+                                </div>
+                                <div><strong>NIC:</strong> {viewDeniedProfessional.nicNumber}</div>
+                                <div><strong>Status:</strong> <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Denied</span></div>
+                                <div className="col-span-2"><strong>Registration Method:</strong> {viewDeniedProfessional.way}</div>
+                            </div>
                         </div>
                     </div>
                 </div>

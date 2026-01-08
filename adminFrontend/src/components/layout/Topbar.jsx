@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Bell, LogOut, LayoutDashboard, Briefcase, Users, Calendar, CreditCard, TrendingUp, UserCog } from 'lucide-react';
+import { Menu, Bell, LogOut, LayoutDashboard, Briefcase, Users, Calendar, ClipboardList, CreditCard, TrendingUp, UserCog } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -16,6 +16,7 @@ export const Topbar = ({ onMenuClick }) => {
     if (path === '/' || path === '/dashboard') return { title: 'Dashboard', icon: LayoutDashboard };
     if (path === '/services') return { title: 'Services', icon: Briefcase };
     if (path === '/professionals') return { title: 'Professionals', icon: Users };
+    if (path === '/active-bookings') return { title: 'Active Bookings', icon: ClipboardList };
     if (path === '/bookings') return { title: 'Bookings', icon: Calendar };
     if (path === '/payments') return { title: 'Payments', icon: CreditCard };
     if (path === '/revenue') return { title: 'Revenue', icon: TrendingUp };
