@@ -61,6 +61,14 @@ const professionalSchema = new mongoose.Schema({
         required: [true, 'Location is required'],
         trim: true
     },
+    lat: {
+        type: Number,
+        default: null
+    },
+    lng: {
+        type: Number,
+        default: null
+    },
     nicNumber: {
         type: String,
         required: [true, 'NIC number is required'],

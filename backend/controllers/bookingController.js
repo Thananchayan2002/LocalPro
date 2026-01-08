@@ -4,6 +4,8 @@ const Service = require('../models/Service');
 const Payment = require('../models/Payment');
 const Professional = require('../models/Professional');
 const ClientReview = require('../models/ClientReview');
+const WorkerReview = require('../models/WorkerReview');
+const pushNotificationController = require('./pushNotificationController');
 
 // Create a new booking
 exports.createBooking = async (req, res) => {
@@ -77,6 +79,28 @@ exports.createBooking = async (req, res) => {
                 district: booking.location.district
             });
         }
+
+        // Send push notifications to matching workers
+        const district = booking.location.district;
+        pushNotificationController.sendToMatchingWorkers(
+            service,
+            district,
+            {
+                title: '🔔 New Job Available!',
+                body: `New ${issueType} request in ${district}`,
+                icon: '/icon-192x192.png',
+                badge: '/badge-72x72.png',
+                tag: `booking-${booking._id}`,
+                url: '/worker/notifications',
+                bookingId: booking._id.toString(),
+                service: service,
+                district: district
+            }
+        ).then(result => {
+            console.log('Push notification result:', result);
+        }).catch(error => {
+            console.error('Push notification error:', error);
+        });
 
         res.status(201).json({
             success: true,
@@ -235,7 +259,7 @@ exports.updateBookingStatus = async (req, res) => {
         const { status, professionalId } = req.body;
 
         const validStatuses = ['requested', 'assigned', 'inspecting', 'approved', 'inProgress', 'completed', 'cancelled', 'paid', 'verified'];
-        
+
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -296,6 +320,18 @@ exports.updateBookingStatus = async (req, res) => {
 
         await booking.populate('customerId', 'name email phone');
         await booking.populate('professionalId', 'name email phone');
+
+        // Emit status update event via Socket.io
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('bookingStatusUpdate', {
+                bookingId: booking._id,
+                booking: booking.toObject(),
+                status: booking.status,
+                service: booking.service,
+                district: booking.location?.district
+            });
+        }
 
         res.status(200).json({
             success: true,
@@ -395,7 +431,7 @@ exports.getProfessionalByPhone = async (req, res) => {
         const { phone } = req.params;
 
         const Professional = require('../models/Professional');
-        
+
         const professional = await Professional.findOne({ phone })
             .select('service district phone name email');
 
@@ -499,3 +535,63 @@ exports.completeBooking = async (req, res) => {
         });
     }
 };
+
+// Get all bookings with detailed information (admin only)
+exports.getAllBookingsDetailed = async (req, res) => {
+    try {
+        const { status, service } = req.query;
+
+        let query = {};
+        if (status) query.status = status;
+        if (service) query.service = service;
+
+        const bookings = await Booking.find(query)
+            .populate('customerId', 'name email phone')
+            .populate('professionalId', 'name email phone')
+            .sort({ createdAt: -1 });
+
+        // Fetch related data for each booking
+        const bookingsWithDetails = await Promise.all(
+            bookings.map(async (booking) => {
+                // Fetch payment
+                const payment = await Payment.findOne({ bookingId: booking._id });
+
+                // Fetch client review
+                const clientReview = await ClientReview.findOne({ bookingId: booking._id });
+
+                // Fetch worker review
+                const workerReview = await WorkerReview.findOne({ bookingId: booking._id });
+
+                return {
+                    ...booking.toObject(),
+                    payment: payment ? {
+                        paymentByUser: payment.paymentByUser,
+                        paymentByWorker: payment.paymentByWorker
+                    } : null,
+                    clientReview: clientReview ? {
+                        rating: clientReview.rating,
+                        comment: clientReview.comment
+                    } : null,
+                    workerReview: workerReview ? {
+                        rating: workerReview.rating,
+                        comment: workerReview.comment
+                    } : null
+                };
+            })
+        );
+
+        res.status(200).json({
+            success: true,
+            data: bookingsWithDetails,
+            count: bookingsWithDetails.length
+        });
+
+    } catch (error) {
+        console.error('Get all bookings detailed error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again later.'
+        });
+    }
+};
+

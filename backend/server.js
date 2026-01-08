@@ -58,11 +58,13 @@ const issueRoutes = require("./routes/issueRoutes");
 const professionalRoutes = require("./routes/professionalRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const pushNotificationRoutes = require("./routes/pushNotificationRoutes");
 app.use("/api/services", serviceRoutes);
 app.use("/api/issues", issueRoutes);
 app.use("/api/professionals", professionalRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/push", pushNotificationRoutes);
 
 console.log(process.env.MONGO_URI);
 

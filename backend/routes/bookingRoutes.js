@@ -15,6 +15,7 @@ router.post('/complete-booking', protect, bookingController.completeBooking);
 
 // Admin routes (protected)
 router.get('/all', protect, bookingController.getAllBookings);
+router.get('/all-detailed', protect, bookingController.getAllBookingsDetailed);
 router.put('/update-status/:id', protect, bookingController.updateBookingStatus);
 router.delete('/:id', protect, bookingController.deleteBooking);
 
