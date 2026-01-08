@@ -1,30 +1,30 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import toast, { Toaster } from 'react-hot-toast';
-import { Phone, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
-import loginBG from '../assets/loginBG.jfif';
-import { BlockedAccountModal } from '../worker/components/auth/BlockedAccountModal';
-import { useAuth } from '../worker/context/AuthContext';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import toast, { Toaster } from "react-hot-toast";
+import { Phone, Lock, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import loginBG from "../assets/loginBG.jfif";
+import { BlockedAccountModal } from "../worker/components/auth/BlockedAccountModal";
+import { useAuth } from "../worker/context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const { setAuthData } = useAuth();
 
-  const [formData, setFormData] = useState({ username: '', password: '' });
+  const [formData, setFormData] = useState({ username: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showBlockedModal, setShowBlockedModal] = useState(false);
-  const [blockedError, setBlockedError] = useState('');
+  const [blockedError, setBlockedError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setBlockedError('');
+    setError("");
+    setBlockedError("");
     setShowBlockedModal(false);
 
     if (!formData.username || !formData.password) {
-      setError('Please enter both phone number and password');
+      setError("Please enter both phone number and password");
       return;
     }
 
@@ -32,31 +32,35 @@ const Login = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_BASE_URL;
       const res = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: formData.username.trim(),
-          password: formData.password
-        })
+          password: formData.password,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
         // Handle status-based responses
-        if (data?.code === 'paused' && data?.message) {
+        if (data?.code === "paused" && data?.message) {
           setBlockedError(data.message);
           setShowBlockedModal(true);
           return;
         }
 
-        if (data?.code === 'blocked') {
-          toast.error(data.message || 'Account blocked. Please contact administrator.');
+        if (data?.code === "blocked") {
+          toast.error(
+            data.message || "Account blocked. Please contact administrator."
+          );
           return;
         }
 
-        setError(data?.message || 'Login failed. Please check your credentials.');
-        toast.error(data?.message || 'Invalid phone or password');
+        setError(
+          data?.message || "Login failed. Please check your credentials."
+        );
+        toast.error(data?.message || "Invalid phone or password");
         return;
       }
 
@@ -64,19 +68,19 @@ const Login = () => {
       if (data.token && data.user) {
         setAuthData(data.token, data.user);
 
-        if (data.user.role === 'professional') {
-          navigate('/worker/dashboard', { replace: true });
-        } else if (data.user.role === 'customer') {
-          navigate('/app', { replace: true });
+        if (data.user.role === "professional") {
+          navigate("/worker/dashboard", { replace: true });
+        } else if (data.user.role === "customer") {
+          navigate("/app", { replace: true });
         } else {
-          navigate('/', { replace: true });
+          navigate("/", { replace: true });
         }
       } else {
-        toast.error('Login response missing token or user data');
+        toast.error("Login response missing token or user data");
       }
     } catch (err) {
-      console.error('Login error:', err);
-      toast.error('Network error. Please try again.');
+      console.error("Login error:", err);
+      toast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -117,7 +121,10 @@ const Login = () => {
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-shake">
-              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
+              <AlertCircle
+                className="text-red-500 flex-shrink-0 mt-0.5"
+                size={20}
+              />
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
@@ -126,19 +133,27 @@ const Login = () => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Phone Field */}
             <div>
-              <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label
+                htmlFor="username"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
                 Phone Number
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Phone className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
+                  <Phone
+                    className="text-gray-400 group-focus-within:text-purple-500 transition-colors"
+                    size={20}
+                  />
                 </div>
                 <input
                   type="text"
                   id="username"
                   name="username"
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
                   className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
                   placeholder="Enter your phone number"
                   required
@@ -148,19 +163,27 @@ const Login = () => {
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
                 Password
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
+                  <Lock
+                    className="text-gray-400 group-focus-within:text-purple-500 transition-colors"
+                    size={20}
+                  />
                 </div>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   className="block w-full pl-12 pr-12 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
                   placeholder="••••••••"
                   required
@@ -171,9 +194,15 @@ const Login = () => {
                   className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-purple-600 transition-colors"
                 >
                   {showPassword ? (
-                    <EyeOff className="text-gray-400 hover:text-purple-500" size={20} />
+                    <EyeOff
+                      className="text-gray-400 hover:text-purple-500"
+                      size={20}
+                    />
                   ) : (
-                    <Eye className="text-gray-400 hover:text-purple-500" size={20} />
+                    <Eye
+                      className="text-gray-400 hover:text-purple-500"
+                      size={20}
+                    />
                   )}
                 </button>
               </div>
@@ -202,7 +231,7 @@ const Login = () => {
           {/* Signup Link */}
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <a
                 href="/signup"
                 className="text-purple-600 hover:text-purple-700 font-semibold transition-colors"

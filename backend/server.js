@@ -7,6 +7,7 @@ const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const workerAuthRoutes = require("./routes/workerAuthRoutes");
+const otpRoutes = require("./routes/otpRoutes");
 
 dotenv.config();
 
@@ -18,23 +19,27 @@ const server = http.createServer(app);
 
 // Setup Socket.io with CORS
 const io = new Server(server, {
-    cors: {
-        origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-        credentials: true
-    }
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:3000",
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
+  },
 });
 
 // Make io accessible to routes
-app.set('io', io);
+app.set("io", io);
 
 // Socket.io connection handling
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
 
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-    });
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
 });
 
 app.use(cors());
@@ -46,6 +51,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/worker", workerAuthRoutes);
+app.use("/api/otp", otpRoutes);
 
 const serviceRoutes = require("./routes/serviceRoutes");
 const issueRoutes = require("./routes/issueRoutes");
@@ -61,7 +67,5 @@ app.use("/api/reviews", reviewRoutes);
 console.log(process.env.MONGO_URI);
 
 // Server start
-const PORT = process.env.PORT || 5000; 
-server.listen(PORT, () =>
-    console.log(`Server running on port ${PORT}`)
-);
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

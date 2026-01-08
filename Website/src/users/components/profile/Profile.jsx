@@ -1,133 +1,342 @@
-import React, { useState } from 'react';
-import { 
-  User, Mail, Phone, MapPin, Lock, Calendar, Shield,
-  Edit2, Save, Camera, LogOut, Eye, EyeOff, Key,
-  Navigation, Globe, CheckCircle, AlertCircle, Clock,
-  Home, Settings, CreditCard, Heart, Bell
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Lock,
+  Calendar,
+  Shield,
+  Edit2,
+  Save,
+  Camera,
+  LogOut,
+  Eye,
+  EyeOff,
+  Key,
+  Navigation,
+  Globe,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Home,
+  Settings,
+  CreditCard,
+  Heart,
+  Bell,
+  Loader2,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export const Profile = () => {
+  const navigate = useNavigate();
+
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [profileData, setProfileData] = useState({
-    // User Data
-    name: 'Rajesh Kumar',
-    email: 'rajesh.kumar@example.com',
-    phone: '+94 77 123 4567',
-    role: 'customer',
-    
-    // Location Data
-    location: {
-      city: 'Colombo',
-      area: 'Colombo 07',
-      lat: 6.9271,
-      lng: 79.8612
-    },
-    
-    // Additional Info
-    lastLogin: '2024-01-15 14:30:45',
-    status: 'active',
-    joinedDate: '2023-05-20',
-    
-    // Password (for display only)
-    passwordHash: '••••••••',
-    
-    // Additional fields
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh',
-    notifications: true,
-    newsletter: true
-  });
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState(null);
+  const [formData, setFormData] = useState({});
 
-  const [formData, setFormData] = useState({ ...profileData });
+  // Fetch user profile on component mount
+  useEffect(() => {
+    fetchUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        toast.error("Please login to view your profile");
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to fetch profile");
+      }
+
+      const safeLocation =
+        data.user?.location &&
+        typeof data.user.location === "object" &&
+        data.user.location !== null
+          ? data.user.location
+          : { city: "", area: "", lat: "", lng: "" };
+
+      // Transform backend data to match component structure
+      const userData = {
+        name: data.user.name || "",
+        email: data.user.email || "",
+        phone: data.user.phoneNumber || data.user.phone || "",
+        role: data.user.role || "customer",
+        location: safeLocation,
+        lastLogin: data.user.lastLogin || "",
+        status: data.user.status || "active",
+        joinedDate: data.user.createdAt
+          ? new Date(data.user.createdAt).toLocaleDateString()
+          : "",
+        profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${
+          data.user.name || "User"
+        }`,
+        notifications: true,
+        newsletter: true,
+      };
+
+      setProfileData(userData);
+      setFormData(userData);
+    } catch (error) {
+      console.error("Fetch profile error:", error);
+      toast.error(error.message || "Failed to load profile");
+      if (
+        (error?.message || "").toLowerCase().includes("token") ||
+        (error?.message || "").toLowerCase().includes("auth")
+      ) {
+        navigate("/login");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleLocationChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       location: {
-        ...prev.location,
-        [name]: value
-      }
+        ...(prev.location || { city: "", area: "", lat: "", lng: "" }),
+        [name]: value,
+      },
     }));
   };
 
+  const validateForm = () => {
+    const name = (formData?.name || "").trim();
+    const email = (formData?.email || "").trim();
+    const phone = (formData?.phone || "").trim();
+
+    if (!name) {
+      toast.error("Name is required");
+      return false;
+    }
+
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!emailOk) {
+      toast.error("Please enter a valid email address");
+      return false;
+    }
+
+    // Allow +, spaces, and dashes; validate digits length (basic but strict)
+    const digits = phone.replace(/[^\d]/g, "");
+    if (!digits || digits.length < 9 || digits.length > 15) {
+      toast.error("Please enter a valid phone number");
+      return false;
+    }
+
+    // Optional but safe: if location object exists, ensure it has required keys (can be empty)
+    if (formData?.location && typeof formData.location !== "object") {
+      toast.error("Invalid location data");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSave = () => {
+    if (!validateForm()) return;
+
     // Here you would typically save to backend
     setProfileData(formData);
     setIsEditing(false);
+    toast.success("Profile updated successfully");
   };
 
   const handleCancel = () => {
     setFormData({ ...profileData });
     setIsEditing(false);
+    toast("Changes discarded");
   };
 
   const handlePasswordChange = () => {
-    // Password change logic would go here
-    alert('Password change functionality would open a modal');
+    toast("Password change modal will be added here");
   };
 
   const handleLogout = () => {
-    // Logout logic
-    alert('Logging out...');
+    localStorage.removeItem("token");
+    toast.success("Logged out successfully");
+    navigate("/login");
   };
 
   const statusColors = {
-    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    blocked: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    pause: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+    active:
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    blocked: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+    pending:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+    pause: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
   };
 
   const roleColors = {
-    customer: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    professional: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-    admin: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    customer:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    professional:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    admin: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   };
 
-  const quickActions = [
-    { icon: <Home className="w-5 h-5" />, label: 'My Bookings', action: () => alert('Navigate to bookings') },
-    { icon: <CreditCard className="w-5 h-5" />, label: 'Payment Methods', action: () => alert('Navigate to payments') },
-    { icon: <Heart className="w-5 h-5" />, label: 'Favorites', action: () => alert('Navigate to favorites') },
-    { icon: <Settings className="w-5 h-5" />, label: 'Settings', action: () => alert('Navigate to settings') },
-  ];
+  const quickActions = useMemo(
+    () => [
+      {
+        icon: <Home className="w-5 h-5" />,
+        label: "My Bookings",
+        action: () => toast("Navigate to bookings"),
+      },
+      {
+        icon: <CreditCard className="w-5 h-5" />,
+        label: "Payment Methods",
+        action: () => toast("Navigate to payments"),
+      },
+      {
+        icon: <Heart className="w-5 h-5" />,
+        label: "Favorites",
+        action: () => toast("Navigate to favorites"),
+      },
+      {
+        icon: <Settings className="w-5 h-5" />,
+        label: "Settings",
+        action: () => toast("Navigate to settings"),
+      },
+    ],
+    []
+  );
 
   const activityLog = [
-    { id: 1, action: 'Logged in', timestamp: '2024-01-15 14:30:45', device: 'Mobile Chrome' },
-    { id: 2, action: 'Booked Electrical Service', timestamp: '2024-01-14 10:15:22', device: 'Desktop Safari' },
-    { id: 3, action: 'Updated Profile', timestamp: '2024-01-12 16:45:10', device: 'Mobile App' },
-    { id: 4, action: 'Reviewed Professional', timestamp: '2024-01-10 09:30:05', device: 'Desktop Chrome' },
+    {
+      id: 1,
+      action: "Logged in",
+      timestamp: "2024-01-15 14:30:45",
+      device: "Mobile Chrome",
+    },
+    {
+      id: 2,
+      action: "Booked Electrical Service",
+      timestamp: "2024-01-14 10:15:22",
+      device: "Desktop Safari",
+    },
+    {
+      id: 3,
+      action: "Updated Profile",
+      timestamp: "2024-01-12 16:45:10",
+      device: "Mobile App",
+    },
+    {
+      id: 4,
+      action: "Reviewed Professional",
+      timestamp: "2024-01-10 09:30:05",
+      device: "Desktop Chrome",
+    },
   ];
+
+  const location = formData?.location || {
+    city: "",
+    area: "",
+    lat: "",
+    lng: "",
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 flex items-center justify-center px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-sm text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 font-medium">
+            Loading profile...
+          </p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+            Please wait a moment
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // No profile data
+  if (!profileData) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 flex items-center justify-center px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-sm text-center">
+          <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <p className="text-gray-900 dark:text-white font-bold text-lg">
+            Failed to load profile
+          </p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+            Please try again.
+          </p>
+          <button
+            onClick={fetchUserProfile}
+            className="mt-5 w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer font-medium"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const joinedText = profileData.joinedDate ? profileData.joinedDate : "N/A";
+  const lastLoginText = profileData.lastLogin
+    ? new Date(profileData.lastLogin).toLocaleString()
+    : "N/A";
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Profile</h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage your account information and preferences</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              My Profile
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Manage your account information and preferences
+            </p>
           </div>
-          <div className="flex gap-3">
+
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             {isEditing ? (
               <>
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="w-full sm:w-auto px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer font-medium flex items-center justify-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   Save Changes
@@ -137,14 +346,17 @@ export const Profile = () => {
               <>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer font-medium flex items-center justify-center gap-2"
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
                 </button>
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  onClick={() => {
+                    setIsEditing(true);
+                    toast("Editing enabled");
+                  }}
+                  className="w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer font-medium flex items-center justify-center gap-2"
                 >
                   <Edit2 className="w-4 h-4" />
                   Edit Profile
@@ -154,84 +366,170 @@ export const Profile = () => {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Profile Overview */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main */}
+          <div className="lg:col-span-2 space-y-6">
             {/* Profile Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-6">
-                <div className="relative">
-                  <img
-                    src={formData.profileImage}
-                    alt="Profile"
-                    className="w-32 h-32 rounded-2xl border-4 border-blue-100 dark:border-blue-900"
-                  />
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6">
+                <div className="relative shrink-0">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-4 border-blue-100 dark:border-blue-900 bg-gray-50 dark:bg-gray-700 shadow">
+                    <img
+                      src={formData.profileImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
                   {isEditing && (
-                    <button className="absolute bottom-2 right-2 bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toast("Profile photo upload will be added here")
+                      }
+                      className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow"
+                      aria-label="Change profile photo"
+                    >
                       <Camera className="w-4 h-4" />
                     </button>
                   )}
                 </div>
-                
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-3 mb-4">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white w-full md:w-auto"
-                        />
-                      ) : (
-                        profileData.name
-                      )}
-                    </h2>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${roleColors[profileData.role]}`}>
-                      {profileData.role.toUpperCase()}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[profileData.status]}`}>
-                      {profileData.status.toUpperCase()}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Mail className="w-5 h-5 text-gray-400" />
-                      {isEditing ? (
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white"
-                        />
-                      ) : (
-                        <span className="text-gray-600 dark:text-gray-300">{profileData.email}</span>
-                      )}
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="min-w-0">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            name="name"
+                            value={formData.name || ""}
+                            onChange={handleInputChange}
+                            className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white font-bold text-xl sm:text-2xl outline-none"
+                            placeholder="Your name"
+                            autoComplete="name"
+                          />
+                        ) : (
+                          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white truncate">
+                            {profileData.name}
+                          </h2>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            roleColors[profileData.role]
+                          }`}
+                        >
+                          {profileData.role.toUpperCase()}
+                        </span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            statusColors[profileData.status]
+                          }`}
+                        >
+                          {profileData.status.toUpperCase()}
+                        </span>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-5 h-5 text-gray-400" />
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white"
-                        />
-                      ) : (
-                        <span className="text-gray-600 dark:text-gray-300">{profileData.phone}</span>
-                      )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                          <Mail className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Email
+                          </div>
+                          {isEditing ? (
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email || ""}
+                              onChange={handleInputChange}
+                              className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white outline-none"
+                              placeholder="name@email.com"
+                              autoComplete="email"
+                              inputMode="email"
+                            />
+                          ) : (
+                            <div className="text-gray-900 dark:text-white truncate">
+                              {profileData.email || "N/A"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                          <Phone className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Phone
+                          </div>
+                          {isEditing ? (
+                            <input
+                              type="tel"
+                              name="phone"
+                              value={formData.phone || ""}
+                              onChange={handleInputChange}
+                              className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white outline-none"
+                              placeholder="+94 7X XXX XXXX"
+                              autoComplete="tel"
+                              inputMode="tel"
+                            />
+                          ) : (
+                            <div className="text-gray-900 dark:text-white truncate">
+                              {profileData.phone || "N/A"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 sm:col-span-2">
+                        <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                          <Calendar className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            Joined
+                          </div>
+                          <div className="text-gray-900 dark:text-white">
+                            {joinedText}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <Calendar className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-600 dark:text-gray-300">
-                        Joined: {new Date(profileData.joinedDate).toLocaleDateString()}
-                      </span>
+
+                    <div className="pt-2">
+                      <div className="h-px bg-gray-100 dark:bg-gray-700" />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toast("Verification details will be added here")
+                        }
+                        className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Verified
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toast("Account settings will be added here")
+                        }
+                        className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Account Settings
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -239,68 +537,96 @@ export const Profile = () => {
             </div>
 
             {/* Location Information */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
-              <div className="flex items-center gap-2 mb-6">
-                <MapPin className="w-5 h-5 text-blue-600" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Location Information</h3>
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 sm:p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-blue-600" />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Location Information
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    Keep your location up to date for better service matching
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     City
                   </label>
                   {isEditing ? (
                     <input
                       type="text"
                       name="city"
-                      value={formData.location.city}
+                      value={location.city || ""}
                       onChange={handleLocationChange}
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white"
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white outline-none"
+                      placeholder="Enter city"
                     />
                   ) : (
                     <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
-                      {profileData.location.city}
+                      {(profileData.location && profileData.location.city) ||
+                        "N/A"}
                     </div>
                   )}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Area
                   </label>
                   {isEditing ? (
                     <input
                       type="text"
                       name="area"
-                      value={formData.location.area}
+                      value={location.area || ""}
                       onChange={handleLocationChange}
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white"
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white outline-none"
+                      placeholder="Enter area"
                     />
                   ) : (
                     <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
-                      {profileData.location.area}
+                      {(profileData.location && profileData.location.area) ||
+                        "N/A"}
                     </div>
                   )}
                 </div>
               </div>
-              
+
               <div className="mt-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Google Map Coordinates
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Latitude</div>
-                    <div className="font-mono text-gray-900 dark:text-white">{profileData.location.lat}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Latitude
+                    </div>
+                    <div className="font-mono text-gray-900 dark:text-white">
+                      {(profileData.location && profileData.location.lat) ||
+                        "N/A"}
+                    </div>
                   </div>
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Longitude</div>
-                    <div className="font-mono text-gray-900 dark:text-white">{profileData.location.lng}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Longitude
+                    </div>
+                    <div className="font-mono text-gray-900 dark:text-white">
+                      {(profileData.location && profileData.location.lng) ||
+                        "N/A"}
+                    </div>
                   </div>
                 </div>
-                
-                <button className="mt-4 flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+
+                <button
+                  type="button"
+                  onClick={() => toast("Google Maps view will be added here")}
+                  className="mt-4 inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer font-medium"
+                >
                   <Navigation className="w-4 h-4" />
                   View on Google Maps
                 </button>
@@ -308,82 +634,92 @@ export const Profile = () => {
             </div>
 
             {/* Security Settings */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Shield className="w-5 h-5 text-green-600" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Security & Account</h3>
-              </div>
-              
-              <div className="space-y-6">
-                {/* Password */}
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Password
-                    </label>
-                    <button
-                      onClick={handlePasswordChange}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
-                    >
-                      <Key className="w-4 h-4" />
-                      Change Password
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Lock className="w-5 h-5 text-gray-400" />
-                    <div className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg font-mono">
-                      {showPassword ? 'password123' : '••••••••'}
-                    </div>
-                    <button
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 sm:p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-green-600" />
                 </div>
-
-                {/* Last Login */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Security & Account
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    Manage login and notification preferences
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Last Login */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Last Login
                   </label>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <Clock className="w-5 h-5 text-gray-400" />
                     <span className="text-gray-900 dark:text-white">
-                      {new Date(profileData.lastLogin).toLocaleString()}
+                      {lastLoginText}
                     </span>
                   </div>
                 </div>
 
                 {/* Notification Settings */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Notification Preferences
                   </label>
+
                   <div className="space-y-3">
-                    <label className="flex items-center gap-3 cursor-pointer">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        checked={formData.notifications}
-                        onChange={(e) => setFormData(prev => ({ ...prev, notifications: e.target.checked }))}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        checked={!!formData.notifications}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            notifications: e.target.checked,
+                          }))
+                        }
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         disabled={!isEditing}
                       />
-                      <Bell className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-700 dark:text-gray-300">Push Notifications</span>
+                      <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                        <Bell className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-gray-900 dark:text-white font-medium">
+                          Push Notifications
+                        </div>
+                        <div className="text-gray-600 dark:text-gray-400 text-sm">
+                          Get updates about bookings and account activity
+                        </div>
+                      </div>
                     </label>
-                    
-                    <label className="flex items-center gap-3 cursor-pointer">
+
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        checked={formData.newsletter}
-                        onChange={(e) => setFormData(prev => ({ ...prev, newsletter: e.target.checked }))}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        checked={!!formData.newsletter}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            newsletter: e.target.checked,
+                          }))
+                        }
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         disabled={!isEditing}
                       />
-                      <Mail className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-700 dark:text-gray-300">Email Newsletter</span>
+                      <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
+                        <Mail className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-gray-900 dark:text-white font-medium">
+                          Email Newsletter
+                        </div>
+                        <div className="text-gray-600 dark:text-gray-400 text-sm">
+                          Receive product updates and offers by email
+                        </div>
+                      </div>
                     </label>
                   </div>
                 </div>
@@ -391,55 +727,55 @@ export const Profile = () => {
             </div>
           </div>
 
-          {/* Right Column - Quick Actions & Stats */}
+          {/* Side */}
           <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h3>
-              <div className="space-y-3">
-                {quickActions.map((action, index) => (
-                  <button
-                    key={index}
-                    onClick={action.action}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                      {action.icon}
-                    </div>
-                    <span className="font-medium text-gray-900 dark:text-white">{action.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Account Stats */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Account Overview</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 sm:p-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                Account Overview
+              </h3>
+
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Account Status</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[profileData.status]}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Account Status
+                  </span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      statusColors[profileData.status]
+                    }`}
+                  >
                     {profileData.status.toUpperCase()}
                   </span>
                 </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Account Type</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${roleColors[profileData.role]}`}>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Account Type
+                  </span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      roleColors[profileData.role]
+                    }`}
+                  >
                     {profileData.role.toUpperCase()}
                   </span>
                 </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Member Since</span>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Member Since
+                  </span>
                   <span className="font-medium text-gray-900 dark:text-white">
-                    {new Date(profileData.joinedDate).toLocaleDateString()}
+                    {joinedText}
                   </span>
                 </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Verification</span>
-                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Verification
+                  </span>
+                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
                     <CheckCircle className="w-4 h-4" />
                     Verified
                   </span>
@@ -448,35 +784,35 @@ export const Profile = () => {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Recent Activity</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 sm:p-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+                Recent Activity
+              </h3>
+
               <div className="space-y-4">
                 {activityLog.map((activity) => (
-                  <div key={activity.id} className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium text-gray-900 dark:text-white">{activity.action}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                  <div
+                    key={activity.id}
+                    className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {activity.action}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          <Globe className="w-4 h-4" />
+                          {activity.device}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-xs text-gray-500 dark:text-gray-500">
                         {new Date(activity.timestamp).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Globe className="w-4 h-4" />
-                      {activity.device}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Support Card */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-2xl p-6">
-              <h3 className="font-bold text-lg mb-3">Need Help?</h3>
-              <p className="text-blue-100 mb-4">
-                Our support team is here to help you with any questions or issues.
-              </p>
-              <button className="w-full bg-white text-blue-600 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors">
-                Contact Support
-              </button>
             </div>
           </div>
         </div>
