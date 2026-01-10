@@ -1,87 +1,135 @@
-import React, { useState } from 'react';
-import { 
-  Star, MessageSquare, ThumbsUp, ThumbsDown, Send, 
-  CheckCircle, Award, Users, Quote, Star as StarIcon,
-  AlertCircle, Smile, Frown, Meh
-} from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Star,
+  MessageSquare,
+  ThumbsUp,
+  ThumbsDown,
+  Send,
+  CheckCircle,
+  Award,
+  Users,
+  Quote,
+  Star as StarIcon,
+  AlertCircle,
+  Smile,
+  Frown,
+  Meh,
+} from "lucide-react";
 
 export const Feedback = () => {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [feedbackType, setFeedbackType] = useState('general');
+  const [feedbackType, setFeedbackType] = useState("general");
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-    experience: 'good'
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+    experience: "good",
   });
   const [submitted, setSubmitted] = useState(false);
 
   const feedbackTypes = [
-    { id: 'general', label: 'General Feedback', icon: <MessageSquare className="w-5 h-5" /> },
-    { id: 'suggestion', label: 'Suggestion', icon: <ThumbsUp className="w-5 h-5" /> },
-    { id: 'issue', label: 'Report Issue', icon: <AlertCircle className="w-5 h-5" /> },
-    { id: 'feature', label: 'Feature Request', icon: <Award className="w-5 h-5" /> },
+    {
+      id: "general",
+      label: "General Feedback",
+      icon: <MessageSquare className="w-5 h-5" />,
+    },
+    {
+      id: "suggestion",
+      label: "Suggestion",
+      icon: <ThumbsUp className="w-5 h-5" />,
+    },
+    {
+      id: "issue",
+      label: "Report Issue",
+      icon: <AlertCircle className="w-5 h-5" />,
+    },
+    {
+      id: "feature",
+      label: "Feature Request",
+      icon: <Award className="w-5 h-5" />,
+    },
   ];
 
   const experiences = [
-    { id: 'excellent', label: 'Excellent', icon: <Smile className="w-6 h-6" />, color: 'text-green-600' },
-    { id: 'good', label: 'Good', icon: <Smile className="w-6 h-6" />, color: 'text-blue-600' },
-    { id: 'average', label: 'Average', icon: <Meh className="w-6 h-6" />, color: 'text-yellow-600' },
-    { id: 'poor', label: 'Poor', icon: <Frown className="w-6 h-6" />, color: 'text-red-600' },
+    {
+      id: "excellent",
+      label: "Excellent",
+      icon: <Smile className="w-6 h-6" />,
+      color: "text-green-600",
+    },
+    {
+      id: "good",
+      label: "Good",
+      icon: <Smile className="w-6 h-6" />,
+      color: "text-blue-600",
+    },
+    {
+      id: "average",
+      label: "Average",
+      icon: <Meh className="w-6 h-6" />,
+      color: "text-yellow-600",
+    },
+    {
+      id: "poor",
+      label: "Poor",
+      icon: <Frown className="w-6 h-6" />,
+      color: "text-red-600",
+    },
   ];
 
   const testimonials = [
     {
-      name: 'Rajesh Kumar',
+      name: "Rajesh Kumar",
       rating: 5,
-      comment: 'The website is incredibly easy to use! Found a plumber within minutes.',
-      date: '2 days ago',
-      type: 'suggestion'
+      comment:
+        "The website is incredibly easy to use! Found a plumber within minutes.",
+      date: "2 days ago",
+      type: "suggestion",
     },
     {
-      name: 'Priya Silva',
+      name: "Priya Silva",
       rating: 4,
-      comment: 'Great platform. Would love to see more payment options.',
-      date: '1 week ago',
-      type: 'feature'
+      comment: "Great platform. Would love to see more payment options.",
+      date: "1 week ago",
+      type: "feature",
     },
     {
-      name: 'Kamal Perera',
+      name: "Kamal Perera",
       rating: 5,
-      comment: 'Best service platform in Sri Lanka. Keep up the good work!',
-      date: '2 weeks ago',
-      type: 'general'
+      comment: "Best service platform in Sri Lanka. Keep up the good work!",
+      date: "2 weeks ago",
+      type: "general",
     },
   ];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Here you would typically send the feedback to your backend
-    console.log('Feedback submitted:', { ...formData, rating, feedbackType });
-    
+    console.log("Feedback submitted:", { ...formData, rating, feedbackType });
+
     // Show success message
     setSubmitted(true);
-    
+
     // Reset form after 3 seconds
     setTimeout(() => {
       setSubmitted(false);
       setRating(0);
       setFormData({
-        name: '',
-        email: '',
-        subject: '',
-        message: '',
-        experience: 'good'
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+        experience: "good",
       });
     }, 3000);
   };
@@ -97,13 +145,14 @@ export const Feedback = () => {
               <span className="text-sm">We Value Your Opinion</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Share Your{' '}
+              Share Your{" "}
               <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
                 Feedback
               </span>
             </h1>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl">
-              Help us improve LocalPro. Your feedback is important to make our platform better for everyone.
+              Help us improve LocalPro. Your feedback is important to make our
+              platform better for everyone.
             </p>
           </div>
         </div>
@@ -123,7 +172,8 @@ export const Feedback = () => {
                     Thank You for Your Feedback!
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    We appreciate you taking the time to share your thoughts with us.
+                    We appreciate you taking the time to share your thoughts
+                    with us.
                   </p>
                 </div>
               ) : (
@@ -131,7 +181,7 @@ export const Feedback = () => {
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                     Share Your Thoughts
                   </h2>
-                  
+
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Overall Rating */}
                     <div>
@@ -151,14 +201,14 @@ export const Feedback = () => {
                             <Star
                               className={`w-10 h-10 transition-colors ${
                                 (hoverRating || rating) >= star
-                                  ? 'text-yellow-500 fill-yellow-500'
-                                  : 'text-gray-300 dark:text-gray-600'
+                                  ? "text-yellow-500 fill-yellow-500"
+                                  : "text-gray-300 dark:text-gray-600"
                               }`}
                             />
                           </button>
                         ))}
                         <span className="ml-4 text-lg font-semibold text-gray-900 dark:text-white">
-                          {rating > 0 ? `${rating}/5` : 'Select rating'}
+                          {rating > 0 ? `${rating}/5` : "Select rating"}
                         </span>
                       </div>
                     </div>
@@ -173,11 +223,16 @@ export const Feedback = () => {
                           <button
                             key={exp.id}
                             type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, experience: exp.id }))}
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                experience: exp.id,
+                              }))
+                            }
                             className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-300 ${
                               formData.experience === exp.id
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700"
                             }`}
                           >
                             <div className={`${exp.color} mb-2`}>
@@ -204,13 +259,11 @@ export const Feedback = () => {
                             onClick={() => setFeedbackType(type.id)}
                             className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-300 ${
                               feedbackType === type.id
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 text-gray-700 dark:text-gray-300'
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                                : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 text-gray-700 dark:text-gray-300"
                             }`}
                           >
-                            <div className="mb-2">
-                              {type.icon}
-                            </div>
+                            <div className="mb-2">{type.icon}</div>
                             <span className="text-sm font-medium">
                               {type.label}
                             </span>
@@ -289,7 +342,8 @@ export const Feedback = () => {
                         Submit Feedback
                       </button>
                       <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-3">
-                        We read every piece of feedback and respond to important issues.
+                        We read every piece of feedback and respond to important
+                        issues.
                       </p>
                     </div>
                   </form>
@@ -304,12 +358,17 @@ export const Feedback = () => {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
               <div className="flex items-center gap-2 mb-6">
                 <Quote className="w-5 h-5 text-blue-600" />
-                <h3 className="font-bold text-gray-900 dark:text-white">Recent Feedback</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white">
+                  Recent Feedback
+                </h3>
               </div>
-              
+
               <div className="space-y-4">
                 {testimonials.map((testimonial, index) => (
-                  <div key={index} className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
+                  <div
+                    key={index}
+                    className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0"
+                  >
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="font-semibold text-gray-900 dark:text-white">
                         {testimonial.name}
@@ -318,7 +377,11 @@ export const Feedback = () => {
                         {[...Array(5)].map((_, i) => (
                           <StarIcon
                             key={i}
-                            className={`w-4 h-4 ${i < testimonial.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300 dark:text-gray-600'}`}
+                            className={`w-4 h-4 ${
+                              i < testimonial.rating
+                                ? "text-yellow-500 fill-yellow-500"
+                                : "text-gray-300 dark:text-gray-600"
+                            }`}
                           />
                         ))}
                       </div>
@@ -330,14 +393,17 @@ export const Feedback = () => {
                       <span className="text-xs text-gray-500 dark:text-gray-500">
                         {testimonial.date}
                       </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        testimonial.type === 'suggestion' 
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                          : testimonial.type === 'feature'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                      }`}>
-                        {testimonial.type.charAt(0).toUpperCase() + testimonial.type.slice(1)}
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          testimonial.type === "suggestion"
+                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                            : testimonial.type === "feature"
+                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {testimonial.type.charAt(0).toUpperCase() +
+                          testimonial.type.slice(1)}
                       </span>
                     </div>
                   </div>
@@ -372,23 +438,33 @@ export const Feedback = () => {
 
             {/* Tips */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h3 className="font-bold text-gray-900 dark:text-white mb-4">Tips for Great Feedback</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4">
+                Tips for Great Feedback
+              </h3>
               <ul className="space-y-3">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Be specific about what you like or dislike</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Be specific about what you like or dislike
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Include suggestions for improvement</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Include suggestions for improvement
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Share your use case or scenario</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Share your use case or scenario
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Mention what worked well for you</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Mention what worked well for you
+                  </span>
                 </li>
               </ul>
             </div>
@@ -402,36 +478,43 @@ export const Feedback = () => {
               Why Your Feedback Matters
             </h2>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              We use your feedback to continuously improve LocalPro. Every suggestion helps us 
-              create a better experience for both customers and professionals.
+              We use your feedback to continuously improve LocalPro. Every
+              suggestion helps us create a better experience for both customers
+              and professionals.
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
               <div className="text-center">
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h4 className="font-bold text-gray-900 dark:text-white">Community Driven</h4>
+                <h4 className="font-bold text-gray-900 dark:text-white">
+                  Community Driven
+                </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   We build features based on what our users need most
                 </p>
               </div>
-              
+
               <div className="text-center">
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
                   <ThumbsUp className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
-                <h4 className="font-bold text-gray-900 dark:text-white">Continuous Improvement</h4>
+                <h4 className="font-bold text-gray-900 dark:text-white">
+                  Continuous Improvement
+                </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   Regular updates based on user suggestions and feedback
                 </p>
               </div>
-              
+
               <div className="text-center">
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Award className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h4 className="font-bold text-gray-900 dark:text-white">Better Experience</h4>
+                <h4 className="font-bold text-gray-900 dark:text-white">
+                  Better Experience
+                </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   Your feedback helps us create a more user-friendly platform
                 </p>

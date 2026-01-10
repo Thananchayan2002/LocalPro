@@ -24,7 +24,7 @@ const STORAGE = {
 
 const OTP_LENGTH = 6;
 const OTP_EXPIRES_SECONDS = 300; // 5 minutes
-const RESEND_COOLDOWN_SECONDS = 30; // 30 seconds
+const RESEND_COOLDOWN_SECONDS = 300; // 5 minutes
 
 async function safeJson(res) {
   // Some servers return empty body or non-JSON on error

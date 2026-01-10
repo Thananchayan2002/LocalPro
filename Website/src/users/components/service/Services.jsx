@@ -312,9 +312,17 @@ export const Services = () => {
         loadingIssues={loadingIssues}
         onClose={handleCloseModal}
         getIconComponent={getIconComponent}
-        onBook={() => {
+        onBook={(issue) => {
           handleCloseModal();
-          navigate("/professionals");
+          navigate("/app", {
+            state: {
+              bookService: {
+                service: selectedService,
+                issueName: issue?.issueName,
+              },
+            },
+            replace: false,
+          });
         }}
       />
     </motion.div>

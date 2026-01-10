@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
 import { colors } from "../../../styles/colors";
 import StepIndicator from "./bookingService/StepIndicator";
@@ -7,7 +7,12 @@ import ServiceSelection from "./bookingService/ServiceSelection";
 import BookingDetailsForm from "./bookingService/BookingDetailsForm";
 import BookServiceMobile from "./BookServiceMobile";
 
-const BookService = ({ isOpen, onClose, initialService = null }) => {
+const BookService = ({
+  isOpen,
+  onClose,
+  initialService = null,
+  initialIssueName = "",
+}) => {
   const [step, setStep] = useState(1);
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
@@ -17,7 +22,6 @@ const BookService = ({ isOpen, onClose, initialService = null }) => {
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const locationInputRef = useRef(null);
-  const autocompleteRef = useRef(null);
 
   const [formData, setFormData] = useState({
     service: "",
@@ -47,11 +51,14 @@ const BookService = ({ isOpen, onClose, initialService = null }) => {
       const selected = { ...initialService, service: normalizedService };
       setSelectedService(selected);
       setFormData((prev) => ({ ...prev, service: normalizedService }));
+      if (initialIssueName) {
+        setFormData((prev) => ({ ...prev, issueType: initialIssueName }));
+      }
       setStep(2);
     } else if (isOpen && !initialService) {
       setStep(1);
     }
-  }, [isOpen, initialService]);
+  }, [isOpen, initialService, initialIssueName]);
 
   // Hide header and nav when modal is open
   useEffect(() => {
@@ -67,105 +74,6 @@ const BookService = ({ isOpen, onClose, initialService = null }) => {
       document.body.classList.remove("bookservice-mobile-open");
     };
   }, [isOpen]);
-
-  useEffect(() => {
-    const loadGoogleMapsScript = () => {
-      if (window.google && window.google.maps && window.google.maps.places) {
-        initializeAutocomplete();
-        return;
-      }
-
-      window.initGoogleMaps = () => {
-        initializeAutocomplete();
-      };
-
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${
-        import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-      }&libraries=places&callback=initGoogleMaps`;
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
-    };
-
-    if (isOpen && step === 2) {
-      loadGoogleMapsScript();
-    }
-  }, [isOpen, step]);
-
-  const initializeAutocomplete = () => {
-    if (
-      locationInputRef.current &&
-      window.google &&
-      window.google.maps.places
-    ) {
-      const autocomplete = new window.google.maps.places.Autocomplete(
-        locationInputRef.current,
-        {
-          types: ["geocode"],
-          componentRestrictions: { country: "lk" },
-        }
-      );
-
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-
-        if (!place.geometry) {
-          setError("Please select a valid location from the suggestions");
-          return;
-        }
-
-        // Extract location components from address_components
-        let city = "";
-        let district = "";
-        let area = "";
-
-        if (place.address_components) {
-          place.address_components.forEach((component) => {
-            const types = component.types;
-
-            if (types.includes("locality")) {
-              city = component.long_name;
-            } else if (types.includes("administrative_area_level_2")) {
-              district = component.long_name;
-            } else if (
-              types.includes("administrative_area_level_1") &&
-              !district
-            ) {
-              district = component.long_name;
-            } else if (
-              types.includes("sublocality") ||
-              types.includes("neighborhood")
-            ) {
-              area = component.long_name;
-            }
-          });
-        }
-
-        // Fallback: extract from formatted address if components not found
-        if (!city && !area) {
-          const parts = place.formatted_address.split(",");
-          area = parts[0]?.trim() || "";
-          city = parts[parts.length - 2]?.trim() || "";
-        }
-
-        setFormData((prev) => ({
-          ...prev,
-          location: {
-            address: place.formatted_address,
-            city: city,
-            district: district,
-            area: area || city,
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng(),
-          },
-        }));
-        setError("");
-      });
-
-      autocompleteRef.current = autocomplete;
-    }
-  };
 
   const fetchServices = async () => {
     try {
@@ -216,7 +124,7 @@ const BookService = ({ isOpen, onClose, initialService = null }) => {
     setError("");
   };
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
 
     if (name === "location.address") {
@@ -224,10 +132,16 @@ const BookService = ({ isOpen, onClose, initialService = null }) => {
         ...prev,
         location: { ...prev.location, address: value },
       }));
+    } else if (name === "location") {
+      // Handle location object from autocomplete
+      setFormData((prev) => ({
+        ...prev,
+        location: { ...prev.location, ...value },
+      }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
-  };
+  }, []);
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -333,6 +247,12 @@ const BookService = ({ isOpen, onClose, initialService = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevent accidental submission
+    if (step !== 2) {
+      return;
+    }
+
     setError("");
 
     if (
@@ -469,8 +389,11 @@ const BookService = ({ isOpen, onClose, initialService = null }) => {
               border border-gray-100
               shadow-2xl
               flex flex-col
-              overflow-hidden 
             "
+            style={{
+              overflow: "visible",
+              clipPath: "none",
+            }}
           >
             {/* Header (sticky) */}
             <div
@@ -514,10 +437,16 @@ const BookService = ({ isOpen, onClose, initialService = null }) => {
               className="
                 flex-1
                 overflow-y-auto
+                overflow-x-visible
                 px-4 py-5 sm:px-6 sm:py-6
                 space-y-6
                 pb-6 sm:pb-8
               "
+              style={{
+                position: "relative",
+                overflowY: "auto",
+                overflowX: "visible",
+              }}
             >
               <AlertMessages error={error} success={success} />
 

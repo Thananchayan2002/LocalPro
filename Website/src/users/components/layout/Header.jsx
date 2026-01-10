@@ -384,6 +384,7 @@ function Header() {
                   >
                     <NavLink
                       to={link.path}
+                      end={link.path === "/app"}
                       className={({ isActive }) =>
                         `relative text-sm font-medium cursor-pointer transition-colors ${
                           isActive

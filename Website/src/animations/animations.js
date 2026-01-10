@@ -9,6 +9,47 @@ import { useRef } from "react";
  * - Lighthouse-friendly
  * - Clean UX motion (no gimmicks)
  */
+
+// Standalone animation variants
+export const container = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+export const fadeUp = {
+  hidden: {
+    opacity: 0,
+    y: 24,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut",
+    },
+  },
+};
+
+export const fadeScale = {
+  hidden: {
+    opacity: 0,
+    scale: 0.96,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.45,
+      ease: "easeOut",
+    },
+  },
+};
 export const useAnimations = ({ scroll = false } = {}) => {
   const reduceMotion = useReducedMotion();
   const ref = useRef(null);

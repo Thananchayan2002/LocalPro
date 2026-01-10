@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Mail,
   Phone,
-  MapPin,
   Lock,
   Calendar,
   Shield,
@@ -13,7 +12,6 @@ import {
   Eye,
   EyeOff,
   Key,
-  Navigation,
   Globe,
   CheckCircle,
   AlertCircle,
@@ -75,13 +73,6 @@ export const Profile = () => {
         throw new Error(data.message || "Failed to fetch profile");
       }
 
-      const safeLocation =
-        data.user?.location &&
-        typeof data.user.location === "object" &&
-        data.user.location !== null
-          ? data.user.location
-          : { city: "", area: "", lat: "", lng: "" };
-
       // Transform backend data to match component structure
       const userData = {
         id: data.user?.id || data.user?._id || undefined,
@@ -89,7 +80,6 @@ export const Profile = () => {
         email: data.user.email || "",
         phone: data.user.phoneNumber || data.user.phone || "",
         role: data.user.role || "customer",
-        location: safeLocation,
         lastLogin: data.user.lastLogin || "",
         status: data.user.status || "active",
         joinedDate: data.user.createdAt
@@ -173,17 +163,6 @@ export const Profile = () => {
     }));
   };
 
-  const handleLocationChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      location: {
-        ...(prev.location || { city: "", area: "", lat: "", lng: "" }),
-        [name]: value,
-      },
-    }));
-  };
-
   const validateForm = () => {
     const name = (formData?.name || "").trim();
     const email = (formData?.email || "").trim();
@@ -204,12 +183,6 @@ export const Profile = () => {
     const digits = phone.replace(/[^\d]/g, "");
     if (!digits || digits.length < 9 || digits.length > 15) {
       toast.error("Please enter a valid phone number");
-      return false;
-    }
-
-    // Optional but safe: if location object exists, ensure it has required keys (can be empty)
-    if (formData?.location && typeof formData.location !== "object") {
-      toast.error("Invalid location data");
       return false;
     }
 
@@ -285,13 +258,6 @@ export const Profile = () => {
   );
 
   // activities state replaces hard-coded activityLog
-
-  const location = formData?.location || {
-    city: "",
-    area: "",
-    lat: "",
-    lng: "",
-  };
 
   // Loading state
   if (loading) {
@@ -534,129 +500,8 @@ export const Profile = () => {
                     <div className="pt-2">
                       <div className="h-px bg-gray-100 dark:bg-gray-700" />
                     </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toast("Verification details will be added here")
-                        }
-                        className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Verified
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toast("Account settings will be added here")
-                        }
-                        className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer font-medium flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Account Settings
-                      </button>
-                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Location Information */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5 sm:p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    Location Information
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Keep your location up to date for better service matching
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    City
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="city"
-                      value={location.city || ""}
-                      onChange={handleLocationChange}
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white outline-none"
-                      placeholder="Enter city"
-                    />
-                  ) : (
-                    <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
-                      {(profileData.location && profileData.location.city) ||
-                        "N/A"}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Area
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="area"
-                      value={location.area || ""}
-                      onChange={handleLocationChange}
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-white outline-none"
-                      placeholder="Enter area"
-                    />
-                  ) : (
-                    <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
-                      {(profileData.location && profileData.location.area) ||
-                        "N/A"}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Google Map Coordinates
-                </label>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Latitude
-                    </div>
-                    <div className="font-mono text-gray-900 dark:text-white">
-                      {(profileData.location && profileData.location.lat) ||
-                        "N/A"}
-                    </div>
-                  </div>
-                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Longitude
-                    </div>
-                    <div className="font-mono text-gray-900 dark:text-white">
-                      {(profileData.location && profileData.location.lng) ||
-                        "N/A"}
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => toast("Google Maps view will be added here")}
-                  className="mt-4 inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer font-medium"
-                >
-                  <Navigation className="w-4 h-4" />
-                  View on Google Maps
-                </button>
               </div>
             </div>
 
@@ -692,63 +537,7 @@ export const Profile = () => {
 
                 {/* Notification Settings */}
                 <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Notification Preferences
-                  </label>
-
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={!!formData.notifications}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            notifications: e.target.checked,
-                          }))
-                        }
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        disabled={!isEditing}
-                      />
-                      <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
-                        <Bell className="w-5 h-5 text-gray-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-gray-900 dark:text-white font-medium">
-                          Push Notifications
-                        </div>
-                        <div className="text-gray-600 dark:text-gray-400 text-sm">
-                          Get updates about bookings and account activity
-                        </div>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center gap-3 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={!!formData.newsletter}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            newsletter: e.target.checked,
-                          }))
-                        }
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        disabled={!isEditing}
-                      />
-                      <div className="w-10 h-10 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center">
-                        <Mail className="w-5 h-5 text-gray-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-gray-900 dark:text-white font-medium">
-                          Email Newsletter
-                        </div>
-                        <div className="text-gray-600 dark:text-gray-400 text-sm">
-                          Receive product updates and offers by email
-                        </div>
-                      </div>
-                    </label>
-                  </div>
+                  <div className="space-y-3"></div>
                 </div>
               </div>
             </div>

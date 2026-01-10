@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Navigation, Loader, AlertCircle, Check } from "lucide-react";
 import { colors } from "../../../../styles/colors";
@@ -14,11 +14,159 @@ const LocationInput = ({
   locationLoading,
 }) => {
   const { staggerContainer, staggerItem } = useAnimations();
-
   const [touched, setTouched] = useState(false);
+  const autocompleteRef = useRef(null);
+  const initializationAttemptedRef = useRef(false);
 
   const hasError = touched && !location.address;
   const isValid = !!location.address;
+
+  // Load Google Maps script if not already loaded
+  useEffect(() => {
+    if (window.google && window.google.maps && window.google.maps.places) {
+      return; // Already loaded
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${
+      import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    }&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script if needed
+    };
+  }, []);
+
+  // Initialize Google Maps Autocomplete - only once when ready
+  useEffect(() => {
+    // Only initialize once
+    if (initializationAttemptedRef.current) {
+      return;
+    }
+
+    if (
+      !locationInputRef.current ||
+      !window.google ||
+      !window.google.maps ||
+      !window.google.maps.places
+    ) {
+      // Google Maps not ready yet, try again in a moment
+      const timer = setTimeout(() => {
+        initializationAttemptedRef.current = false; // Reset to retry
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+
+    initializationAttemptedRef.current = true;
+
+    try {
+      // Clear any previous listeners on the input element
+      const inputElement = locationInputRef.current;
+      if (inputElement) {
+        // Clear all Google Maps event listeners from this element
+        window.google.maps.event.clearInstanceListeners(inputElement);
+      }
+
+      // Create autocomplete instance
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        inputElement,
+        {
+          types: ["geocode"],
+          componentRestrictions: { country: "lk" },
+          fields: [
+            "address_components",
+            "formatted_address",
+            "geometry",
+            "name",
+          ],
+        }
+      );
+
+      // Create stable place_changed handler
+      const handlePlaceChanged = () => {
+        const place = autocomplete.getPlace();
+
+        if (!place || !place.geometry) {
+          console.warn("Invalid place selected");
+          return;
+        }
+
+        // Extract location components
+        let city = "";
+        let district = "";
+        let area = "";
+
+        if (place.address_components && place.address_components.length > 0) {
+          place.address_components.forEach((component) => {
+            const types = component.types;
+
+            if (types.includes("locality")) {
+              city = component.long_name;
+            } else if (types.includes("administrative_area_level_2")) {
+              district = component.long_name;
+            } else if (
+              types.includes("administrative_area_level_1") &&
+              !district
+            ) {
+              district = component.long_name;
+            } else if (
+              types.includes("sublocality") ||
+              types.includes("neighborhood")
+            ) {
+              area = component.long_name;
+            }
+          });
+        }
+
+        // Fallback extraction
+        if (!city && !area) {
+          const parts = place.formatted_address.split(",");
+          area = parts[0]?.trim() || "";
+          city = parts[parts.length - 2]?.trim() || "";
+        }
+
+        // Update location via onChange
+        onChange({
+          target: {
+            name: "location",
+            value: {
+              address: place.formatted_address,
+              city: city,
+              district: district,
+              area: area || city,
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng(),
+            },
+          },
+        });
+
+        setTouched(true);
+      };
+
+      // Add listener to autocomplete
+      autocomplete.addListener("place_changed", handlePlaceChanged);
+
+      // Store reference for cleanup
+      autocompleteRef.current = autocomplete;
+
+      console.log("Autocomplete initialized successfully");
+    } catch (error) {
+      console.error("Error initializing autocomplete:", error);
+      initializationAttemptedRef.current = false; // Allow retry on error
+    }
+
+    // Cleanup function
+    return () => {
+      if (autocompleteRef.current && locationInputRef.current) {
+        window.google.maps.event.clearInstanceListeners(
+          locationInputRef.current
+        );
+      }
+    };
+  }, []); // Empty dependency array - only run once
 
   return (
     <motion.div
@@ -71,7 +219,10 @@ const LocationInput = ({
       </motion.div>
 
       {/* ---------- Input ---------- */}
-      <motion.div variants={staggerItem} className="relative">
+      <motion.div
+        variants={staggerItem}
+        className="relative z-10 location-input-wrapper"
+      >
         <MapPin
           size={18}
           className="absolute left-3 top-1/2 -translate-y-1/2"
@@ -96,6 +247,8 @@ const LocationInput = ({
             text-sm
             transition
             focus:outline-none
+            relative
+            z-20
           "
           style={{
             borderWidth: "2px",
@@ -106,11 +259,12 @@ const LocationInput = ({
               : "var(--color-border)",
             backgroundColor: colors.background.primary,
           }}
+          autoComplete="off"
         />
 
         {/* Success / Error Icon */}
         {touched && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 z-20">
             {hasError ? (
               <AlertCircle size={18} style={{ color: colors.error.DEFAULT }} />
             ) : (

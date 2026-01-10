@@ -234,7 +234,7 @@ const HeroSection = ({
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-card rounded-xl shadow-xl border border-border z-50 p-4 text-center"
+                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-border z-50 p-4 text-center"
                 >
                   <p className="text-muted-foreground">
                     No services found for "{searchQuery}"

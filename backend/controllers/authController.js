@@ -814,9 +814,9 @@ exports.getUserByPhone = async (req, res) => {
 // Check if user exists by phone number (for new unified flow)
 exports.checkUserByPhone = async (req, res) => {
   try {
-    const { phoneNumber } = req.body;
+    const { phone } = req.body;
 
-    if (!phoneNumber) {
+    if (!phone) {
       return res.status(400).json({
         success: false,
         message: "Phone number is required",
@@ -824,7 +824,7 @@ exports.checkUserByPhone = async (req, res) => {
     }
 
     // Validate phone number format (E.164)
-    if (!/^\+\d{7,15}$/.test(phoneNumber)) {
+    if (!/^\+\d{7,15}$/.test(phone)) {
       return res.status(400).json({
         success: false,
         message: "Invalid phone number format",
@@ -832,7 +832,7 @@ exports.checkUserByPhone = async (req, res) => {
     }
 
     // Check if user exists
-    const user = await User.findOne({ phoneNumber });
+    const user = await User.findOne({ phone });
 
     if (user) {
       return res.status(200).json({

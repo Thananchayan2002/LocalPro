@@ -69,6 +69,7 @@ const BookingDetailsForm = ({
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState({});
   const [valid, setValid] = useState({});
+  const [isConfirming, setIsConfirming] = useState(false);
   const debounceRef = useRef({});
 
   /* ------------------ Auto-save draft ------------------ */
@@ -84,6 +85,22 @@ const BookingDetailsForm = ({
       handleChange({ target: { name, value } })
     );
   }, []);
+
+  /* ------------------ Validate pre-filled fields from props ------------------ */
+  useEffect(() => {
+    // Validate issueType and description when they're populated from external sources
+    if (formData.issueType) {
+      const error = validateRequired(formData.issueType);
+      setErrors((p) => ({ ...p, issueType: error }));
+      setValid((p) => ({ ...p, issueType: !error }));
+    }
+
+    if (formData.description) {
+      const error = validateRequired(formData.description);
+      setErrors((p) => ({ ...p, description: error }));
+      setValid((p) => ({ ...p, description: !error }));
+    }
+  }, [formData.issueType, formData.description]);
 
   /* ------------------ Debounced validation ------------------ */
   const runValidation = (name, value) => {
@@ -118,8 +135,15 @@ const BookingDetailsForm = ({
 
   const submitForm = (e) => {
     e.preventDefault();
+
+    // Only allow submission on step 4 (Confirm step) and only when explicitly confirming
+    if (step !== 4 || !isConfirming) {
+      return;
+    }
+
     localStorage.removeItem(STORAGE_KEY);
     handleSubmit(e);
+    setIsConfirming(false);
   };
 
   /* ------------------ UI ------------------ */
@@ -217,6 +241,7 @@ const BookingDetailsForm = ({
                   name="issueType"
                   value={formData.issueType}
                   onChange={onFieldChange}
+                  onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
                   className="w-full px-4 py-3 rounded-xl border-2"
                   style={{ borderColor: "var(--color-border)" }}
                 />
@@ -250,6 +275,11 @@ const BookingDetailsForm = ({
                   rows={4}
                   value={formData.description}
                   onChange={onFieldChange}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                    }
+                  }}
                   className="w-full px-4 py-3 rounded-xl border-2 resize-none"
                   style={{ borderColor: "var(--color-border)" }}
                 />
@@ -349,7 +379,7 @@ const BookingDetailsForm = ({
             type="button"
             onClick={nextStep}
             disabled={!canProceed[step]}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-50 cursor-pointer"
             style={{ background: colors.primary.gradient }}
           >
             Next
@@ -359,7 +389,8 @@ const BookingDetailsForm = ({
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-50"
+            onClick={() => setIsConfirming(true)}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold disabled:opacity-50 cursor-pointer"
             style={{ background: colors.primary.gradient }}
           >
             {loading ? (

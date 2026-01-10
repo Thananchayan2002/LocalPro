@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import HeroSection from "./sections/HeroSection";
 import AnimatedSection from "../animations/AnimatedSection";
 import PopularServicesSection from "./sections/PopularServicesSection";
@@ -19,16 +20,34 @@ import {
 } from "./data/homeData";
 
 export default function Home() {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showProfessionalModal, setShowProfessionalModal] = useState(false);
   const [initialService, setInitialService] = useState(null);
+  const [initialIssueName, setInitialIssueName] = useState("");
 
   const handleStartBooking = (service) => {
     setInitialService(service || null);
     setShowBookingModal(true);
   };
+
+  // Open booking modal if navigated with state from Services (IssuesModal)
+  useEffect(() => {
+    const state = location.state;
+    if (state && state.bookService) {
+      const svc = state.bookService.service;
+      const issue = state.bookService.issueName || "";
+      // Normalize and open modal
+      setInitialService(svc || null);
+      setInitialIssueName(issue);
+      setShowBookingModal(true);
+      // Clear the state so repeated renders don't reopen
+      window.history.replaceState({}, document.title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -55,8 +74,6 @@ export default function Home() {
         />
       </AnimatedSection>
 
-      
-
       <AnimatedSection>
         <WhyChooseAndHowItWorksSection steps={steps} features={features} />
       </AnimatedSection>
@@ -77,9 +94,11 @@ export default function Home() {
       <BookService
         isOpen={showBookingModal}
         initialService={initialService}
+        initialIssueName={initialIssueName}
         onClose={() => {
           setShowBookingModal(false);
           setInitialService(null);
+          setInitialIssueName("");
         }}
       />
       <RegisterProfessional
