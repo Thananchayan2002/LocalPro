@@ -1,38 +1,50 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const serviceSchema = new mongoose.Schema({
+const serviceSchema = new mongoose.Schema(
+  {
     service: {
-        type: String,
-        required: [true, 'Service name is required'],
-        unique: true,
-        trim: true
+      type: String,
+      required: [true, "Service name is required"],
+      unique: true,
+      trim: true,
     },
     iconName: {
-        type: String,
-        required: [true, 'Icon name is required'],
-        trim: true
+      type: String,
+      required: [true, "Icon name is required"],
+      trim: true,
     },
     description: {
-        type: String,
-        required: [true, 'Description is required'],
-        trim: true
-    }
-}, {
-    timestamps: true 
-});
+      type: String,
+      required: [true, "Description is required"],
+      trim: true,
+    },
+    // Whether the service is currently trending
+    trending: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 // Index for faster lookups
 serviceSchema.index({ service: 1 });
 
 // Cascade delete: Remove all issues when service is deleted
-serviceSchema.pre('deleteOne', { document: true, query: false }, async function (next) {
+serviceSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (next) {
     try {
-        const Issue = mongoose.model('Issue');
-        await Issue.deleteMany({ serviceId: this._id });
-        next();
+      const Issue = mongoose.model("Issue");
+      await Issue.deleteMany({ serviceId: this._id });
+      next();
     } catch (error) {
-        next(error);
+      next(error);
     }
-});
+  }
+);
 
-module.exports = mongoose.model('Service', serviceSchema);
+module.exports = mongoose.model("Service", serviceSchema);

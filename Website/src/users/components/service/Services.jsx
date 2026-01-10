@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import * as LucideIcons from "lucide-react";
 import { motion } from "framer-motion";
 import { useAnimations } from "../../../animations/animations";
+import { useTranslation } from "../../../hooks/useTranslation";
+import { translateDynamicContent } from "../../../utils/translateDynamic";
 import IssuesModal from "./IssuesModal";
 import { colors } from "../../../styles/colors";
 
@@ -22,8 +24,10 @@ const getAuthHeaders = () => {
 export const Services = () => {
   const navigate = useNavigate();
   const { fadeInUp, staggerContainer, staggerItem } = useAnimations();
+  const { currentLang, t } = useTranslation();
 
   const [services, setServices] = useState([]);
+  const [translatedDescriptions, setTranslatedDescriptions] = useState({});
   const [selectedService, setSelectedService] = useState(null);
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +35,7 @@ export const Services = () => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [expandedServices, setExpandedServices] = useState(new Set());
 
   const getIconComponent = (iconName) => {
     if (!iconName) return Briefcase;
@@ -41,6 +46,26 @@ export const Services = () => {
     fetchServices();
   }, []);
 
+  // Translate service descriptions when language changes
+  useEffect(() => {
+    if (services.length > 0 && currentLang !== "en") {
+      const translateDescriptions = async () => {
+        const translations = {};
+        for (const service of services) {
+          const translated = await translateDynamicContent(
+            service.description,
+            currentLang
+          );
+          translations[service._id] = translated;
+        }
+        setTranslatedDescriptions(translations);
+      };
+      translateDescriptions();
+    } else {
+      setTranslatedDescriptions({});
+    }
+  }, [currentLang, services]);
+
   const fetchServices = async () => {
     try {
       setLoading(true);
@@ -50,7 +75,7 @@ export const Services = () => {
       const data = await res.json();
       data.success ? setServices(data.data || []) : setError(data.message);
     } catch {
-      setError("Failed to load services. Please try again.");
+      setError(t("failedToLoadServices"));
     } finally {
       setLoading(false);
     }
@@ -76,6 +101,19 @@ export const Services = () => {
     setSelectedService(service);
     setShowModal(true);
     fetchIssuesForService(service._id);
+  };
+
+  const toggleDescription = (e, serviceId) => {
+    e.stopPropagation();
+    setExpandedServices((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(serviceId)) {
+        newSet.delete(serviceId);
+      } else {
+        newSet.add(serviceId);
+      }
+      return newSet;
+    });
   };
 
   const handleCloseModal = () => {
@@ -125,7 +163,7 @@ export const Services = () => {
               color: colors.text.inverse,
             }}
           >
-            Try Again
+            {t("tryAgain")}
           </button>
         </div>
       </div>
@@ -155,13 +193,13 @@ export const Services = () => {
             className="text-3xl sm:text-4xl font-bold mb-3"
             style={{ color: colors.text.inverse }}
           >
-            Professional Services
+            {t("services")}
           </h1>
           <p
             className="mb-6 font-bold"
             style={{ color: colors.text.inverse, opacity: 0.9 }}
           >
-            Browse {services.length} professional services
+            {t("browseServices")} - {services.length}
           </p>
 
           <div className="relative max-w-xl mx-auto">
@@ -172,7 +210,7 @@ export const Services = () => {
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search services..."
+              placeholder={t("searchServices")}
               className="
                 w-full
                 pl-12 pr-4 py-3
@@ -236,18 +274,31 @@ export const Services = () => {
               </div>
 
               <p
-                className="line-clamp-2 mb-4"
+                className={
+                  expandedServices.has(service._id) ? "" : "line-clamp-2 mb-4"
+                }
                 style={{ color: colors.text.secondary }}
               >
-                {service.description}
+                {translatedDescriptions[service._id] || service.description}
               </p>
 
-              <div
-                className="flex justify-end"
-                style={{ color: colors.primary.DEFAULT }}
-              >
-                <ChevronRight className="w-5 h-5" />
-              </div>
+              {service.description.length > 100 && (
+                <button
+                  onClick={(e) => toggleDescription(e, service._id)}
+                  className="text-sm font-semibold mb-4 transition-colors"
+                  style={{ color: colors.primary.DEFAULT }}
+                  onMouseEnter={(e) => {
+                    e.target.style.opacity = "0.8";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.opacity = "1";
+                  }}
+                >
+                  {expandedServices.has(service._id)
+                    ? t("viewLess")
+                    : t("viewMore")}
+                </button>
+              )}
             </motion.div>
           );
         })}

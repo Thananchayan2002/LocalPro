@@ -27,8 +27,10 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { io } from "socket.io-client";
+import { API_BASE_URL, fetchMyActivities } from "../../../utils/api";
 
-const API_BASE_URL =
+const API_BASE_URL_LOCAL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export const Profile = () => {
@@ -39,6 +41,8 @@ export const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const [formData, setFormData] = useState({});
+  const [activities, setActivities] = useState([]);
+  const [socketConnected, setSocketConnected] = useState(false);
 
   // Fetch user profile on component mount
   useEffect(() => {
@@ -57,7 +61,7 @@ export const Profile = () => {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+      const response = await fetch(`${API_BASE_URL_LOCAL}/api/auth/profile`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -80,6 +84,7 @@ export const Profile = () => {
 
       // Transform backend data to match component structure
       const userData = {
+        id: data.user?.id || data.user?._id || undefined,
         name: data.user.name || "",
         email: data.user.email || "",
         phone: data.user.phoneNumber || data.user.phone || "",
@@ -112,6 +117,53 @@ export const Profile = () => {
       setLoading(false);
     }
   };
+
+  // Load activities and set up real-time socket subscription
+  useEffect(() => {
+    let socket;
+    const token = localStorage.getItem("token");
+    const userId = profileData?.id || profileData?._id || null;
+
+    const init = async () => {
+      try {
+        // Initial fetch
+        const list = await fetchMyActivities({ limit: 20 });
+        setActivities(list);
+
+        // Connect socket for real-time updates
+        socket = io(API_BASE_URL, {
+          transports: ["websocket", "polling"],
+          auth: token ? { token } : undefined,
+        });
+
+        socket.on("connect", () => {
+          setSocketConnected(true);
+          if (userId) {
+            socket.emit("subscribeActivities", { userId });
+          }
+        });
+
+        socket.on("activity:new", (activity) => {
+          setActivities((prev) => [activity, ...prev].slice(0, 50));
+        });
+
+        socket.on("disconnect", () => {
+          setSocketConnected(false);
+        });
+      } catch (err) {
+        console.error("Activities init error:", err);
+      }
+    };
+
+    if (profileData) {
+      init();
+    }
+
+    return () => {
+      if (socket && socket.connected) socket.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileData?.id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -232,32 +284,7 @@ export const Profile = () => {
     []
   );
 
-  const activityLog = [
-    {
-      id: 1,
-      action: "Logged in",
-      timestamp: "2024-01-15 14:30:45",
-      device: "Mobile Chrome",
-    },
-    {
-      id: 2,
-      action: "Booked Electrical Service",
-      timestamp: "2024-01-14 10:15:22",
-      device: "Desktop Safari",
-    },
-    {
-      id: 3,
-      action: "Updated Profile",
-      timestamp: "2024-01-12 16:45:10",
-      device: "Mobile App",
-    },
-    {
-      id: 4,
-      action: "Reviewed Professional",
-      timestamp: "2024-01-10 09:30:05",
-      device: "Desktop Chrome",
-    },
-  ];
+  // activities state replaces hard-coded activityLog
 
   const location = formData?.location || {
     city: "",
@@ -790,9 +817,14 @@ export const Profile = () => {
               </h3>
 
               <div className="space-y-4">
-                {activityLog.map((activity) => (
+                {activities.length === 0 && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    No recent activity yet.
+                  </div>
+                )}
+                {activities.map((activity) => (
                   <div
-                    key={activity.id}
+                    key={activity.id || activity._id}
                     className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -802,12 +834,14 @@ export const Profile = () => {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-1">
                           <Globe className="w-4 h-4" />
-                          {activity.device}
+                          {activity.device || "unknown"}
                         </div>
                       </div>
 
                       <div className="shrink-0 text-xs text-gray-500 dark:text-gray-500">
-                        {new Date(activity.timestamp).toLocaleDateString()}
+                        {new Date(
+                          activity.timestamp || activity.createdAt
+                        ).toLocaleDateString()}
                       </div>
                     </div>
                   </div>

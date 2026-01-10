@@ -1,19 +1,37 @@
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { colors } from "../../../../styles/colors";
 import { iconMap } from "../maps/iconMap";
 import { useAnimations } from "../../animations/animations";
+import { fetchPopularServices } from "../../../../utils/api";
 
-const PopularServicesSection = ({ categories }) => {
+const PopularServicesSection = ({ categories = [] }) => {
   const navigate = useNavigate();
   const { ref, animate, staggerContainer, staggerItem } = useAnimations({
     scroll: true,
   });
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleBookService = (categoryId) => {
-    navigate(`/app/book/${categoryId}`);
-  };
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        // Fetch curated services from backend: trending === true or first 5 fallback
+        const curated = await fetchPopularServices();
+        setServices(curated);
+      } catch (e) {
+        setError(e.message || "Unable to load services. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   return (
     <section ref={ref} className="w-full py-5 sm:py-7 lg:py-10 bg-background">
@@ -29,17 +47,7 @@ const PopularServicesSection = ({ categories }) => {
               Find the right professional
             </p>
           </div>
-
-          <div className="flex-1 flex justify-end">
-            <motion.button
-              onClick={() => navigate("/app/services")}
-              whileHover={{ x: 6 }}
-              className="group inline-flex items-center gap-1 text-sm sm:text-base font-semibold text-primary cursor-pointer"
-            >
-              All
-              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </motion.button>
-          </div>
+          <div className="flex-1" />
         </div>
 
         {/* Grid */}
@@ -47,47 +55,84 @@ const PopularServicesSection = ({ categories }) => {
           variants={staggerContainer}
           initial="hidden"
           animate={animate}
-          className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4 lg:gap-5"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6"
         >
-          {categories.map((cat, i) => {
-            const categoryColor = colors.category[cat.colorKey];
-            const Icon = iconMap[cat.icon];
+          {(services.length > 0 ? services : categories.slice(0, 5)).map(
+            (item, i) => {
+              const isBackend = !!item._id;
+              const Icon = isBackend
+                ? iconMap[item.iconName]
+                : iconMap[item.icon];
+              const colorKeyCycle = [
+                "blue",
+                "purple",
+                "green",
+                "cyan",
+                "emerald",
+              ];
+              const colorKey = isBackend
+                ? colorKeyCycle[i % colorKeyCycle.length]
+                : item.colorKey;
+              const categoryColor =
+                colors.category[colorKey] || colors.category.blue;
+              const serviceName = isBackend ? item.service : item.label;
 
-            return (
-              <motion.button
-                key={cat.label + i}
-                onClick={() => handleBookService(cat.id)}
-                variants={staggerItem}
-                whileHover={{ scale: 1.06, y: -6 }}
-                whileTap={{ scale: 0.95 }}
-                className="group flex flex-col items-center justify-center rounded-2xl bg-card p-3 sm:p-4 lg:p-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
-              >
-                {/* Icon */}
-                <div
-                  className="mb-3 flex h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:rotate-6"
-                  style={{
-                    backgroundColor: categoryColor.bg,
-                    color: categoryColor.text,
-                  }}
+              return (
+                <motion.div
+                  key={(isBackend ? item._id : item.id) || i}
+                  variants={staggerItem}
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="group relative flex flex-col items-stretch rounded-2xl bg-card p-4 sm:p-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
                 >
-                  {Icon && (
-                    <Icon className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8" />
-                  )}
-                </div>
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="relative h-12 w-12 sm:h-14 sm:w-14 flex items-center justify-center rounded-2xl transition-transform duration-300 group-hover:rotate-3"
+                      style={{
+                        backgroundColor: categoryColor.bg,
+                        color: categoryColor.text,
+                      }}
+                    >
+                      {Icon ? (
+                        <Icon className="h-6 w-6 sm:h-7 sm:w-7" />
+                      ) : (
+                        <span className="text-sm font-semibold">
+                          {serviceName?.[0] || ""}
+                        </span>
+                      )}
+                    </div>
 
-                {/* Text */}
-                <div className="text-center">
-                  <span className="block text-xs sm:text-sm font-semibold text-foreground">
-                    {cat.label}
-                  </span>
-                  <span className="mt-0.5 block text-[10px] sm:text-xs text-muted-foreground">
-                    {cat.jobs}
-                  </span>
-                </div>
-              </motion.button>
-            );
-          })}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-base sm:text-lg font-semibold text-foreground">
+                          {serviceName}
+                        </h3>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                        {item.description ||
+                          item.desc ||
+                          "Expert support for this service."}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            }
+          )}
         </motion.div>
+
+        {/* View All Button */}
+        <div className="mt-10 flex justify-center">
+          <motion.button
+            onClick={() => navigate("/app/services")}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-8 py-3 rounded-xl font-semibold text-white shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer"
+            style={{ background: colors.primary.gradient }}
+          >
+            View All Services
+          </motion.button>
+        </div>
       </div>
     </section>
   );

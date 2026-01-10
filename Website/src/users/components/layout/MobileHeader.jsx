@@ -4,16 +4,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Globe, Sun, Moon, LogOut, ChevronDown } from "lucide-react";
 import logo from "../../../assets/images/logo.png";
 import { performLogout } from "../auth/logout";
+import { useTheme } from "../../../hooks/useTheme";
 
 const STORAGE_KEYS = {
-  theme: "helpgo_theme",
   language: "helpgo_language",
 };
 
 function MobileHeader() {
   const navigate = useNavigate();
-
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
   const [language, setLanguage] = useState("English");
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
 
@@ -49,28 +48,6 @@ function MobileHeader() {
     setIsLanguageOpen(false);
     navigate("/", { replace: true });
   }, [navigate]);
-
-  // Theme persistence + Tailwind "dark" class
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.theme);
-      if (saved === "dark") setIsDarkMode(true);
-      if (saved === "light") setIsDarkMode(false);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isDarkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-
-    try {
-      localStorage.setItem(STORAGE_KEYS.theme, isDarkMode ? "dark" : "light");
-    } catch {
-      // ignore
-    }
-  }, [isDarkMode]);
 
   // Language persistence
   useEffect(() => {
@@ -236,12 +213,12 @@ function MobileHeader() {
                 initial="initial"
                 whileHover="hover"
                 whileTap="tap"
-                onClick={() => setIsDarkMode((v) => !v)}
+                onClick={toggleTheme}
                 type="button"
                 className="rounded-lg p-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                 aria-label="Toggle dark mode"
               >
-                {isDarkMode ? (
+                {isDark ? (
                   <Sun className="h-5 w-5 text-yellow-500" />
                 ) : (
                   <Moon className="h-5 w-5" />

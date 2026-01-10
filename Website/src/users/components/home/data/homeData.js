@@ -9,6 +9,7 @@ export const categories = [
     colorKey: "yellow",
     jobs: "1.8k+",
     description: "Wiring, switches, installations",
+    trending: true,
   },
   {
     id: "2",
@@ -17,6 +18,7 @@ export const categories = [
     colorKey: "blue",
     jobs: "2.3k+",
     description: "Leaks, pipes, bathroom fittings",
+    trending: true,
   },
   {
     id: "3",
@@ -25,6 +27,7 @@ export const categories = [
     colorKey: "cyan",
     jobs: "1.2k+",
     description: "AC servicing and installation",
+    trending: true,
   },
   {
     id: "4",
@@ -33,6 +36,7 @@ export const categories = [
     colorKey: "green",
     jobs: "3.1k+",
     description: "Home & office cleaning services",
+    trending: true,
   },
   {
     id: "5",

@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import HeroSection from "./sections/HeroSection";
 import AnimatedSection from "../animations/AnimatedSection";
-import EmergencyServicesSection from "./sections/EmergencyServicesSection";
 import PopularServicesSection from "./sections/PopularServicesSection";
-import TrendingSection from "./sections/TrendingSection";
 import FeaturedProfessionalsSection from "./sections/FeaturedProfessionalsSection";
-import HowItWorksSection from "./sections/HowItWorksSection";
-import WhyChooseSection from "./sections/WhyChooseSection";
+import WhyChooseAndHowItWorksSection from "./sections/WhyChooseAndHowItWorksSection";
 import TestimonialsSection from "./sections/TestimonialsSection";
 import CTASection from "./sections/CTASection";
 import BookService from "../bookService/BookService";
@@ -15,10 +12,8 @@ import RegisterProfessional from "../professionalRegister/RegisterProfessional";
 import {
   assets,
   categories,
-  emergencyServices,
   featuredWorkers,
   features,
-  popularRequests,
   steps,
   testimonials,
 } from "./data/homeData";
@@ -28,6 +23,12 @@ export default function Home() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showProfessionalModal, setShowProfessionalModal] = useState(false);
+  const [initialService, setInitialService] = useState(null);
+
+  const handleStartBooking = (service) => {
+    setInitialService(service || null);
+    setShowBookingModal(true);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -43,36 +44,21 @@ export default function Home() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         bannerImg={assets.bannerImg}
-        setShowBookingModal={setShowBookingModal}
-        setShowProfessionalModal={setShowProfessionalModal}
+        categories={categories}
+        onStartBooking={handleStartBooking}
       />
 
       <AnimatedSection>
-        <EmergencyServicesSection services={emergencyServices} />
-      </AnimatedSection>
-
-      <AnimatedSection>
-        <PopularServicesSection categories={categories} />
-      </AnimatedSection>
-
-      <AnimatedSection>
-        <TrendingSection popularRequests={popularRequests} />
-      </AnimatedSection>
-
-      <AnimatedSection>
-        <FeaturedProfessionalsSection
-          featuredWorkers={featuredWorkers}
-          currentIndex={currentIndex}
-          setCurrentIndex={setCurrentIndex}
+        <PopularServicesSection
+          categories={categories}
+          onStartBooking={handleStartBooking}
         />
       </AnimatedSection>
 
-      <AnimatedSection>
-        <HowItWorksSection steps={steps} />
-      </AnimatedSection>
+      
 
       <AnimatedSection>
-        <WhyChooseSection features={features} />
+        <WhyChooseAndHowItWorksSection steps={steps} features={features} />
       </AnimatedSection>
 
       <AnimatedSection>
@@ -90,7 +76,11 @@ export default function Home() {
       {/* Modals */}
       <BookService
         isOpen={showBookingModal}
-        onClose={() => setShowBookingModal(false)}
+        initialService={initialService}
+        onClose={() => {
+          setShowBookingModal(false);
+          setInitialService(null);
+        }}
       />
       <RegisterProfessional
         isOpen={showProfessionalModal}

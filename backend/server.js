@@ -37,6 +37,15 @@ app.set("io", io);
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 
+  // Clients can subscribe to their activity room using their userId
+  socket.on("subscribeActivities", ({ userId }) => {
+    if (userId) {
+      const room = `activities:${userId}`;
+      socket.join(room);
+      console.log(`Socket ${socket.id} joined room ${room}`);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
   });
@@ -59,12 +68,14 @@ const professionalRoutes = require("./routes/professionalRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const pushNotificationRoutes = require("./routes/pushNotificationRoutes");
+const activityRoutes = require("./routes/activityRoutes");
 app.use("/api/services", serviceRoutes);
 app.use("/api/issues", issueRoutes);
 app.use("/api/professionals", professionalRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/push", pushNotificationRoutes);
+app.use("/api/activities", activityRoutes);
 
 console.log(process.env.MONGO_URI);
 

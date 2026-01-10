@@ -22,18 +22,19 @@ import { getColorClasses } from "../../../styles/colors";
 import logo from "../../../assets/images/logo.png";
 import { performLogout } from "../auth/logout";
 import MobileHeader from "./MobileHeader";
+import LanguageTranslator from "../../../components/LanguageTranslator";
+import { useTheme } from "../../../hooks/useTheme";
 
 const STORAGE_KEYS = {
-  theme: "helpgo_theme",
   language: "helpgo_language",
 };
 
 function Header() {
   const navigate = useNavigate();
   const colorClasses = getColorClasses();
+  const { isDark, toggleTheme } = useTheme();
 
   // ===== Dynamic state =====
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState("English");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
@@ -130,28 +131,6 @@ function Header() {
     ],
     [closeAllMenus, navigate, handleLogout]
   );
-
-  // ================== Theme persistence + Tailwind "dark" class ==================
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.theme);
-      if (saved === "dark") setIsDarkMode(true);
-      if (saved === "light") setIsDarkMode(false);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isDarkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-
-    try {
-      localStorage.setItem(STORAGE_KEYS.theme, isDarkMode ? "dark" : "light");
-    } catch {
-      // ignore
-    }
-  }, [isDarkMode]);
 
   // ================== Language persistence ==================
   useEffect(() => {
@@ -494,61 +473,7 @@ function Header() {
                 </motion.button>
 
                 {/* Language */}
-                <div className="relative" ref={languageRef}>
-                  <motion.button
-                    variants={iconButtonVariants}
-                    initial="initial"
-                    whileHover="hover"
-                    whileTap="tap"
-                    type="button"
-                    onClick={() => {
-                      setIsLanguageOpen((v) => !v);
-                      setIsProfileOpen(false);
-                    }}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer"
-                    aria-expanded={isLanguageOpen}
-                    aria-label="Language"
-                  >
-                    <Globe className="h-4 w-4" />
-                    <span className="hidden xl:inline">{language}</span>
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        isLanguageOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {isLanguageOpen && (
-                      <motion.div
-                        variants={dropdownVariants}
-                        initial="closed"
-                        animate="open"
-                        exit="closed"
-                        className="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl z-50"
-                        role="menu"
-                        aria-label="Language menu"
-                      >
-                        {languages.map((lang) => (
-                          <button
-                            key={lang.code}
-                            type="button"
-                            onClick={() => handleSetLanguage(lang.name)}
-                            className="w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
-                            role="menuitem"
-                          >
-                            <span className="font-medium text-gray-800 dark:text-gray-100">
-                              {lang.name}
-                            </span>
-                            {language === lang.name && (
-                              <span className="h-2 w-2 rounded-full bg-blue-500" />
-                            )}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                <LanguageTranslator />
 
                 {/* Dark mode */}
                 <motion.button
@@ -557,11 +482,11 @@ function Header() {
                   whileHover="hover"
                   whileTap="tap"
                   type="button"
-                  onClick={() => setIsDarkMode((v) => !v)}
+                  onClick={toggleTheme}
                   className="rounded-xl p-2 text-gray-600 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer"
                   aria-label="Toggle dark mode"
                 >
-                  {isDarkMode ? (
+                  {isDark ? (
                     <Sun className="h-5 w-5 text-yellow-500" />
                   ) : (
                     <Moon className="h-5 w-5" />

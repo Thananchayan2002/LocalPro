@@ -23,76 +23,82 @@ import WorkerServices from "./worker/components/services/Services";
 import Login from "./users/components/auth/Login";
 import Signup from "./users/components/auth/Signup";
 import { Login as WorkerLogin } from "./worker/components/auth/Login";
+import { TranslationProvider } from "./context/TranslationContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public auth routes */}
-          <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+    <ThemeProvider>
+      <TranslationProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public auth routes */}
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
 
-          {/* User routes under /app */}
-          <Route
-            path="/app"
-            element={
-              <UserProtectedRoute>
-                <UserLayout />
-              </UserProtectedRoute>
-            }
-          >
-            <Route index element={<Home />} />
-            <Route path="services" element={<UserServices />} />
-            <Route path="about" element={<About />} />
-            <Route path="feedback" element={<Feedback />} />
-            <Route path="professionals" element={<Professionals />} />
-            <Route path="become-pro" element={<RegisterProfessional />} />
-          </Route>
+              {/* User routes under /app */}
+              <Route
+                path="/app"
+                element={
+                  <UserProtectedRoute>
+                    <UserLayout />
+                  </UserProtectedRoute>
+                }
+              >
+                <Route index element={<Home />} />
+                <Route path="services" element={<UserServices />} />
+                <Route path="about" element={<About />} />
+                <Route path="feedback" element={<Feedback />} />
+                <Route path="professionals" element={<Professionals />} />
+                <Route path="become-pro" element={<RegisterProfessional />} />
+              </Route>
 
-          <Route path="/app/bookings" element={<CustomerBookings />} />
+              <Route path="/app/bookings" element={<CustomerBookings />} />
 
-          <Route
-            path="/app/profile"
-            element={
-              <UserProtectedRoute>
-                <Profile />
-              </UserProtectedRoute>
-            }
-          />
+              <Route
+                path="/app/profile"
+                element={
+                  <UserProtectedRoute>
+                    <Profile />
+                  </UserProtectedRoute>
+                }
+              />
 
-          {/* Worker routes */}
+              {/* Worker routes */}
 
-          <Route
-            path="/worker"
-            element={
-              <WorkerProtectedRoute>
-                <WorkerLayout />
-              </WorkerProtectedRoute>
-            }
-          >
-            <Route
-              index
-              element={<Navigate to="/worker/dashboard" replace />}
-            />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="bookings" element={<Bookings />} />
-            <Route path="payments" element={<Payments />} />
-            <Route path="services" element={<WorkerServices />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="account" element={<Account />} />
-            <Route
-              path="*"
-              element={<Navigate to="/worker/dashboard" replace />}
-            />
-          </Route>
+              <Route
+                path="/worker"
+                element={
+                  <WorkerProtectedRoute>
+                    <WorkerLayout />
+                  </WorkerProtectedRoute>
+                }
+              >
+                <Route
+                  index
+                  element={<Navigate to="/worker/dashboard" replace />}
+                />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="bookings" element={<Bookings />} />
+                <Route path="payments" element={<Payments />} />
+                <Route path="services" element={<WorkerServices />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="account" element={<Account />} />
+                <Route
+                  path="*"
+                  element={<Navigate to="/worker/dashboard" replace />}
+                />
+              </Route>
 
-          {/* Fallback to login */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+              {/* Fallback to login */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TranslationProvider>
+    </ThemeProvider>
   );
 }
 

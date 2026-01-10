@@ -328,6 +328,30 @@ exports.loginEmail = async (req, res) => {
         lastLogin: user.lastLogin,
       },
     });
+    try {
+      const Activity = require("../models/Activity");
+      const ua = (req.headers["user-agent"] || "").slice(0, 120);
+      const activity = await Activity.create({
+        user: user._id,
+        type: "auth",
+        action: "Logged in",
+        device: ua || "unknown",
+      });
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`activities:${user._id}`).emit("activity:new", {
+          id: activity._id,
+          user: user._id,
+          type: activity.type,
+          action: activity.action,
+          device: activity.device,
+          metadata: activity.metadata,
+          timestamp: activity.createdAt,
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to record login activity:", e?.message);
+    }
   } catch (error) {
     console.error("Login email error:", error);
     res.status(500).json({
@@ -440,6 +464,30 @@ exports.login = async (req, res) => {
         lastLogin: user.lastLogin,
       },
     });
+    try {
+      const Activity = require("../models/Activity");
+      const ua = (req.headers["user-agent"] || "").slice(0, 120);
+      const activity = await Activity.create({
+        user: user._id,
+        type: "auth",
+        action: "Logged in",
+        device: ua || "unknown",
+      });
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`activities:${user._id}`).emit("activity:new", {
+          id: activity._id,
+          user: user._id,
+          type: activity.type,
+          action: activity.action,
+          device: activity.device,
+          metadata: activity.metadata,
+          timestamp: activity.createdAt,
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to record login activity:", e?.message);
+    }
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({
@@ -898,6 +946,30 @@ exports.loginWithPhone = async (req, res) => {
         lastLogin: user.lastLogin,
       },
     });
+    try {
+      const Activity = require("../models/Activity");
+      const ua = (req.headers["user-agent"] || "").slice(0, 120);
+      const activity = await Activity.create({
+        user: user._id,
+        type: "auth",
+        action: "Logged in",
+        device: ua || "unknown",
+      });
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`activities:${user._id}`).emit("activity:new", {
+          id: activity._id,
+          user: user._id,
+          type: activity.type,
+          action: activity.action,
+          device: activity.device,
+          metadata: activity.metadata,
+          timestamp: activity.createdAt,
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to record login activity:", e?.message);
+    }
   } catch (error) {
     console.error("Login with phone error:", error);
     res.status(500).json({

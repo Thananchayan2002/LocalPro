@@ -7,7 +7,7 @@ import ServiceSelection from "./bookingService/ServiceSelection";
 import BookingDetailsForm from "./bookingService/BookingDetailsForm";
 import BookServiceMobile from "./BookServiceMobile";
 
-const BookService = ({ isOpen, onClose }) => {
+const BookService = ({ isOpen, onClose, initialService = null }) => {
   const [step, setStep] = useState(1);
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
@@ -39,6 +39,19 @@ const BookService = ({ isOpen, onClose }) => {
       fetchServices();
     }
   }, [isOpen, step]);
+
+  // Preselect service when provided (e.g., from Hero search Book Now)
+  useEffect(() => {
+    if (isOpen && initialService) {
+      const normalizedService = initialService.service || initialService.label;
+      const selected = { ...initialService, service: normalizedService };
+      setSelectedService(selected);
+      setFormData((prev) => ({ ...prev, service: normalizedService }));
+      setStep(2);
+    } else if (isOpen && !initialService) {
+      setStep(1);
+    }
+  }, [isOpen, initialService]);
 
   // Hide header and nav when modal is open
   useEffect(() => {
