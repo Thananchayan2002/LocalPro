@@ -398,7 +398,7 @@ export const Bookings = () => {
                                                 >
                                                     <Eye size={18} />
                                                 </button>
-                                                {(booking.status === 'completed' || booking.status === 'paid') && (
+                                                {booking.status === 'paid' && (
                                                     <button
                                                         onClick={() => handleVerify(booking._id)}
                                                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"

@@ -10,7 +10,7 @@ import {
   Calendar,
   LogOut,
   ChevronDown,
-  Home,
+  Home, 
   Briefcase,
   Users,
   Info,

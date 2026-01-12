@@ -30,4 +30,13 @@ router.get('/user/:id', protect, authController.getUserById);
 // GET /api/auth/user/phone/:phone
 router.get('/user/phone/:phone', authController.getUserByPhone);
 
+// POST /api/auth/check-user-by-phone - Check if user exists by phone (for new flow)
+router.post('/check-user-by-phone', authController.checkUserByPhone);
+
+// POST /api/auth/login-with-phone - Login existing user after OTP verification
+router.post('/login-with-phone', authController.loginWithPhone);
+
+// POST /api/auth/complete-profile - Complete profile and create user after OTP verification
+router.post('/complete-profile', authController.completeProfile);
+
 module.exports = router;

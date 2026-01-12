@@ -346,7 +346,7 @@ export const Bookings = () => {
                                                     >
                                                         View Details
                                                     </button>
-                                                    {booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                                                    {booking.status !== 'completed' && booking.status !== 'cancelled' && booking.status !== 'verified' && (
                                                         <button
                                                             onClick={() => handleMarkComplete(booking)}
                                                             className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"

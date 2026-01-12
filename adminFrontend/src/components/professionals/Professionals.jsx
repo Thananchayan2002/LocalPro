@@ -51,9 +51,7 @@ export const Professionals = () => {
         location: '',
         lat: null,
         lng: null,
-        nicNumber: '',
-        password: '',
-        confirmPassword: ''
+        nicNumber: ''
     });
     const [imagePreview, setImagePreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
@@ -340,14 +338,43 @@ export const Professionals = () => {
     // Handle manual form submit
     const handleManualSubmit = async (e) => {
         e.preventDefault();
+        setShowConfirmation(true);
+    };
 
-        // Validation
-        if (manualForm.password !== manualForm.confirmPassword) {
-            toast.error('Passwords do not match');
-            return;
+    // Normalize a local Sri Lankan phone (e.g., "0740536517" or "740536517") to E.164 (+94740536517)
+    const normalizeToE164 = (raw) => {
+        if (!raw) return '';
+        // Remove all non-digit or plus characters
+        const cleaned = (raw || '').trim().replace(/[^+\d]/g, '');
+
+        // If already in +... format, normalize by removing extra chars
+        if (cleaned.startsWith('+')) {
+            const withDigits = '+' + cleaned.slice(1).replace(/\D/g, '');
+            return withDigits;
         }
 
-        setShowConfirmation(true);
+        // If starts with country code without plus e.g., 94...
+        if (cleaned.startsWith('94')) {
+            return '+' + cleaned;
+        }
+
+        // If starts with leading zero (local format), drop the 0 and prefix +94
+        if (cleaned.startsWith('0')) {
+            const local = cleaned.slice(1);
+            return '+94' + local;
+        }
+
+        // If it's 9 digits starting with '7' (local mobile without leading 0)
+        if (cleaned.length === 9 && cleaned.startsWith('7')) {
+            return '+94' + cleaned;
+        }
+
+        // Fallback: prefix + if digits available
+        if (/^\d{6,15}$/.test(cleaned)) {
+            return '+' + cleaned;
+        }
+
+        return '';
     };
 
     // Confirm manual submission
@@ -356,18 +383,27 @@ export const Professionals = () => {
         setShowConfirmation(false);
 
         try {
+            // Normalize phone to E.164 and validate
+            const e164Phone = normalizeToE164(manualForm.phone);
+            if (!e164Phone || !/^\+94\d{9}$/.test(e164Phone)) {
+                toast.error('Please enter a valid Sri Lankan phone number (e.g., 0740123456)');
+                setLoading(false);
+                return;
+            }
+
             const formData = new FormData();
             formData.append('name', manualForm.name);
             formData.append('email', manualForm.email);
-            formData.append('phone', manualForm.phone);
+            // Store both fields in E.164 format as requested
+            formData.append('phone', e164Phone);
+            formData.append('phoneNumber', e164Phone);
             formData.append('serviceId', manualForm.serviceId);
             formData.append('experience', manualForm.experience);
             formData.append('district', manualForm.district);
             formData.append('location', manualForm.location);
-            if (manualForm.lat) formData.append('lat', manualForm.lat);
-            if (manualForm.lng) formData.append('lng', manualForm.lng);
+            if (manualForm.lat !== null && manualForm.lat !== undefined && manualForm.lat !== '') formData.append('lat', manualForm.lat);
+            if (manualForm.lng !== null && manualForm.lng !== undefined && manualForm.lng !== '') formData.append('lng', manualForm.lng);
             formData.append('nicNumber', manualForm.nicNumber);
-            formData.append('password', manualForm.password);
             formData.append('way', 'manual');
             if (imageFile) {
                 formData.append('profileImage', imageFile);
@@ -383,9 +419,6 @@ export const Professionals = () => {
             if (data.success) { 
                 toast.success('Professional added successfully!');
 
-                // Download PDF
-                await downloadPDF(data.data._id, manualForm.password);
-
                 // Reset form
                 setManualForm({
                     name: '',
@@ -397,9 +430,7 @@ export const Professionals = () => {
                     location: '',
                     lat: null,
                     lng: null,
-                    nicNumber: '',
-                    password: '',
-                    confirmPassword: ''
+                    nicNumber: ''
                 });
                 setImagePreview(null);
                 setImageFile(null);
@@ -516,29 +547,19 @@ export const Professionals = () => {
     const handleApproveSubmit = async (e) => {
         e.preventDefault();
 
-        if (approveForm.password !== approveForm.confirmPassword) {
-            toast.error('Passwords do not match');
-            return;
-        }
-
         setLoading(true);
 
         try {
-            const { confirmPassword, ...submitData } = approveForm;
-
             const res = await fetchWithAuth(`${API_BASE_URL}/api/professionals/${approveProfessional._id}/approve`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(submitData)
+                body: JSON.stringify(approveForm)
             });
 
             const data = await res.json();
 
             if (data.success) {
                 toast.success('Professional approved successfully!');
-
-                // Download PDF
-                await downloadPDF(data.data._id, approveForm.password);
 
                 setApproveProfessional(null);
                 setApproveForm({});
@@ -554,32 +575,8 @@ export const Professionals = () => {
     };
 
     // Download PDF
-    const downloadPDF = async (professionalId, plainPassword) => {
-        try {
-            const res = await fetchWithAuth(`${API_BASE_URL}/api/professionals/${professionalId}/pdf`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plainPassword })
-            });
+    // PDF downloads removed (system uses SMS OTP and no PDF generation)
 
-            if (res.ok) {
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `professional_${professionalId}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            } else {
-                toast.error('Failed to download PDF');
-            }
-        } catch (error) {
-            console.error('PDF download error:', error);
-            toast.error('Failed to download PDF');
-        }
-    };
 
     return (
         <div className="min-h-screen p-4 lg:p-6">
@@ -915,30 +912,6 @@ export const Professionals = () => {
                                         type="text"
                                         value={manualForm.nicNumber}
                                         onChange={(e) => setManualForm({ ...manualForm, nicNumber: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Password *
-                                    </label>
-                                    <input
-                                        type="password"
-                                        value={manualForm.password}
-                                        onChange={(e) => setManualForm({ ...manualForm, password: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Confirm Password *
-                                    </label>
-                                    <input
-                                        type="password"
-                                        value={manualForm.confirmPassword}
-                                        onChange={(e) => setManualForm({ ...manualForm, confirmPassword: e.target.value })}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
                                         required
                                     />
@@ -1450,30 +1423,6 @@ export const Professionals = () => {
                                     />
                                 </div>
                                 
-                                <div className="lg:col-span-2 border-t-2 border-gray-200 pt-4 mt-2">
-                                    <h4 className="font-semibold text-gray-800 mb-3">Account Credentials</h4>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Password *</label>
-                                    <input
-                                        type="password"
-                                        value={approveForm.password || ''}
-                                        onChange={(e) => setApproveForm({ ...approveForm, password: e.target.value })}
-                                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password *</label>
-                                    <input
-                                        type="password"
-                                        value={approveForm.confirmPassword || ''}
-                                        onChange={(e) => setApproveForm({ ...approveForm, confirmPassword: e.target.value })}
-                                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
-                                        required
-                                    />
-                                </div>
                             </div>
                             <div className="flex gap-3">
                                 <button
@@ -1481,7 +1430,7 @@ export const Professionals = () => {
                                     disabled={loading}
                                     className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
                                 >
-                                    {loading ? 'Approving...' : 'Approve & Download PDF'}
+                                    {loading ? 'Approving...' : 'Approve'}
                                 </button>
                                 <button
                                     type="button"
@@ -1510,7 +1459,7 @@ export const Professionals = () => {
                             <h3 className="text-xl font-bold text-gray-800">Confirm Submission</h3>
                         </div>
                         <p className="text-gray-600 mb-6">
-                            Are you sure you want to add this professional? A PDF with the details will be downloaded automatically.
+                            Are you sure you want to add this professional?
                         </p>
                         <div className="flex gap-3">
                             <button

@@ -6,10 +6,10 @@ const { generateProfessionalPDF } = require('../utils/pdfGenerator');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure a matching User account exists for a professional by phone/password
+// Ensure a matching User account exists for a professional by phone/password (supports passwordless accounts for SMS OTP flow)
 const ensureUserAccount = async ({ name, email, phone, password }) => {
     if (!phone ) {
-        return { error: 'Phone and password are required to create the linked user account' };
+        return { error: 'Phone is required to create the linked user account' };
     }
 
     // Check if user already exists by phone 
@@ -26,12 +26,16 @@ const ensureUserAccount = async ({ name, email, phone, password }) => {
         }
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    let passwordHash;
+    if (password) {
+        passwordHash = await bcrypt.hash(password, 10);
+    }
+
     const user = await User.create({
         name: name || 'Professional User',
         email: email || `${phone}@localpro.system`,
         phone,
-        passwordHash,
+        passwordHash: passwordHash || undefined,
         role: 'professional',
         lastLogin: new Date()
     });
@@ -117,7 +121,7 @@ exports.createProfessional = async (req, res) => {
     try {
         const {
             name, email, phone, serviceId, experience,
-            district, location, nicNumber, password, way
+            district, location, nicNumber, lat, lng, password, way
         } = req.body;
 
         // Check if NIC already exists
@@ -157,7 +161,12 @@ exports.createProfessional = async (req, res) => {
             });
         }
 
-        // Create professional object
+        // Parse coordinates (if provided) and create professional object
+        let parsedLat = null;
+        let parsedLng = null;
+        if (lat !== undefined && lat !== null && lat !== '' && !isNaN(parseFloat(lat))) parsedLat = parseFloat(lat);
+        if (lng !== undefined && lng !== null && lng !== '' && !isNaN(parseFloat(lng))) parsedLng = parseFloat(lng);
+
         const professionalData = {
             name,
             email: email || undefined,
@@ -168,9 +177,10 @@ exports.createProfessional = async (req, res) => {
             totalJobs: 0, // Default total jobs
             district,
             location,
+            lat: parsedLat,
+            lng: parsedLng,
             nicNumber,
             username: phone, // Use phone as username
-            password,
             way: way || 'manual',
             status: way === 'website' ? 'pending' : 'accepted',
             profileImage: req.file ? `uploads/professionals/${req.file.filename}` : ''
@@ -228,6 +238,20 @@ exports.updateProfessional = async (req, res) => {
                     fs.unlinkSync(oldImagePath);
                 }
             }
+        }
+
+        // Parse coordinates if provided (handle strings from multipart/form-data)
+        if ('lat' in updateData) {
+            const parsedLat = updateData.lat !== undefined && updateData.lat !== null && updateData.lat !== '' && !isNaN(parseFloat(updateData.lat))
+                ? parseFloat(updateData.lat)
+                : null;
+            updateData.lat = parsedLat;
+        }
+        if ('lng' in updateData) {
+            const parsedLng = updateData.lng !== undefined && updateData.lng !== null && updateData.lng !== '' && !isNaN(parseFloat(updateData.lng))
+                ? parseFloat(updateData.lng)
+                : null;
+            updateData.lng = parsedLng;
         }
 
         const professional = await Professional.findByIdAndUpdate(
@@ -354,16 +378,18 @@ exports.approveProfessional = async (req, res) => {
         let user = await User.findOne({ phone: finalPhone });
         
         if (user) {
-            // Update existing user
-            const passwordHash = await bcrypt.hash(password, 10);
-            user.passwordHash = passwordHash;
+            // Update existing user; only set password if provided
+            if (password) {
+                const passwordHash = await bcrypt.hash(password, 10);
+                user.passwordHash = passwordHash;
+            }
             user.role = 'professional';
             user.name = finalName;
             user.email = finalEmail || user.email;
             user.lastLogin = new Date();
             await user.save();
         } else {
-            // Create new user if not exists
+            // Create new user if not exists (password may be omitted for SMS OTP flow)
             const userResult = await ensureUserAccount({ 
                 name: finalName, 
                 email: finalEmail, 
@@ -382,9 +408,9 @@ exports.approveProfessional = async (req, res) => {
         const updateData = {
             ...otherUpdates,
             username: finalPhone, // Use phone as username
-            password,
             status: 'accepted'
         };
+        if (password) updateData.password = password;
 
         const updatedProfessional = await Professional.findByIdAndUpdate(
             id,

@@ -1,10 +1,16 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   X, ChevronRight, Calendar, Clock, MapPin, AlertCircle,
   Navigation, Loader, Check, Package
 } from 'lucide-react';
 
 const BookService = ({ isOpen, onClose }) => {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+  const getAuthHeaders = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  };
   const [step, setStep] = useState(1);
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
@@ -63,9 +69,9 @@ const BookService = ({ isOpen, onClose }) => {
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`;
       script.async = true;
-      script.defer = true;
+      script.defer = true; 
       document.head.appendChild(script);
-    };
+    };  
 
     if (isOpen && step === 2) {
       loadGoogleMapsScript();
@@ -84,7 +90,7 @@ const BookService = ({ isOpen, onClose }) => {
 
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
-        
+
         if (!place.geometry) {
           setError('Please select a valid location from the suggestions');
           return;
@@ -94,11 +100,11 @@ const BookService = ({ isOpen, onClose }) => {
         let city = '';
         let district = '';
         let area = '';
-        
+
         if (place.address_components) {
           place.address_components.forEach(component => {
             const types = component.types;
-            
+
             if (types.includes('locality')) {
               city = component.long_name;
             } else if (types.includes('administrative_area_level_2')) {
@@ -139,17 +145,12 @@ const BookService = ({ isOpen, onClose }) => {
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/services`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await fetch(`${API_BASE_URL}/api/services`, {
+        headers: getAuthHeaders()
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setServices(data.data || data.services || []);
       } else {
@@ -184,7 +185,7 @@ const BookService = ({ isOpen, onClose }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'location.address') {
       setFormData(prev => ({
         ...prev,
@@ -205,22 +206,22 @@ const BookService = ({ isOpen, onClose }) => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        
+
         try {
           const geocoder = new window.google.maps.Geocoder();
           const latlng = { lat: latitude, lng: longitude };
-          
+
           geocoder.geocode({ location: latlng }, (results, status) => {
             if (status === 'OK' && results[0]) {
               // Extract location components
               let city = '';
               let district = '';
               let area = '';
-              
+
               if (results[0].address_components) {
                 results[0].address_components.forEach(component => {
                   const types = component.types;
-                  
+
                   if (types.includes('locality')) {
                     city = component.long_name;
                   } else if (types.includes('administrative_area_level_2')) {
@@ -232,7 +233,7 @@ const BookService = ({ isOpen, onClose }) => {
                   }
                 });
               }
-              
+
               setFormData(prev => ({
                 ...prev,
                 location: {
@@ -244,7 +245,7 @@ const BookService = ({ isOpen, onClose }) => {
                   lng: longitude
                 }
               }));
-              
+
               if (locationInputRef.current) {
                 locationInputRef.current.value = results[0].formatted_address;
               }
@@ -304,14 +305,9 @@ const BookService = ({ isOpen, onClose }) => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/bookings/create`, {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/create`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           service: formData.service,
           issueType: formData.issueType,
@@ -376,7 +372,7 @@ const BookService = ({ isOpen, onClose }) => {
           >
             <X className="w-6 h-6" />
           </button>
-          
+
           <h2 className="text-2xl font-bold mb-2">Book a Service</h2>
           <div className="flex items-center gap-4">
             <div className={`flex items-center gap-2 ${step === 1 ? 'text-white' : 'text-purple-200'}`}>
@@ -413,7 +409,7 @@ const BookService = ({ isOpen, onClose }) => {
           {step === 1 && (
             <div>
               <h3 className="text-lg font-semibold mb-4">Choose a Service</h3>
-              
+
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader className="w-8 h-8 animate-spin text-purple-600" />
@@ -424,11 +420,10 @@ const BookService = ({ isOpen, onClose }) => {
                     <div
                       key={service._id}
                       onClick={() => handleServiceSelect(service)}
-                      className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                        selectedService?._id === service._id
+                      className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedService?._id === service._id
                           ? 'border-purple-600 bg-purple-50 shadow-md'
                           : 'border-gray-200 hover:border-purple-300 hover:shadow-sm'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg text-white">
@@ -469,7 +464,7 @@ const BookService = ({ isOpen, onClose }) => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Issue Type <span className="text-red-500">*</span>
+                  Issue Type <span>*</span>
                 </label>
                 <input
                   type="text"
@@ -484,7 +479,7 @@ const BookService = ({ isOpen, onClose }) => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description <span className="text-red-500">*</span>
+                  Description <span>*</span>
                 </label>
                 <textarea
                   name="description"
@@ -499,7 +494,7 @@ const BookService = ({ isOpen, onClose }) => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Scheduled Service Time <span className="text-red-500">*</span>
+                  Scheduled Service Time <span>*</span>
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -533,9 +528,9 @@ const BookService = ({ isOpen, onClose }) => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Service Location <span className="text-red-500">*</span>
+                  Service Location <span>*</span>
                 </label>
-                
+
                 <div className="flex items-center gap-3 mb-4">
                   <button
                     type="button"

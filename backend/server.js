@@ -7,6 +7,7 @@ const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const workerAuthRoutes = require("./routes/workerAuthRoutes");
+const otpRoutes = require("./routes/otpRoutes");
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/worker", workerAuthRoutes);
+app.use("/api/otp", otpRoutes);
 
 const serviceRoutes = require("./routes/serviceRoutes");
 const issueRoutes = require("./routes/issueRoutes");
@@ -63,7 +65,7 @@ app.use("/api/push", pushNotificationRoutes);
 console.log(process.env.MONGO_URI);
 
 // Server start
-const PORT = process.env.PORT || 5000; 
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () =>
     console.log(`Server running on port ${PORT}`)
 );

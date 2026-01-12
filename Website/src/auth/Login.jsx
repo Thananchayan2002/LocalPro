@@ -1,242 +1,183 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import toast, { Toaster } from 'react-hot-toast';
-import { Phone, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
-import loginBG from '../assets/loginBG.jfif';
-import { BlockedAccountModal } from '../worker/components/auth/BlockedAccountModal';
-import { useAuth } from '../worker/context/AuthContext';
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Lock } from "lucide-react";
+import toast from "react-hot-toast";
+import aboutBanner from "../assets/images/aboutBanner.png";
+import PhoneAuth from "./PhoneAuth";
+import MobileLogin from "./MobileLogin";
+import { useAuth } from "../worker/context/AuthContext";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const Login = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 640 : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const { setAuthData } = useAuth();
+  // Handle phone verification success
+  const handlePhoneVerified = async ({ phoneE164, userExists, user, token }) => {
+    if (!userExists) {
+      // Fallback: attempt login API once before redirecting to signup
+      const fallback = await loginExistingUser(phoneE164);
+      if (fallback) {
+        const existingUser = fallback.user;
+        const existingToken = fallback.token;
 
-  const [formData, setFormData] = useState({ username: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showBlockedModal, setShowBlockedModal] = useState(false);
-  const [blockedError, setBlockedError] = useState('');
+        // Professional routing
+        if (existingUser?.role === "professional") {
+          if (existingUser?.status === "active") {
+            setAuthData(existingToken, existingUser);
+            localStorage.setItem("userPhone", phoneE164);
+            localStorage.setItem("phone_verified", "true");
+            toast.success("Login successful!");
+            navigate("/worker/dashboard", { replace: true });
+            return;
+          } else {
+            toast.error(existingUser?.status ? `Account status: ${existingUser.status}` : "Account not active.");
+            return;
+          }
+        }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setBlockedError('');
-    setShowBlockedModal(false);
+        // Non-professional: persist and go to app
+        setAuthData(existingToken, existingUser);
+        localStorage.setItem("userPhone", phoneE164);
+        localStorage.setItem("phone_verified", "true");
+        toast.success("Login successful!");
+        navigate("/app");
+        return;
+      }
 
-    if (!formData.username || !formData.password) {
-      setError('Please enter both phone number and password');
+      // No account found, navigate to signup
+      toast.success("Phone verified! Please complete your profile.");
+      navigate("/signup", {
+        state: { phoneNumber: phoneE164, phoneVerified: true },
+      });
       return;
     }
 
-    setLoading(true);
+    // User exists — prefer user/token returned from OTP verify, otherwise call login API
+    let existingUser = user || null;
+    let existingToken = token || null;
+
+    if (!existingUser) {
+      const res = await loginExistingUser(phoneE164);
+      if (!res) return; // helper already showed errors
+      existingUser = res.user;
+      existingToken = res.token;
+    }
+
+    // If professional and active, route to worker dashboard
+    if (existingUser?.role === "professional") {
+      if (existingUser?.status === "active") {
+        // Ensure session is persisted via AuthContext
+        if (existingToken && existingUser) {
+          setAuthData(existingToken, existingUser);
+          localStorage.setItem("userPhone", phoneE164);
+          localStorage.setItem("phone_verified", "true");
+        }
+        toast.success("Login successful!");
+        navigate("/worker/dashboard", { replace: true });
+        return;
+      } else {
+        // Account not active/blocked/denied
+        toast.error(existingUser?.status ? `Account status: ${existingUser.status}` : "Account not active.");
+        return;
+      }
+    }
+
+    // Not a professional — ensure session then go to app
+    if (!existingToken || !existingUser) {
+      const res = await loginExistingUser(phoneE164);
+      if (!res) return;
+      existingToken = res.token;
+      existingUser = res.user;
+    }
+
+    // Persist session through AuthContext
+    setAuthData(existingToken, existingUser);
+    toast.success("Login successful!");
+    navigate("/app");
+  };
+
+  if (isMobile) {
+    return <MobileLogin />;
+  }
+
+  // Login existing user (returns { token, user } or null on failure)
+  const loginExistingUser = async (phoneE164) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL;
-      const res = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: formData.username.trim(),
-          password: formData.password
-        })
+      const controller = new AbortController();
+      const res = await fetch(`${API_BASE_URL}/api/auth/login-with-phone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber: phoneE164 }),
+        signal: controller.signal,
       });
 
       const data = await res.json();
 
-      if (!res.ok || !data.success) {
-        // Handle status-based responses
-        if (data?.code === 'paused' && data?.message) {
-          setBlockedError(data.message);
-          setShowBlockedModal(true);
-          return;
-        }
-
-        if (data?.code === 'blocked') {
-          toast.error(data.message || 'Account blocked. Please contact administrator.');
-          return;
-        }
-
-        setError(data?.message || 'Login failed. Please check your credentials.');
-        toast.error(data?.message || 'Invalid phone or password');
-        return;
-      }
-
-      // Success: store auth and route by role
-      if (data.token && data.user) {
+      if (res.ok && data.success) {
+        // Persist session via AuthContext
         setAuthData(data.token, data.user);
+        localStorage.setItem("userPhone", phoneE164);
+        localStorage.setItem("phone_verified", "true");
 
-        if (data.user.role === 'professional') {
-          navigate('/worker/dashboard', { replace: true });
-        } else if (data.user.role === 'customer') {
-          navigate('/app', { replace: true });
-        } else {
-          navigate('/', { replace: true });
-        }
+        return { token: data.token, user: data.user };
       } else {
-        toast.error('Login response missing token or user data');
+        toast.error(data.message || "Login failed");
+        return null;
       }
-    } catch (err) {
-      console.error('Login error:', err);
-      toast.error('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        console.error("Login error:", error);
+        toast.error("Network error. Please try again.");
+      }
+      return null;
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <Toaster position="top-right" />
-
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${loginBG})` }}
-      >
-        {/* Dark overlay for better contrast */}
-        <div className="absolute inset-0 bg-black/30"></div>
-      </div>
-
-      {/* Blocked Account Modal */}
-      <BlockedAccountModal
-        isOpen={showBlockedModal}
-        errorMessage={blockedError}
-        onClose={() => setShowBlockedModal(false)}
-      />
-
-      {/* Login Card */}
-      <div className="relative w-full max-w-md z-10">
-        <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-10 border-2 border-purple-300/30">
-          {/* Logo and Title */}
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
-              LocalPro
-            </h1>
-            <p className="text-gray-600 text-lg font-medium">Welcome back</p>
-            <div className="mt-4 h-1 w-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mx-auto"></div>
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-12"
+      style={{
+        backgroundImage: `linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15)), url('${aboutBanner}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        backgroundRepeat: "no-repeat",
+        backgroundColor: "rgb(240, 249, 255)",
+      }}
+    >
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-purple-100/70 p-8">
+        <div className="text-center mb-6">
+          <div className="mx-auto w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 mb-3">
+            <Lock size={22} />
           </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-shake">
-              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          {/* Login Form */}
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Phone Field */}
-            <div>
-              <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Phone className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
-                </div>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
-                  placeholder="Enter your phone number"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="block w-full pl-12 pr-12 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-purple-600 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="text-gray-400 hover:text-purple-500" size={20} />
-                  ) : (
-                    <Eye className="text-gray-400 hover:text-purple-500" size={20} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Login Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 px-4 rounded-xl font-semibold text-lg hover:shadow-xl hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 mt-8"
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Logging in...</span>
-                </>
-              ) : (
-                <>
-                  <LogIn size={20} />
-                  <span>Login</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Signup Link */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <a
-                href="/signup"
-                className="text-purple-600 hover:text-purple-700 font-semibold transition-colors"
-              >
-                Sign up here
-              </a>
-            </p>
-          </div>
-
-          {/* Footer */}
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>© 2026 LocalPro. All rights reserved.</p>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome to HelpGo
+          </h1>
+          <p className="text-gray-600 mt-1">
+            To continue, enter your phone number
+          </p>
         </div>
-      </div>
 
-      {/* Custom Animations */}
-      <style>{`
-    @keyframes shake {
-      0%, 100% {
-      transform: translateX(0);
-      }
-      10%, 30%, 50%, 70%, 90% {
-      transform: translateX(-5px);
-      }
-      20%, 40%, 60%, 80% {
-      transform: translateX(5px);
-      }
-    }
-        
-    .animate-shake {
-      animation: shake 0.5s;
-    }
-    `}</style>
+        {/* PhoneAuth Component */}
+        <PhoneAuth
+          initialCountryDial="+94"
+          onVerified={handlePhoneVerified}
+          variant="login"
+        />
+      </div>
     </div>
   );
 };

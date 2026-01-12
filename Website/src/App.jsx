@@ -1,4 +1,4 @@
-import "./globals.css";
+import "./App.css";
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { Layout as UserLayout } from './users/components/layout/Layout';
@@ -28,7 +28,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes> 
+        <Routes>
           {/* Public auth routes */}
           <Route path='/' element={<Login />} />
           <Route path='/login' element={<Login />} />
@@ -37,12 +37,12 @@ function App() {
           {/* User routes under /app */}
           <Route
             path='/app'
-            element={( 
+            element={(
               <UserProtectedRoute>
                 <UserLayout />
-              </UserProtectedRoute> 
+              </UserProtectedRoute>
             )}
-          > 
+          >
             <Route index element={<Home />} />
             <Route path='services' element={<UserServices />} />
             <Route path='about' element={<About />} />

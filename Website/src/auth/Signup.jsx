@@ -1,394 +1,352 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Phone, Lock, MapPin, AlertCircle, LogIn } from 'lucide-react';
-import loginBG from '../assets/loginBG.jfif';
-import { useAuth } from '../worker/context/AuthContext';
+import React, { useState, useCallback, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Mail, MapPin, Loader2, ArrowRight, CheckCircle } from "lucide-react";
+import toast from "react-hot-toast";
+import { motion } from "framer-motion";
 
-export const Signup = () => {
+import { useAnimations } from "../users/components/animations/animations";
+import { colors } from "../styles/colors";
+import loginBG from "../assets/images/aboutBanner.png";
+import MobileSignup from "./MobileSignup";
+import { validateName, validateEmail } from "../utils/validation";
+
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const Signup = () => {
     const navigate = useNavigate();
-    const { setAuthData } = useAuth();
+    const location = useLocation();
+    const { fadeInUp, staggerContainer, staggerItem } = useAnimations();
+    const abortRef = React.useRef(null);
+    const mountedRef = React.useRef(true);
 
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        password: '',
-        confirmPassword: '',
-        location: '',
-        role: 'customer',
-        status: 'active'
+    const [isMobile, setIsMobile] = useState(() =>
+        typeof window !== "undefined" ? window.innerWidth < 640 : false
+    );
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const onResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            if (abortRef.current) abortRef.current.abort();
+        };
+    }, []);
+
+    // Get phone number and verification status from login redirect
+    const phoneNumber = location.state?.phoneNumber || "";
+    const isPhoneVerified = location.state?.phoneVerified === true;
+
+    // Form state (passwordless authentication)
+    const [form, setForm] = useState({
+        name: "",
+        email: "",
+        location: "",
     });
 
-    const [showPassword, setShowPassword] = useState({
-        password: false,
-        confirmPassword: false
-    });
-
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({
-            ...formData,
-            [name]: value
-        });
-        // Clear error when user starts typing
-        if (error) setError('');
-    };
+    // Redirect to login if no verified phone
+    useEffect(() => {
+        if (!isPhoneVerified || !phoneNumber) {
+            toast.error("Please verify your phone number first");
+            navigate("/login");
+        }
+    }, [isPhoneVerified, phoneNumber, navigate]);
 
+    // Handle form input change
+    const handleChange = useCallback(
+        (field, value) => {
+            setForm((prev) => ({ ...prev, [field]: value }));
+            // Clear error for this field when user starts typing
+            if (errors[field]) {
+                setErrors((prev) => ({ ...prev, [field]: "" }));
+            }
+        },
+        [errors]
+    );
+
+    // Validate form (passwordless - no password required)
     const validateForm = () => {
-        if (!formData.name.trim()) {
-            setError('Please enter your name');
-            return false;
-        }
+        const newErrors = {};
 
-        if (!formData.email.trim()) {
-            setError('Please enter your email');
-            return false;
-        }
+        // Name validation
+        const nameError = validateName(form.name);
+        if (nameError) newErrors.name = nameError;
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.email.trim())) {
-            setError('Please enter a valid email address');
-            return false;
-        }
+        // Email validation (optional)
+        const emailError = validateEmail(form.email);
+        if (emailError) newErrors.email = emailError;
 
-        if (!formData.phone.trim()) {
-            setError('Please enter your phone number');
-            return false;
-        }
-
-        if (formData.phone.trim().length < 10) {
-            setError('Phone number must be at least 10 digits');
-            return false;
-        }
-
-        if (!formData.password) {
-            setError('Please enter a password');
-            return false;
-        }
-
-        if (formData.password.length < 6) {
-            setError('Password must be at least 6 characters');
-            return false;
-        }
-
-        if (!formData.confirmPassword) {
-            setError('Please confirm your password');
-            return false;
-        }
-
-        if (formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match');
-            return false;
-        }
-
-        return true;
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
+    // Handle form submission - complete profile
+    const handleSubmit = useCallback(
+        async (e) => {
+            e.preventDefault();
+            if (!validateForm()) return;
 
-        if (!validateForm()) {
-            setLoading(false);
-            return;
-        }
+            setLoading(true);
+            try {
+                // Abort any previous request
+                if (abortRef.current) abortRef.current.abort();
+                const controller = new AbortController();
+                abortRef.current = controller;
 
-        try {
-            const apiUrl = import.meta.env.VITE_API_BASE_URL;
-            const response = await fetch(`${apiUrl}/api/auth/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: formData.name.trim(),
-                    email: formData.email.trim().toLowerCase(),
-                    phone: formData.phone.trim(),
-                    password: formData.password,
-                    location: formData.location.trim() || '',
-                    role: formData.role,
-                    status: formData.status
-                })
-            });
+                const response = await fetch(
+                    `${API_BASE_URL}/api/auth/complete-profile`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            phoneNumber,
+                            name: form.name,
+                            email: form.email || undefined,
+                            location: form.location || undefined,
+                        }),
+                        signal: controller.signal,
+                    }
+                );
 
-            const data = await response.json();
+                const data = await response.json();
 
-            if (!response.ok) {
-                setError(data.message || 'Signup failed. Please try again.');
-                setLoading(false);
-                return;
-            }
-
-            if (data.success) {
-                // Store token and user data via AuthContext
-                setAuthData(data.token, data.user);
-                // Route by role: customers to /app, professionals would need separate flow
-                if (data.user?.role === 'professional') {
-                    navigate('/worker/dashboard', { replace: true });
-                } else if (data.user?.role === 'customer') {
-                    navigate('/app', { replace: true });
-                } else {
-                    navigate('/', { replace: true });
+                if (!response.ok || data?.success === false) {
+                    throw new Error(data.message || "Profile completion failed");
                 }
-            } else {
-                setError(data.message || 'Signup failed');
-            }
-        } catch (err) {
-            console.error('Signup error:', err);
-            setError('Network error. Please check your connection and try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
 
+                // Store token and user
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
+                toast.success("Account created successfully!");
+
+                // Redirect to dashboard
+                navigate("/app");
+            } catch (error) {
+                if (error?.name !== "AbortError") {
+                    console.error("Signup error:", error);
+                    toast.error(error.message || "Failed to create account");
+                }
+            } finally {
+                if (mountedRef.current) setLoading(false);
+            }
+        },
+        [form, phoneNumber, navigate]
+    );
+
+    if (isMobile) {
+        return <MobileSignup />;
+    }
+
+    /* ============== RENDER ============== */
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative">
-            {/* Background Image */}
-            <div
-                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                style={{ backgroundImage: `url(${loginBG})` }}
-            >
-                {/* Dark overlay for better contrast */}
-                <div className="absolute inset-0 bg-black/30"></div>
+        <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            animate="visible"
+            className="min-h-screen flex flex-col"
+            style={{
+                backgroundImage: `linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(139, 92, 246, 0.1) 100%), url('${loginBG}')`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundAttachment: "fixed",
+                backgroundRepeat: "no-repeat",
+            }}
+        >
+            {/* Mobile Header */}
+            <div className="sm:hidden px-6 pt-10 pb-6">
+                <h1
+                    className="text-3xl font-extrabold leading-tight"
+                    style={{ color: colors.text.primary }}
+                >
+                    You're almost there
+                </h1>
+                <p className="mt-2" style={{ color: colors.text.secondary }}>
+                    One final step to get started
+                </p>
             </div>
 
-            {/* Signup Card */}
-            <div className="relative w-full max-w-2xl z-10">
-                <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-10 border-2 border-purple-300/30">
-                    {/* Logo and Title */}
-                    <div className="text-center mb-10">
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
-                            LocalPro
+            {/* Main Content */}
+            <div className="flex-1 flex items-center justify-center px-4 py-12">
+                <motion.div
+                    variants={staggerContainer}
+                    className="
+            w-full max-w-sm
+            sm:max-w-2xl
+            bg-white
+            rounded-3xl
+            shadow-xl
+            px-6 py-8 sm:px-8 sm:py-10
+            lg:px-12
+          "
+                >
+                    {/* Desktop Header */}
+                    <motion.div variants={staggerItem} className="hidden sm:block mb-6">
+                        <h1
+                            className="text-3xl font-bold"
+                            style={{ color: colors.text.primary }}
+                        >
+                            Complete Your Profile
                         </h1>
-                        <p className="text-gray-600 text-lg font-medium">Create Your Account</p>
-                        <div className="mt-4 h-1 w-20 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full mx-auto"></div>
-                    </div>
+                        <p className="mt-2" style={{ color: colors.text.secondary }}>
+                            One final step to get started
+                        </p>
+                    </motion.div>
 
-                    {/* Error Message */}
-                    {error && (
-                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 animate-shake">
-                            <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
-                            <p className="text-sm text-red-600">{error}</p>
+                    {/* Phone Verified Badge */}
+                    <motion.div variants={staggerItem} className="mb-6">
+                        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200">
+                            <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
+                            <span className="text-sm text-green-800 font-medium">
+                                Phone verified: {phoneNumber}
+                            </span>
                         </div>
-                    )}
+                    </motion.div>
 
-                    {/* Signup Form */}
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        {/* Name Field */}
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Full Name
-                            </label>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <User className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
-                                </div>
+                    {/* Profile Form */}
+                    <motion.form
+                        variants={staggerItem}
+                        onSubmit={handleSubmit}
+                        className="space-y-5"
+                    >
+                        {/* Name and Email Row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                            {/* Full Name */}
+                            <div>
+                                <label
+                                    className="text-sm font-medium"
+                                    style={{ color: colors.text.primary }}
+                                >
+                                    Full Name *
+                                </label>
                                 <input
                                     type="text"
-                                    id="name"
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    className="block w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
-                                    placeholder="Enter your full name"
-                                    required
+                                    value={form.name}
+                                    onChange={(e) => handleChange("name", e.target.value)}
+                                    placeholder="John Doe"
+                                    className="mt-2 w-full rounded-xl px-4 py-3 border-2 outline-none focus:ring-2 transition"
+                                    style={{
+                                        borderColor: errors.name
+                                            ? colors.error.DEFAULT
+                                            : colors.border.DEFAULT,
+                                        "--tw-ring-color": colors.primary.DEFAULT,
+                                    }}
+                                    disabled={loading}
                                 />
+                                {errors.name && (
+                                    <p
+                                        className="text-xs mt-1"
+                                        style={{ color: colors.error.DEFAULT }}
+                                    >
+                                        {errors.name}
+                                    </p>
+                                )}
                             </div>
-                        </div>
 
-                        {/* Email Field */}
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Email Address
-                            </label>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Mail className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
+                            {/* Email */}
+                            <div>
+                                <label
+                                    className="text-sm font-medium"
+                                    style={{ color: colors.text.primary }}
+                                >
+                                    Email (Optional)
+                                </label>
+                                <div className="relative mt-2">
+                                    <input
+                                        type="email"
+                                        value={form.email}
+                                        onChange={(e) => handleChange("email", e.target.value)}
+                                        placeholder="john@example.com"
+                                        className="w-full rounded-xl px-4 py-3 pr-10 border-2 outline-none focus:ring-2 transition"
+                                        style={{
+                                            borderColor: errors.email
+                                                ? colors.error.DEFAULT
+                                                : colors.border.DEFAULT,
+                                            "--tw-ring-color": colors.primary.DEFAULT,
+                                        }}
+                                        disabled={loading}
+                                    />
+                                    <Mail
+                                        className="absolute right-3 top-3.5"
+                                        style={{ color: colors.text.tertiary }}
+                                        size={18}
+                                    />
                                 </div>
-                                <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="block w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
-                                    placeholder="Enter your email"
-                                    required
-                                />
+                                {errors.email && (
+                                    <p
+                                        className="text-xs mt-1"
+                                        style={{ color: colors.error.DEFAULT }}
+                                    >
+                                        {errors.email}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
-                        {/* Phone Field */}
+                        {/* Location */}
                         <div>
-                            <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Phone Number
-                            </label>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Phone className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
-                                </div>
-                                <input
-                                    type="text"
-                                    id="phone"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                    className="block w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
-                                    placeholder="Enter your phone number"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        {/* Location Field */}
-                        <div>
-                            <label htmlFor="location" className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                className="text-sm font-medium"
+                                style={{ color: colors.text.primary }}
+                            >
                                 Location (Optional)
                             </label>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <MapPin className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
-                                </div>
+                            <div className="relative mt-2">
                                 <input
                                     type="text"
-                                    id="location"
-                                    name="location"
-                                    value={formData.location}
-                                    onChange={handleChange}
-                                    className="block w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
-                                    placeholder="Enter your location"
+                                    value={form.location}
+                                    onChange={(e) => handleChange("location", e.target.value)}
+                                    placeholder="City, Country"
+                                    className="w-full rounded-xl px-4 py-3 pr-10 border-2 outline-none focus:ring-2 transition"
+                                    style={{
+                                        borderColor: colors.border.DEFAULT,
+                                        "--tw-ring-color": colors.primary.DEFAULT,
+                                    }}
+                                    disabled={loading}
+                                />
+                                <MapPin
+                                    className="absolute right-3 top-3.5"
+                                    style={{ color: colors.text.tertiary }}
+                                    size={18}
                                 />
                             </div>
                         </div>
 
-                        {/* Password Field */}
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Password
-                            </label>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
-                                </div>
-                                <input
-                                    type={showPassword.password ? 'text' : 'password'}
-                                    id="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className="block w-full pl-12 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
-                                    placeholder="••••••••"
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword({...showPassword, password: !showPassword.password})}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-purple-600 transition-colors"
-                                >
-                                    {showPassword.password ? (
-                                        <EyeOff className="text-gray-400 hover:text-purple-500" size={20} />
-                                    ) : (
-                                        <Eye className="text-gray-400 hover:text-purple-500" size={20} />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Confirm Password Field */}
-                        <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Confirm Password
-                            </label>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock className="text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
-                                </div>
-                                <input
-                                    type={showPassword.confirmPassword ? 'text' : 'password'}
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    value={formData.confirmPassword}
-                                    onChange={handleChange}
-                                    className="block w-full pl-12 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white shadow-sm hover:border-purple-300"
-                                    placeholder="••••••••"
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword({...showPassword, confirmPassword: !showPassword.confirmPassword})}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-purple-600 transition-colors"
-                                >
-                                    {showPassword.confirmPassword ? (
-                                        <EyeOff className="text-gray-400 hover:text-purple-500" size={20} />
-                                    ) : (
-                                        <Eye className="text-gray-400 hover:text-purple-500" size={20} />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Signup Button */}
+                        {/* Submit Button */}
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 px-4 rounded-xl font-semibold text-lg hover:shadow-xl hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 mt-8"
+                            className="w-full mt-6 py-3.5 rounded-2xl font-semibold transition hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                            style={{
+                                background: colors.primary.gradient,
+                                color: colors.text.inverse,
+                            }}
                         >
                             {loading ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    <span>Creating Account...</span>
+                                    <Loader2 className="animate-spin" size={18} />
+                                    Creating account...
                                 </>
                             ) : (
                                 <>
-                                    <LogIn size={20} />
-                                    <span>Create Account</span>
+                                    Create Account
+                                    <ArrowRight size={18} />
                                 </>
                             )}
                         </button>
-                    </form>
-
-                    {/* Login Link */}
-                    <div className="mt-8 text-center">
-                        <p className="text-sm text-gray-600">
-                            Already have an account?{' '}
-                            <a
-                                href="/login"
-                                className="text-purple-600 hover:text-purple-700 font-semibold transition-colors"
-                            >
-                                Login here
-                            </a>
-                        </p>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="mt-6 text-center text-sm text-gray-500">
-                        <p>© 2026 LocalPro. All rights reserved.</p>
-                    </div>
-                </div>
+                    </motion.form>
+                </motion.div>
             </div>
-
-            {/* Custom Animations */}
-            <style>{`
-        @keyframes shake {
-          0%, 100% {
-            transform: translateX(0);
-          }
-          10%, 30%, 50%, 70%, 90% {
-            transform: translateX(-5px);
-          }
-          20%, 40%, 60%, 80% {
-            transform: translateX(5px);
-          }
-        }
-        .animate-shake {
-          animation: shake 0.5s ease-in-out;
-        }
-      `}</style>
-        </div>
+        </motion.div>
     );
 };
 

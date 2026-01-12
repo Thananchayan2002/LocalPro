@@ -381,7 +381,7 @@ exports.getUserById = async (req, res) => {
         const { id } = req.params;
 
         const user = await User.findById(id).select('name email phone location role');
-        
+
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -408,7 +408,7 @@ exports.getUserByPhone = async (req, res) => {
         const { phone } = req.params;
 
         const user = await User.findOne({ phone }).select('name email phone location role');
-        
+
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -422,6 +422,268 @@ exports.getUserByPhone = async (req, res) => {
         });
     } catch (error) {
         console.error('Get user by phone error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again later.'
+        });
+    }
+};
+
+// Check if user exists by phone number (for new unified flow)
+exports.checkUserByPhone = async (req, res) => {
+    try {
+        const { phone } = req.body;
+
+        if (!phone) {
+            return res.status(400).json({
+                success: false,
+                message: 'Phone number is required'
+            });
+        }
+
+        // Validate phone number format (E.164)
+        if (!/^\+\d{7,15}$/.test(phone)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid phone number format'
+            });
+        }
+
+        // Check if user exists
+        const user = await User.findOne({
+            $or: [
+                { phone },
+                { phoneNumber: phone }
+            ]
+        });
+
+        if (user) {
+            return res.status(200).json({
+                success: true,
+                exists: true,
+                message: 'User found'
+            });
+        } else {
+            return res.status(200).json({
+                success: true,
+                exists: false,
+                message: 'User not found, signup required'
+            });
+        }
+    } catch (error) {
+        console.error('Check user by phone error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again later.'
+        });
+    }
+};
+
+// Login with phone (after OTP verification)
+exports.loginWithPhone = async (req, res) => {
+    try {
+        const { phoneNumber } = req.body;
+
+        if (!phoneNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Phone number is required'
+            });
+        }
+
+        // Validate phone number format (E.164)
+        if (!/^\+\d{7,15}$/.test(phoneNumber)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid phone number format'
+            });
+        }
+
+        // Find user by phone number
+        const user = await User.findOne({
+            $or: [
+                { phoneNumber },
+                { phone: phoneNumber }
+            ]
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found. Please sign up first.'
+            });
+        }
+
+        // Check user status
+        if (user.status === 'blocked') {
+            return res.status(403).json({
+                success: false,
+                code: 'blocked',
+                message: 'Account is blocked. Please contact administrator.'
+            });
+        }
+
+        if (user.status !== 'active') {
+            return res.status(403).json({
+                success: false,
+                code: 'inactive',
+                message: `Account is ${user.status}. Please contact support.`
+            });
+        }
+
+        // Update last login
+        user.lastLogin = new Date();
+        await user.save();
+
+        // For professionals, fetch professional ID
+        let professionalId = null;
+        if (user.role === 'professional') {
+            const professional = await Professional.findOne({
+                $or: [
+                    { phone: user.phone },
+                    { phone: user.phoneNumber }
+                ]
+            });
+            if (professional) {
+                professionalId = professional._id;
+            }
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                userId: user._id,
+                phoneNumber: user.phoneNumber || user.phone,
+                email: user.email,
+                role: user.role
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Login successful',
+            token,
+            user: {
+                id: user._id,
+                professionalId: professionalId,
+                name: user.name,
+                email: user.email,
+                phoneNumber: user.phoneNumber || user.phone,
+                role: user.role,
+                location: user.location,
+                status: user.status,
+                lastLogin: user.lastLogin
+            }
+        });
+    } catch (error) {
+        console.error('Login with phone error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again later.'
+        });
+    }
+};
+
+// Complete profile and create user (after OTP verification)
+exports.completeProfile = async (req, res) => {
+    try {
+        const { name, email, location, phoneNumber } = req.body;
+
+        // Validate required fields
+        if (!name || !phoneNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide name and phone number'
+            });
+        }
+
+        // Validate phone number format (E.164)
+        if (!/^\+\d{7,15}$/.test(phoneNumber)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid phone number format'
+            });
+        }
+
+        // Check if phone number already exists
+        const existingUser = await User.findOne({
+            $or: [
+                { phoneNumber },
+                { phone: phoneNumber }
+            ]
+        });
+
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message: 'Phone number already registered'
+            });
+        }
+
+        // If email is provided, check if it's unique
+        let normalizedEmail;
+        if (email) {
+            normalizedEmail = email.toLowerCase();
+            const emailExists = await User.findOne({ email: normalizedEmail });
+            if (emailExists) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Email already in use'
+                });
+            }
+        }
+
+        // Create user (passwordless - using OTP authentication)
+        const user = await User.create({
+            name,
+            phoneNumber,
+            phone: phoneNumber, // Legacy field for compatibility
+            email: normalizedEmail,
+            location: location || '',
+            role: 'customer',
+            status: 'active'
+        });
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                userId: user._id,
+                phoneNumber: user.phoneNumber,
+                email: user.email,
+                role: user.role
+            },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: 'Account created successfully',
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                role: user.role,
+                location: user.location,
+                status: user.status,
+                lastLogin: user.lastLogin
+            }
+        });
+    } catch (error) {
+        console.error('Complete profile error:', error);
+
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern || {})[0] || 'field';
+            return res.status(409).json({
+                success: false,
+                message: `${field} already in use`
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Server error. Please try again later.'

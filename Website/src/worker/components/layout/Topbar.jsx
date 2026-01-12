@@ -161,8 +161,8 @@ export const Topbar = ({ onMenuClick }) => {
             onClick={handleLogoutClick}
             className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg hover:shadow-red-500/50 hover:scale-105 transition-all duration-200 group active:scale-95"
           >
-            <LogOut size={18} className="group-hover:rotate-12 transition-transform" />
-            <span className="block text-sm font-medium">
+            <LogOut size={18} className="group-hover:rotate-12 text-white transition-transform" />
+            <span className="block text-sm font-medium text-white">
               Logout
             </span>
           </button>

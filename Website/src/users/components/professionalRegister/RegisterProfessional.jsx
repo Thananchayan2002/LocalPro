@@ -13,7 +13,7 @@ const SRI_LANKAN_DISTRICTS = [
   'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar',
   'Vavuniya', 'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee',
   'Kurunegala', 'Puttalam', 'Anuradhapura', 'Polonnaruwa', 'Badulla',
-  'Monaragala', 'Ratnapura', 'Kegalle'
+  'Monaragala', 'Ratnapura', 'Kegalle' 
 ];
 
 const initialForm = {
@@ -40,46 +40,113 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
   const locationInputRef = useRef(null);
   const autocompleteRef = useRef(null);
 
-  // Pre-fill form with logged-in user data
+  // Pre-fill form with logged-in user data (support both `phone` and `phoneNumber` and fallback to userPhone)
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('user');
+      const storedUserPhone = typeof window !== 'undefined' ? localStorage.getItem('userPhone') : null;
       if (storedUser) {
         const userData = JSON.parse(storedUser);
+        const phoneValue = userData.phone || userData.phoneNumber || storedUserPhone || '';
         setForm(prevForm => ({
           ...prevForm,
           name: userData.name || '',
           email: userData.email || '',
-          phone: userData.phone || '',
+          phone: phoneValue,
           location: userData.location || ''
         }));
+      } else if (storedUserPhone) {
+        setForm(prevForm => ({ ...prevForm, phone: storedUserPhone }));
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     }
   }, []);
 
-  // Load Google Maps script
+  // Load Google Maps script (robust loader with onload/onerror to avoid callback collisions)
   useEffect(() => {
+    let script = null;
+    let mounted = true;
+
     const loadGoogleMapsScript = () => {
+      // Already available
       if (window.google && window.google.maps && window.google.maps.places) {
         initializeAutocomplete();
-        return;
+        return Promise.resolve();
+      }
+  
+      // If a script already exists, wait for it to load
+      const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existing) {
+        return new Promise((resolve, reject) => {
+          if (window.google && window.google.maps && window.google.maps.places) {
+            initializeAutocomplete();
+            resolve();
+            return;
+          }
+
+          existing.addEventListener('load', () => {
+            if (!mounted) return;
+            if (window.google && window.google.maps && window.google.maps.places) {
+              initializeAutocomplete();
+              resolve();
+            } else {
+              setMessage({ type: 'error', text: 'Google Maps loaded but Places API not available. Check API key and enabled services.' });
+              reject(new Error('Places API not available'));
+            }
+          });
+
+          existing.addEventListener('error', () => {
+            if (!mounted) return;
+            setMessage({ type: 'error', text: 'Failed to load Google Maps. Please check API key and network.' });
+            reject(new Error('Google Maps load error'));
+          });
+        });
       }
 
-      window.initGoogleMaps = () => {
-        initializeAutocomplete();
-      };
+      // Create and append script
+      return new Promise((resolve, reject) => {
+        script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          if (!mounted) return;
+          if (window.google && window.google.maps && window.google.maps.places) {
+            initializeAutocomplete();
+            resolve();
+          } else {
+            setMessage({ type: 'error', text: 'Google Maps loaded but Places API not available. Check API key and enabled services.' });
+            reject(new Error('Places API not available'));
+          }
+        };
+        script.onerror = () => {
+          if (!mounted) return;
+          setMessage({ type: 'error', text: 'Failed to load Google Maps. Please check API key and network.' });
+          reject(new Error('Google Maps load error'));
+        };
 
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initGoogleMaps`;
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
+        document.head.appendChild(script);
+      });
     };
 
-    loadGoogleMapsScript();
-  }, []);
+    // Only load when modal is open OR when component is rendered as page (isOpen undefined)
+    if (isOpen === undefined || isOpen) {
+      loadGoogleMapsScript().catch(() => {
+        /* Error already handled via setMessage */
+      });
+
+      // If script was already loaded earlier but initialize ran before the input existed, try init again
+      if (window.google && window.google.maps && window.google.maps.places) {
+        initializeAutocomplete();
+      }
+    }
+
+    return () => {
+      mounted = false;
+      if (script && script.parentNode) script.parentNode.removeChild(script);
+    };
+  }, [isOpen]);
 
   const initializeAutocomplete = () => {
     if (locationInputRef.current && window.google && window.google.maps.places) {
