@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { Eye, EyeOff, Lock, User, Mail, Phone, MapPin, Shield, Briefcase, Navigation, Star, Trophy, Layers } from 'lucide-react';
+import { authFetch } from '../../../utils/authFetch';
 
 export const Account = () => {
-    const { user, token } = useAuth();
+    const { user } = useAuth();
     const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
     const [professionalData, setProfessionalData] = useState(null);
@@ -20,12 +21,10 @@ export const Account = () => {
                 return;
             }
 
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-
             // Try by professionalId first
             if (user?.professionalId) {
                 try {
-                    const res = await fetch(`${apiUrl}/api/professionals/${user.professionalId}`, { headers });
+                    const res = await authFetch(`${apiUrl}/api/professionals/${user.professionalId}`);
                     const data = await res.json();
 
                     if (data.success) {
@@ -40,7 +39,7 @@ export const Account = () => {
 
             // Fallback: lookup by phone using search filter
             try {
-                const res = await fetch(`${apiUrl}/api/professionals?search=${encodeURIComponent(user.phone)}`, { headers });
+                const res = await authFetch(`${apiUrl}/api/professionals?search=${encodeURIComponent(user.phone)}`);
                 const data = await res.json();
                 if (data.success && Array.isArray(data.data) && data.data.length > 0) {
                     setProfessionalData(data.data[0]);
@@ -53,7 +52,7 @@ export const Account = () => {
         };
 
         fetchProfessionalData();
-    }, [user?.professionalId, user?.phone, token, apiUrl]);
+    }, [user?.professionalId, user?.phone, apiUrl]);
 
 
     return (

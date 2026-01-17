@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -11,35 +12,50 @@ const otpRoutes = require("./routes/otpRoutes");
 
 dotenv.config();
 
+
+
 // Connect to MongoDB
 connectDB();
 
 const app = express();
+app.set("trust proxy", 1);
 const server = http.createServer(app);
+
+// Parse CORS origins from environment (for production flexibility)
+const corsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",")
+  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"];
 
 // Setup Socket.io with CORS
 const io = new Server(server, {
-    cors: {
-        origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-        credentials: true
-    }
+  cors: {
+    origin: corsOrigins,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
+  },
 });
 
 // Make io accessible to routes
-app.set('io', io);
+app.set("io", io);
 
 // Socket.io connection handling
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
 
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-    });
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
 });
 
-app.use(cors());
+// CORS configuration - CRITICAL for HttpOnly cookie authentication
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true, // Required for HttpOnly cookies
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
 
 // Serve static files from uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -66,6 +82,4 @@ console.log(process.env.MONGO_URI);
 
 // Server start
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () =>
-    console.log(`Server running on port ${PORT}`)
-);
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

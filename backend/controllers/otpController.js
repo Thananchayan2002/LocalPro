@@ -1,19 +1,17 @@
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const OtpCode = require("../models/OtpCode");
+const RefreshToken = require("../models/RefreshToken");
+const {
+    createAccessToken,
+    createRefreshToken,
+    hashToken,
+    setAuthCookies
+} = require("../utils/authTokens");
 const {
     sendSmsViaNotify,
     formatOtpMessage,
 } = require("../services/notifySmsService");
 const { toE164FromAny } = require("../utils/phone");
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-    throw new Error(
-        "JWT_SECRET environment variable is not set. Please configure it before starting the server."
-    );
-}
 
 /**
  * Send OTP to phone number (unified flow - no signup/login distinction)
@@ -310,23 +308,28 @@ exports.verifyOTP = async (req, res) => {
                 });
             }
 
-            console.log(`[OTP VERIFY] Generating JWT token for user`);
-            const token = jwt.sign(
-                {
-                    userId: user._id,
-                    phoneNumber: user.phoneNumber || user.phone,
-                    email: user.email,
-                    role: user.role,
-                },
-                JWT_SECRET,
-                { expiresIn: "7d" }
-            );
+            const accessToken = createAccessToken({
+                userId: user._id,
+                phoneNumber: user.phoneNumber || user.phone,
+                email: user.email,
+                role: user.role,
+            });
+            const { token: refreshToken, expiresAt } = createRefreshToken();
+
+            await RefreshToken.create({
+                subjectId: user._id,
+                subjectType: "user",
+                tokenHash: hashToken(refreshToken),
+                expiresAt,
+                createdByIp: req.ip,
+            });
+
+            setAuthCookies(res, accessToken, refreshToken);
 
             console.log(`[OTP VERIFY] Login successful for user ${user._id}`);
             return res.status(200).json({
                 success: true,
                 message: "Login successful",
-                token,
                 user: {
                     id: user._id,
                     name: user.name,

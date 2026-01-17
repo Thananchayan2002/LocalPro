@@ -5,16 +5,9 @@ import {
     Search, Filter, ChevronDown, Star, X, DollarSign
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { authFetch } from '../../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    };
-};
 
 const statusConfig = {
     requested: { label: 'Requested', color: 'bg-yellow-100 text-yellow-800', icon: AlertCircle },
@@ -55,9 +48,7 @@ export const Bookings = () => {
             setLoading(true);
             setError(null);
             
-            const response = await fetch(`${API_BASE_URL}/api/bookings/professional-bookings`, {
-                headers: getAuthHeaders()
-            });
+            const response = await authFetch(`${API_BASE_URL}/api/bookings/professional-bookings`);
 
             const data = await response.json();
 
@@ -140,9 +131,9 @@ export const Bookings = () => {
         try {
             setSubmitting(true);
             
-            const response = await fetch(`${API_BASE_URL}/api/bookings/complete-booking`, {
+            const response = await authFetch(`${API_BASE_URL}/api/bookings/complete-booking`, {
                 method: 'POST',
-                headers: getAuthHeaders(),
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     bookingId: selectedBooking._id,
                     rating: formData.rating,

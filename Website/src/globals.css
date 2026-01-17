@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+/* Hide header and mobile navbar when modal is open on mobile */
+@media (max-width: 640px) {
+  body.modal-open header,
+  body.modal-open [class*="MobileNavbar"],
+  body.modal-open nav[class*="mobile"] {
+    display: none !important;
+  }
+}

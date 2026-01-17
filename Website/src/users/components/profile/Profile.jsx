@@ -1,61 +1,132 @@
-import React, { useState } from 'react';
-import { 
-  User, Mail, Phone, MapPin, Lock, Calendar, Shield,
-  Edit2, Save, Camera, LogOut, Eye, EyeOff, Key,
-  Navigation, Globe, CheckCircle, AlertCircle, Clock,
-  Home, Settings, CreditCard, Heart, Bell
-} from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Lock,
+  Calendar,
+  Shield,
+  Edit2,
+  Save,
+  Camera,
+  LogOut,
+  Eye,
+  EyeOff,
+  Key,
+  Navigation,
+  Globe,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Home,
+  Settings,
+  CreditCard,
+  Heart,
+  Bell,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { getCurrentUser } from "../../api/auth/auth";
+import { useAuth } from "../../../worker/context/AuthContext";
 
 export const Profile = () => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState({
     // User Data
-    name: 'Rajesh Kumar',
-    email: 'rajesh.kumar@example.com',
-    phone: '+94 77 123 4567',
-    role: 'customer',
-    
+    name: "",
+    email: "",
+    phone: "",
+    role: "customer",
+
     // Location Data
     location: {
-      city: 'Colombo',
-      area: 'Colombo 07',
-      lat: 6.9271,
-      lng: 79.8612
+      city: "",
+      area: "",
+      lat: 0,
+      lng: 0,
     },
-    
+
     // Additional Info
-    lastLogin: '2024-01-15 14:30:45',
-    status: 'active',
-    joinedDate: '2023-05-20',
-    
+    lastLogin: "",
+    status: "active",
+    joinedDate: "",
+
     // Password (for display only)
-    passwordHash: '••••••••',
-    
+    passwordHash: "••••••••",
+
     // Additional fields
-    profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh',
+    profileImage: "",
     notifications: true,
-    newsletter: true
+    newsletter: true,
   });
 
   const [formData, setFormData] = useState({ ...profileData });
 
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        const data = await getCurrentUser();
+
+        if (data.user) {
+          const userData = {
+            name: data.user.name || "",
+            email: data.user.email || "",
+            phone: data.user.phone || data.user.phoneNumber || "",
+            role: data.user.role || "customer",
+            location:
+              typeof data.user.location === "string"
+                ? { city: data.user.location, area: "", lat: 0, lng: 0 }
+                : data.user.location || { city: "", area: "", lat: 0, lng: 0 },
+            lastLogin: data.user.lastLogin || new Date().toISOString(),
+            status: data.user.status || "active",
+            joinedDate: data.user.createdAt || new Date().toISOString(),
+            passwordHash: "••••••••",
+            profileImage:
+              data.user.profileImage ||
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${
+                data.user.name || "User"
+              }`,
+            notifications: data.user.notifications !== false,
+            newsletter: data.user.newsletter !== false,
+          };
+
+          setProfileData(userData);
+          setFormData(userData);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        toast.error("Failed to load profile data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleLocationChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       location: {
         ...prev.location,
-        [name]: value
-      }
+        [name]: value,
+      },
     }));
   };
 
@@ -72,40 +143,100 @@ export const Profile = () => {
 
   const handlePasswordChange = () => {
     // Password change logic would go here
-    alert('Password change functionality would open a modal');
+    alert("Password change functionality would open a modal");
   };
 
-  const handleLogout = () => {
-    // Logout logic
-    alert('Logging out...');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
+    }
   };
 
   const statusColors = {
-    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    blocked: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    pause: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+    active:
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    blocked: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+    pending:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+    pause: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
   };
 
   const roleColors = {
-    customer: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    professional: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-    admin: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    customer:
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    professional:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    admin: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   };
 
   const quickActions = [
-    { icon: <Home className="w-5 h-5" />, label: 'My Bookings', action: () => alert('Navigate to bookings') },
-    { icon: <CreditCard className="w-5 h-5" />, label: 'Payment Methods', action: () => alert('Navigate to payments') },
-    { icon: <Heart className="w-5 h-5" />, label: 'Favorites', action: () => alert('Navigate to favorites') },
-    { icon: <Settings className="w-5 h-5" />, label: 'Settings', action: () => alert('Navigate to settings') },
+    {
+      icon: <Home className="w-5 h-5" />,
+      label: "My Bookings",
+      action: () => alert("Navigate to bookings"),
+    },
+    {
+      icon: <CreditCard className="w-5 h-5" />,
+      label: "Payment Methods",
+      action: () => alert("Navigate to payments"),
+    },
+    {
+      icon: <Heart className="w-5 h-5" />,
+      label: "Favorites",
+      action: () => alert("Navigate to favorites"),
+    },
+    {
+      icon: <Settings className="w-5 h-5" />,
+      label: "Settings",
+      action: () => alert("Navigate to settings"),
+    },
   ];
 
   const activityLog = [
-    { id: 1, action: 'Logged in', timestamp: '2024-01-15 14:30:45', device: 'Mobile Chrome' },
-    { id: 2, action: 'Booked Electrical Service', timestamp: '2024-01-14 10:15:22', device: 'Desktop Safari' },
-    { id: 3, action: 'Updated Profile', timestamp: '2024-01-12 16:45:10', device: 'Mobile App' },
-    { id: 4, action: 'Reviewed Professional', timestamp: '2024-01-10 09:30:05', device: 'Desktop Chrome' },
+    {
+      id: 1,
+      action: "Logged in",
+      timestamp: "2024-01-15 14:30:45",
+      device: "Mobile Chrome",
+    },
+    {
+      id: 2,
+      action: "Booked Electrical Service",
+      timestamp: "2024-01-14 10:15:22",
+      device: "Desktop Safari",
+    },
+    {
+      id: 3,
+      action: "Updated Profile",
+      timestamp: "2024-01-12 16:45:10",
+      device: "Mobile App",
+    },
+    {
+      id: 4,
+      action: "Reviewed Professional",
+      timestamp: "2024-01-10 09:30:05",
+      device: "Desktop Chrome",
+    },
   ];
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Loading profile...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
@@ -113,8 +244,12 @@ export const Profile = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Profile</h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage your account information and preferences</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              My Profile
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage your account information and preferences
+            </p>
           </div>
           <div className="flex gap-3">
             {isEditing ? (
@@ -172,7 +307,7 @@ export const Profile = () => {
                     </button>
                   )}
                 </div>
-                
+
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3 mb-4">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -188,14 +323,22 @@ export const Profile = () => {
                         profileData.name
                       )}
                     </h2>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${roleColors[profileData.role]}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        roleColors[profileData.role]
+                      }`}
+                    >
                       {profileData.role.toUpperCase()}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[profileData.status]}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        statusColors[profileData.status]
+                      }`}
+                    >
                       {profileData.status.toUpperCase()}
                     </span>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <Mail className="w-5 h-5 text-gray-400" />
@@ -208,10 +351,12 @@ export const Profile = () => {
                           className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white"
                         />
                       ) : (
-                        <span className="text-gray-600 dark:text-gray-300">{profileData.email}</span>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          {profileData.email}
+                        </span>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
                       <Phone className="w-5 h-5 text-gray-400" />
                       {isEditing ? (
@@ -223,14 +368,17 @@ export const Profile = () => {
                           className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-gray-900 dark:text-white"
                         />
                       ) : (
-                        <span className="text-gray-600 dark:text-gray-300">{profileData.phone}</span>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          {profileData.phone}
+                        </span>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
                       <Calendar className="w-5 h-5 text-gray-400" />
                       <span className="text-gray-600 dark:text-gray-300">
-                        Joined: {new Date(profileData.joinedDate).toLocaleDateString()}
+                        Joined:{" "}
+                        {new Date(profileData.joinedDate).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -242,9 +390,11 @@ export const Profile = () => {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
               <div className="flex items-center gap-2 mb-6">
                 <MapPin className="w-5 h-5 text-blue-600" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Location Information</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Location Information
+                </h3>
               </div>
-              
+
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -264,7 +414,7 @@ export const Profile = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Area
@@ -284,22 +434,30 @@ export const Profile = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="mt-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Google Map Coordinates
                 </label>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Latitude</div>
-                    <div className="font-mono text-gray-900 dark:text-white">{profileData.location.lat}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Latitude
+                    </div>
+                    <div className="font-mono text-gray-900 dark:text-white">
+                      {profileData.location.lat}
+                    </div>
                   </div>
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Longitude</div>
-                    <div className="font-mono text-gray-900 dark:text-white">{profileData.location.lng}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Longitude
+                    </div>
+                    <div className="font-mono text-gray-900 dark:text-white">
+                      {profileData.location.lng}
+                    </div>
                   </div>
                 </div>
-                
+
                 <button className="mt-4 flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
                   <Navigation className="w-4 h-4" />
                   View on Google Maps
@@ -311,9 +469,11 @@ export const Profile = () => {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
               <div className="flex items-center gap-2 mb-6">
                 <Shield className="w-5 h-5 text-green-600" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Security & Account</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Security & Account
+                </h3>
               </div>
-              
+
               <div className="space-y-6">
                 {/* Password */}
                 <div>
@@ -332,13 +492,17 @@ export const Profile = () => {
                   <div className="flex items-center gap-3">
                     <Lock className="w-5 h-5 text-gray-400" />
                     <div className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg font-mono">
-                      {showPassword ? 'password123' : '••••••••'}
+                      {showPassword ? "password123" : "••••••••"}
                     </div>
                     <button
                       onClick={() => setShowPassword(!showPassword)}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -366,24 +530,38 @@ export const Profile = () => {
                       <input
                         type="checkbox"
                         checked={formData.notifications}
-                        onChange={(e) => setFormData(prev => ({ ...prev, notifications: e.target.checked }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            notifications: e.target.checked,
+                          }))
+                        }
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         disabled={!isEditing}
                       />
                       <Bell className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-700 dark:text-gray-300">Push Notifications</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Push Notifications
+                      </span>
                     </label>
-                    
+
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={formData.newsletter}
-                        onChange={(e) => setFormData(prev => ({ ...prev, newsletter: e.target.checked }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            newsletter: e.target.checked,
+                          }))
+                        }
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         disabled={!isEditing}
                       />
                       <Mail className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-700 dark:text-gray-300">Email Newsletter</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Email Newsletter
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -395,7 +573,9 @@ export const Profile = () => {
           <div className="space-y-6">
             {/* Quick Actions */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">
+                Quick Actions
+              </h3>
               <div className="space-y-3">
                 {quickActions.map((action, index) => (
                   <button
@@ -406,7 +586,9 @@ export const Profile = () => {
                     <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                       {action.icon}
                     </div>
-                    <span className="font-medium text-gray-900 dark:text-white">{action.label}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {action.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -414,31 +596,49 @@ export const Profile = () => {
 
             {/* Account Stats */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Account Overview</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">
+                Account Overview
+              </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Account Status</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[profileData.status]}`}>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Account Status
+                  </span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      statusColors[profileData.status]
+                    }`}
+                  >
                     {profileData.status.toUpperCase()}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Account Type</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${roleColors[profileData.role]}`}>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Account Type
+                  </span>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      roleColors[profileData.role]
+                    }`}
+                  >
                     {profileData.role.toUpperCase()}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Member Since</span>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Member Since
+                  </span>
                   <span className="font-medium text-gray-900 dark:text-white">
                     {new Date(profileData.joinedDate).toLocaleDateString()}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">Verification</span>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Verification
+                  </span>
                   <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
                     <CheckCircle className="w-4 h-4" />
                     Verified
@@ -449,12 +649,19 @@ export const Profile = () => {
 
             {/* Recent Activity */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Recent Activity</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">
+                Recent Activity
+              </h3>
               <div className="space-y-4">
                 {activityLog.map((activity) => (
-                  <div key={activity.id} className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0">
+                  <div
+                    key={activity.id}
+                    className="pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:pb-0"
+                  >
                     <div className="flex justify-between items-start mb-1">
-                      <span className="font-medium text-gray-900 dark:text-white">{activity.action}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {activity.action}
+                      </span>
                       <span className="text-xs text-gray-500 dark:text-gray-500">
                         {new Date(activity.timestamp).toLocaleDateString()}
                       </span>
@@ -472,7 +679,8 @@ export const Profile = () => {
             <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-2xl p-6">
               <h3 className="font-bold text-lg mb-3">Need Help?</h3>
               <p className="text-blue-100 mb-4">
-                Our support team is here to help you with any questions or issues.
+                Our support team is here to help you with any questions or
+                issues.
               </p>
               <button className="w-full bg-white text-blue-600 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors">
                 Contact Support

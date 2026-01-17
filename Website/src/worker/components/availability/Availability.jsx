@@ -2,9 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../../worker/context/AuthContext';
 import { Clock, Plus, Edit2, Trash2, Loader2, X } from 'lucide-react';
+import { authFetch } from '../../../utils/authFetch';
 
 const Availability = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
   const [availability, setAvailability] = useState(null);
@@ -58,9 +59,7 @@ const Availability = () => {
     if (!user?.id) return;
     try {
       setLoading(true);
-      const res = await fetch(`${apiUrl}/api/availability/${user.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await authFetch(`${apiUrl}/api/availability/${user.id}`);
       const data = await res.json();
       if (data.success) {
         setAvailability(data.data);
@@ -129,11 +128,10 @@ const Availability = () => {
     const method = editingSlot ? 'PUT' : 'POST';
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await authFetch(endpoint, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ date, from: formData.from, to: formData.to })
       });
@@ -157,9 +155,9 @@ const Availability = () => {
     const { slotId, date } = deleteConfirm;
     
     try {
-      const res = await fetch(`${apiUrl}/api/availability/${user?.id}/slots/${slotId}?date=${date}`, {
+      const res = await authFetch(`${apiUrl}/api/availability/${user?.id}/slots/${slotId}?date=${date}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 'Content-Type': 'application/json' }
       });
       const data = await res.json();
       if (data.success) {

@@ -1,74 +1,78 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { authFetch } from "../../utils/authFetch";
+import { API_BASE_URL } from "../../utils/api";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    // Check if user is already logged in on mount and sync with localStorage changes
-    useEffect(() => {
-        const syncAuth = () => {
-            const storedToken = localStorage.getItem('token');
-            const storedUser = localStorage.getItem('user');
-
-            if (storedToken && storedUser) {
-                setToken(storedToken);
-                setUser(JSON.parse(storedUser));
-            } else {
-                setToken(null);
-                setUser(null);
-            }
-        };
-
-        // Initial sync
-        syncAuth();
-        setLoading(false);
-
-        // Listen for storage changes (from other tabs/windows)
-        window.addEventListener('storage', syncAuth);
-        return () => window.removeEventListener('storage', syncAuth);
-    }, []);
-
-    // Set auth data (used by Login component)
-    const setAuthData = (token, user) => {
-        setToken(token);
-        setUser(user);
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-    };
-
-    // Logout function
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
+  // Check if user is already logged in on mount
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        // Use silent401 to prevent redirect loop on initial load
+        const res = await authFetch(
+          `${API_BASE_URL}/api/auth/me`,
+          {},
+          { silent401: true }
+        );
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
+        const data = await res.json();
+        setUser(data.user || null);
+      } catch (error) {
         setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Check if user is authenticated
-    const isAuthenticated = () => {
-        return !!token && !!user;
-    };
+    loadSession();
+  }, []);
 
-    const value = {
-        user,
-        token,
-        logout,
-        isAuthenticated,
-        loading,
-        setAuthData
-    };
+  // Set auth data (used by Login component)
+  const setAuthData = (user) => {
+    setUser(user);
+  };
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Logout function
+  const logout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      // Silent logout failure (client-side state still cleared)
+    }
+    setUser(null);
+  };
+
+  // Check if user is authenticated
+  const isAuthenticated = () => {
+    return !!user;
+  };
+
+  const value = {
+    user,
+    logout,
+    isAuthenticated,
+    loading,
+    setAuthData,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 // Custom hook to use auth context
 export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };

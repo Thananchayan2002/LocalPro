@@ -1,8 +1,32 @@
-const jwt = require('jsonwebtoken');
 const Professional = require('../models/Professional');
 const User = require('../models/User');
+const RefreshToken = require("../models/RefreshToken");
+const {
+    createAccessToken,
+    createRefreshToken,
+    hashToken,
+    setAuthCookies
+} = require("../utils/authTokens");
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const issueProfessionalTokens = async (professional, req, res) => {
+    const accessToken = createAccessToken({
+        professionalId: professional._id,
+        username: professional.username,
+        role: "professional"
+    });
+
+    const { token: refreshToken, expiresAt } = createRefreshToken();
+
+    await RefreshToken.create({
+        subjectId: professional._id,
+        subjectType: "professional",
+        tokenHash: hashToken(refreshToken),
+        expiresAt,
+        createdByIp: req.ip
+    });
+
+    setAuthCookies(res, accessToken, refreshToken);
+};
 
 /**
  * Login controller for professionals
@@ -70,14 +94,7 @@ exports.login = async (req, res) => {
         console.log('Login successful for email:', username);
 
         // Generate JWT token
-        const token = jwt.sign(
-            { 
-                id: professional._id, 
-                username: professional.username 
-            },
-            JWT_SECRET,
-            { expiresIn: '30d' }
-        );
+        await issueProfessionalTokens(professional, req, res);
 
         const serviceName = professional.serviceId && professional.serviceId.service;
 
@@ -85,7 +102,6 @@ exports.login = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Login successful',
-            token,
             user: {
                 id: professional._id,
                 username: professional.username,
@@ -120,8 +136,6 @@ exports.login = async (req, res) => {
 exports.updatePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
-        const authHeader = req.headers.authorization;
-
         // Validation
         if (!currentPassword || !newPassword) {
             return res.status(400).json({
@@ -144,28 +158,9 @@ exports.updatePassword = async (req, res) => {
             });
         }
 
-        // Extract token from Authorization header
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                success: false,
-                message: 'Unauthorized: No token provided'
-            });
-        }
-
-        const token = authHeader.slice(7); // Remove 'Bearer ' prefix
-        let decoded;
-
-        try {
-            decoded = jwt.verify(token, JWT_SECRET);
-        } catch (err) {
-            return res.status(401).json({
-                success: false,
-                message: 'Unauthorized: Invalid token'
-            });
-        }
-
-        // Support tokens issued by both worker login (id) and general auth (userId + phone)
-        const professionalIdFromToken = decoded.id || decoded.professionalId;
+        // Support tokens issued by both worker login (professionalId) and general auth (userId + phone)
+        const professionalIdFromToken =
+            req.user?.professionalId || req.user?.userId || req.user?.id;
         let professional = null;
 
         if (professionalIdFromToken) {
@@ -173,13 +168,13 @@ exports.updatePassword = async (req, res) => {
         }
 
         // Fallback: locate professional by phone present in general auth token
-        if (!professional && decoded.phone) {
-            professional = await Professional.findOne({ phone: decoded.phone });
+        if (!professional && req.user?.phone) {
+            professional = await Professional.findOne({ phone: req.user.phone });
         }
 
         // Fallback: if only userId is present, resolve user to phone then locate professional
-        if (!professional && decoded.userId) {
-            const user = await User.findById(decoded.userId).select('phone');
+        if (!professional && req.user?.userId) {
+            const user = await User.findById(req.user.userId).select('phone');
             if (user?.phone) {
                 professional = await Professional.findOne({ phone: user.phone });
             }

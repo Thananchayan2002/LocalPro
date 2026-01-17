@@ -2,12 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Bell, MapPin, Clock, CheckCircle, AlertCircle, Loader, X, User, Phone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { io } from 'socket.io-client';
+import { authFetch } from '../../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
-const getAuthHeaders = (token) => {
-  return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
-};
 
 // Calculate distance between two coordinates using Haversine formula (in km)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -53,7 +50,7 @@ const shouldShowBooking = (booking, professionalLat, professionalLng) => {
 };
 
 export const Notifications = () => {
-  const { user: contextUser, token } = useAuth();
+  const { user: contextUser } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userWithService, setUserWithService] = useState(null);
@@ -98,7 +95,7 @@ export const Notifications = () => {
 
   // Subscribe to push notifications when user and service are available
   useEffect(() => {
-    if (!userWithService || !userWithService.service || !userWithService.district || !notificationsEnabled || !token) {
+    if (!userWithService || !userWithService.service || !userWithService.district || !notificationsEnabled) {
       return;
     }
 
@@ -125,9 +122,9 @@ export const Notifications = () => {
         setPushSubscription(subscription);
 
         // Send subscription to backend
-        const response = await fetch(`${API_BASE_URL}/api/push/subscribe`, {
+        const response = await authFetch(`${API_BASE_URL}/api/push/subscribe`, {
           method: 'POST',
-          headers: getAuthHeaders(token),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             subscription: subscription.toJSON(),
             service: userWithService.service,
@@ -147,7 +144,7 @@ export const Notifications = () => {
     };
 
     subscribeToPush();
-  }, [userWithService?.service, userWithService?.district, notificationsEnabled, token]);
+  }, [userWithService?.service, userWithService?.district, notificationsEnabled]);
 
   // Fetch professional details using same logic as Account.jsx
   useEffect(() => {
@@ -165,9 +162,7 @@ export const Notifications = () => {
         // Try by professionalId first
         if (contextUser?.professionalId) {
           try {
-            const res = await fetch(`${API_BASE_URL}/api/professionals/${contextUser.professionalId}`, { 
-              headers: getAuthHeaders(token) 
-            });
+            const res = await authFetch(`${API_BASE_URL}/api/professionals/${contextUser.professionalId}`);
             const data = await res.json();
 
             if (data.success) {
@@ -181,9 +176,7 @@ export const Notifications = () => {
         // Fallback: lookup by phone using search filter
         if (!professionalData && contextUser?.phone) {
           try {
-            const res = await fetch(`${API_BASE_URL}/api/professionals?search=${encodeURIComponent(contextUser.phone)}`, { 
-              headers: getAuthHeaders(token) 
-            });
+            const res = await authFetch(`${API_BASE_URL}/api/professionals?search=${encodeURIComponent(contextUser.phone)}`);
             const data = await res.json();
             if (data.success && Array.isArray(data.data) && data.data.length > 0) {
               professionalData = data.data[0];
@@ -219,7 +212,7 @@ export const Notifications = () => {
     };
 
     fetchProfessionalData();
-  }, [contextUser?.professionalId, contextUser?.phone, contextUser, token]);
+  }, [contextUser?.professionalId, contextUser?.phone, contextUser]);
 
   // Fetch matching bookings
   useEffect(() => {
@@ -228,9 +221,7 @@ export const Notifications = () => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/bookings/all?status=requested`, {
-          headers: getAuthHeaders(token)
-        });
+        const response = await authFetch(`${API_BASE_URL}/api/bookings/all?status=requested`);
 
         const data = await response.json();
         console.log('Bookings response:', data);
@@ -264,7 +255,7 @@ export const Notifications = () => {
     };
 
     fetchBookings();
-  }, [userWithService?.service, userWithService?.district, token]);
+  }, [userWithService?.service, userWithService?.district]);
 
   // WebSocket connection for real-time bookings
   useEffect(() => {
@@ -344,7 +335,7 @@ export const Notifications = () => {
     }, 60000); // Check every 1 minute
 
     return () => clearInterval(interval);
-  }, [userWithService?.service, userWithService?.district, userWithService?.lat, userWithService?.lng, token]);
+  }, [userWithService?.service, userWithService?.district, userWithService?.lat, userWithService?.lng]);
 
   // Calculate deadline time (scheduled time + duration)
   const getDeadlineTime = (scheduledTime, duration) => {
@@ -362,9 +353,7 @@ export const Notifications = () => {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/bookings/all?status=requested`, {
-        headers: getAuthHeaders(token)
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/bookings/all?status=requested`);
 
       const data = await response.json();
       console.log('Bookings response:', data);
@@ -401,9 +390,7 @@ export const Notifications = () => {
     setLoadingCustomer(true);
     console.log('Fetching customer details for ID:', customerId);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/user/${customerId}`, {
-        headers: getAuthHeaders(token)
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/auth/user/${customerId}`);
       const data = await response.json();
       console.log('Customer details response:', data);
       if (data.success) {
@@ -465,9 +452,9 @@ export const Notifications = () => {
         contextUser
       });
       
-      const response = await fetch(`${API_BASE_URL}/api/bookings/update-status/${selectedBooking._id}`, {
+      const response = await authFetch(`${API_BASE_URL}/api/bookings/update-status/${selectedBooking._id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(token),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'assigned',
           professionalId: userIdToAssign

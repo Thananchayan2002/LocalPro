@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, Clock, User, Phone, AlertCircle, CheckCircle, XCircle, Loader, Eye, X, Star, DollarSign } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
-const getAuthHeaders = () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
-};
+import React, { useState, useEffect } from "react";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  User,
+  Phone,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Loader,
+  Eye,
+  X,
+  Star,
+  DollarSign,
+} from "lucide-react";
+import { getMyBookings } from "../../api/booking/booking";
+import { canReviewBooking, submitReview } from "../../api/review/review";
 
 const Bookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -14,8 +23,12 @@ const Bookings = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [reviewData, setReviewData] = useState({ rating: 5, comment: '', paymentByUser: '' });
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [reviewData, setReviewData] = useState({
+    rating: 5,
+    comment: "",
+    paymentByUser: "",
+  });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewableBookings, setReviewableBookings] = useState({});
 
@@ -26,32 +39,26 @@ const Bookings = () => {
   // Hide/show header when modal opens/closes
   useEffect(() => {
     if (showDetailModal || showReviewModal) {
-      document.body.classList.add('modal-open');
+      document.body.classList.add("modal-open");
     } else {
-      document.body.classList.remove('modal-open');
+      document.body.classList.remove("modal-open");
     }
-    
+
     // Cleanup on unmount
     return () => {
-      document.body.classList.remove('modal-open');
+      document.body.classList.remove("modal-open");
     };
   }, [showDetailModal, showReviewModal]);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/bookings/my-bookings`, {
-        headers: getAuthHeaders()
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setBookings(data.bookings || []);
-        // Check review status for each booking
-        checkReviewableBookings(data.bookings || []);
-      }
+      const data = await getMyBookings();
+      setBookings(data);
+      // Check review status for each booking
+      checkReviewableBookings(data);
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.error("Error fetching bookings:", error);
     } finally {
       setLoading(false);
     }
@@ -60,17 +67,12 @@ const Bookings = () => {
   const checkReviewableBookings = async (bookingsList) => {
     const reviewStatus = {};
     for (const booking of bookingsList) {
-      if (booking.status === 'assigned') {
+      if (booking.status === "assigned") {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/reviews/can-review/${booking._id}`, {
-            headers: getAuthHeaders()
-          });
-          const data = await response.json();
-          if (data.success) {
-            reviewStatus[booking._id] = data.canReview;
-          }
+          const canReview = await canReviewBooking(booking._id);
+          reviewStatus[booking._id] = canReview;
         } catch (error) {
-          console.error('Error checking review status:', error);
+          console.error("Error checking review status:", error);
         }
       }
     }
@@ -79,26 +81,26 @@ const Bookings = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      requested: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      assigned: 'bg-blue-100 text-blue-800 border-blue-200',
-      inspecting: 'bg-purple-100 text-purple-800 border-purple-200',
-      approved: 'bg-green-100 text-green-800 border-green-200',
-      inProgress: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-      completed: 'bg-green-100 text-green-800 border-green-200',
-      cancelled: 'bg-red-100 text-red-800 border-red-200'
+      requested: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      assigned: "bg-blue-100 text-blue-800 border-blue-200",
+      inspecting: "bg-purple-100 text-purple-800 border-purple-200",
+      approved: "bg-green-100 text-green-800 border-green-200",
+      inProgress: "bg-indigo-100 text-indigo-800 border-indigo-200",
+      completed: "bg-green-100 text-green-800 border-green-200",
+      cancelled: "bg-red-100 text-red-800 border-red-200",
     };
-    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'requested':
+      case "requested":
         return <Clock className="w-4 h-4" />;
-      case 'assigned':
-      case 'approved':
-      case 'completed':
+      case "assigned":
+      case "approved":
+      case "completed":
         return <CheckCircle className="w-4 h-4" />;
-      case 'cancelled':
+      case "cancelled":
         return <XCircle className="w-4 h-4" />;
       default:
         return <AlertCircle className="w-4 h-4" />;
@@ -107,13 +109,13 @@ const Bookings = () => {
 
   const formatStatus = (status) => {
     const statusMap = {
-      requested: 'Requested',
-      assigned: 'Assigned',
-      inspecting: 'Inspecting',
-      approved: 'Approved',
-      inProgress: 'In Progress',
-      completed: 'Completed',
-      cancelled: 'Cancelled'
+      requested: "Requested",
+      assigned: "Assigned",
+      inspecting: "Inspecting",
+      approved: "Approved",
+      inProgress: "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
     };
     return statusMap[status] || status;
   };
@@ -130,54 +132,50 @@ const Bookings = () => {
 
   const handleOpenReviewModal = (booking) => {
     setSelectedBooking(booking);
-    setReviewData({ rating: 5, comment: '', paymentByUser: '' });
+    setReviewData({ rating: 5, comment: "", paymentByUser: "" });
     setShowReviewModal(true);
   };
 
   const handleCloseReviewModal = () => {
     setShowReviewModal(false);
     setSelectedBooking(null);
-    setReviewData({ rating: 5, comment: '', paymentByUser: '' });
+    setReviewData({ rating: 5, comment: "", paymentByUser: "" });
   };
 
   const handleSubmitReview = async () => {
     if (!reviewData.comment.trim() || !reviewData.paymentByUser) {
-      alert('Please fill in all fields');
+      alert("Please fill in all fields");
       return;
     }
 
     try {
       setSubmittingReview(true);
-      const response = await fetch(`${API_BASE_URL}/api/reviews/submit`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          bookingId: selectedBooking._id,
-          rating: reviewData.rating,
-          comment: reviewData.comment,
-          paymentByUser: parseFloat(reviewData.paymentByUser)
-        })
+      const data = await submitReview({
+        bookingId: selectedBooking._id,
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+        paymentByUser: parseFloat(reviewData.paymentByUser),
       });
 
-      const data = await response.json();
       if (data.success) {
-        alert('Review submitted successfully!');
+        alert("Review submitted successfully!");
         handleCloseReviewModal();
         fetchBookings(); // Refresh bookings
       } else {
-        alert(data.message || 'Failed to submit review');
+        alert(data.message || "Failed to submit review");
       }
     } catch (error) {
-      console.error('Error submitting review:', error);
-      alert('Failed to submit review. Please try again.');
+      console.error("Error submitting review:", error);
+      alert(error.message || "Failed to submit review. Please try again.");
     } finally {
       setSubmittingReview(false);
     }
   };
 
-  const filteredBookings = filterStatus === 'all' 
-    ? bookings 
-    : bookings.filter(b => b.status === filterStatus);
+  const filteredBookings =
+    filterStatus === "all"
+      ? bookings
+      : bookings.filter((b) => b.status === filterStatus);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
@@ -189,23 +187,32 @@ const Bookings = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-800">My Bookings</h1>
-            <p className="text-sm text-gray-600">{bookings.length} total booking(s)</p>
+            <p className="text-sm text-gray-600">
+              {bookings.length} total booking(s)
+            </p>
           </div>
         </div>
 
         {/* Filter Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {['all', 'requested', 'assigned', 'inProgress', 'completed', 'cancelled'].map((status) => (
+          {[
+            "all",
+            "requested",
+            "assigned",
+            "inProgress",
+            "completed",
+            "cancelled",
+          ].map((status) => (
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition ${
                 filterStatus === status
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                  ? "bg-purple-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
               }`}
             >
-              {status === 'all' ? 'All' : formatStatus(status)}
+              {status === "all" ? "All" : formatStatus(status)}
             </button>
           ))}
         </div>
@@ -224,10 +231,12 @@ const Bookings = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-3">
                 <Calendar size={32} className="text-purple-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">No Bookings Found</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                No Bookings Found
+              </h3>
               <p className="text-gray-600 text-sm">
-                {filterStatus === 'all' 
-                  ? "You haven't made any bookings yet." 
+                {filterStatus === "all"
+                  ? "You haven't made any bookings yet."
                   : `No ${formatStatus(filterStatus).toLowerCase()} bookings.`}
               </p>
             </div>
@@ -238,35 +247,61 @@ const Bookings = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Service</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Issue</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Scheduled</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Professional</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Service
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Issue
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Scheduled
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Professional
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Payment
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredBookings.map((booking) => (
-                    <tr key={booking._id} className="hover:bg-gray-50 transition">
+                    <tr
+                      key={booking._id}
+                      className="hover:bg-gray-50 transition"
+                    >
                       <td className="px-4 py-3">
-                        <p className="text-sm font-semibold text-gray-900">{booking.service}</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {booking.service}
+                        </p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-sm text-gray-700">{booking.issueType}</p>
+                        <p className="text-sm text-gray-700">
+                          {booking.issueType}
+                        </p>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-purple-600 flex-shrink-0" />
                           <p className="text-sm text-gray-900">
-                            {new Date(booking.scheduledTime).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {new Date(booking.scheduledTime).toLocaleString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
                           </p>
                         </div>
                       </td>
@@ -274,7 +309,8 @@ const Bookings = () => {
                         <div className="flex items-start gap-2 max-w-xs">
                           <MapPin className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                           <p className="text-sm text-gray-700 truncate">
-                            {booking.location?.address || `${booking.location?.area}, ${booking.location?.district}`}
+                            {booking.location?.address ||
+                              `${booking.location?.area}, ${booking.location?.district}`}
                           </p>
                         </div>
                       </td>
@@ -282,27 +318,41 @@ const Bookings = () => {
                         {booking.professionalId ? (
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                            <p className="text-sm text-gray-900">{booking.professionalId.name || 'Assigned'}</p>
+                            <p className="text-sm text-gray-900">
+                              {booking.professionalId.name || "Assigned"}
+                            </p>
                           </div>
                         ) : (
                           <p className="text-sm text-gray-400">Not assigned</p>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(booking.status)}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
+                            booking.status
+                          )}`}
+                        >
                           {getStatusIcon(booking.status)}
                           {formatStatus(booking.status)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">                        {booking.payment && booking.payment.paymentByUser ? (
+                      <td className="px-4 py-3 text-center">
+                        {" "}
+                        {booking.payment && booking.payment.paymentByUser ? (
                           <div className="flex items-center gap-1.5 text-green-700">
-                            <span className="text-sm font-semibold">{booking.payment.paymentByUser}/=</span>
+                            <span className="text-sm font-semibold">
+                              {booking.payment.paymentByUser}/=
+                            </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400 italic">Not paid</span>
+                          <span className="text-xs text-gray-400 italic">
+                            Not paid
+                          </span>
                         )}
                       </td>
-                      <td className="px-4 py-3">                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-4 py-3">
+                        {" "}
+                        <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleViewDetails(booking)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition"
@@ -333,13 +383,18 @@ const Bookings = () => {
       {/* Detail Modal */}
       {showDetailModal && selectedBooking && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-hidden">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col" style={{ maxHeight: '90vh' }}>
+          <div
+            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col"
+            style={{ maxHeight: "90vh" }}
+          >
             {/* Modal Header */}
             <div className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 shadow-md z-10">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold">Booking Details</h2>
-                  <p className="text-sm text-purple-100 mt-0.5">Order ID: {selectedBooking._id.slice(-8).toUpperCase()}</p>
+                  <p className="text-sm text-purple-100 mt-0.5">
+                    Order ID: {selectedBooking._id.slice(-8).toUpperCase()}
+                  </p>
                 </div>
                 <button
                   onClick={handleCloseModal}
@@ -353,45 +408,68 @@ const Bookings = () => {
             {/* Modal Content - Scrollable */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {/* Status */}
-              <div className={`rounded-lg p-3 border ${getStatusColor(selectedBooking.status)}`}>
+              <div
+                className={`rounded-lg p-3 border ${getStatusColor(
+                  selectedBooking.status
+                )}`}
+              >
                 <div className="flex items-center gap-2 mb-1">
                   {getStatusIcon(selectedBooking.status)}
                   <p className="text-xs font-semibold uppercase">Status</p>
                 </div>
-                <p className="text-base font-bold">{formatStatus(selectedBooking.status)}</p>
+                <p className="text-base font-bold">
+                  {formatStatus(selectedBooking.status)}
+                </p>
               </div>
 
               {/* Service & Issue */}
               <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                <p className="text-xs text-blue-700 font-semibold uppercase mb-1">Service & Issue</p>
-                <p className="text-base font-bold text-gray-900">{selectedBooking.service}</p>
-                <p className="text-sm text-blue-700 mt-1">{selectedBooking.issueType}</p>
+                <p className="text-xs text-blue-700 font-semibold uppercase mb-1">
+                  Service & Issue
+                </p>
+                <p className="text-base font-bold text-gray-900">
+                  {selectedBooking.service}
+                </p>
+                <p className="text-sm text-blue-700 mt-1">
+                  {selectedBooking.issueType}
+                </p>
               </div>
 
               {/* Description */}
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase mb-1">Description</p>
-                <p className="text-sm text-gray-700">{selectedBooking.description}</p>
+                <p className="text-xs text-gray-600 font-semibold uppercase mb-1">
+                  Description
+                </p>
+                <p className="text-sm text-gray-700">
+                  {selectedBooking.description}
+                </p>
               </div>
 
               {/* Scheduled Time */}
               <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
                 <div className="flex items-center gap-2 mb-1">
                   <Clock className="w-4 h-4 text-orange-600" />
-                  <p className="text-xs text-orange-700 font-semibold uppercase">Scheduled Time</p>
+                  <p className="text-xs text-orange-700 font-semibold uppercase">
+                    Scheduled Time
+                  </p>
                 </div>
                 <p className="text-base font-semibold text-gray-900">
-                  {new Date(selectedBooking.scheduledTime).toLocaleString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
+                  {new Date(selectedBooking.scheduledTime).toLocaleString(
+                    "en-US",
+                    {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  )}
                 </p>
                 {selectedBooking.duration && (
-                  <p className="text-xs text-orange-700 mt-1">Duration: {selectedBooking.duration} hours</p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    Duration: {selectedBooking.duration} hours
+                  </p>
                 )}
               </div>
 
@@ -399,13 +477,25 @@ const Bookings = () => {
               <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                 <div className="flex items-center gap-2 mb-1">
                   <MapPin className="w-4 h-4 text-green-600" />
-                  <p className="text-xs text-green-700 font-semibold uppercase">Location</p>
+                  <p className="text-xs text-green-700 font-semibold uppercase">
+                    Location
+                  </p>
                 </div>
-                <p className="text-sm text-gray-900">{selectedBooking.location?.address}</p>
+                <p className="text-sm text-gray-900">
+                  {selectedBooking.location?.address}
+                </p>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-green-700">
-                  {selectedBooking.location?.city && <p>City: {selectedBooking.location.city}</p>}
-                  {selectedBooking.location?.district && <p>District: {selectedBooking.location.district}</p>}
-                  {selectedBooking.location?.area && <p className="col-span-2">Area: {selectedBooking.location.area}</p>}
+                  {selectedBooking.location?.city && (
+                    <p>City: {selectedBooking.location.city}</p>
+                  )}
+                  {selectedBooking.location?.district && (
+                    <p>District: {selectedBooking.location.district}</p>
+                  )}
+                  {selectedBooking.location?.area && (
+                    <p className="col-span-2">
+                      Area: {selectedBooking.location.area}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -414,22 +504,28 @@ const Bookings = () => {
                 <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
                   <div className="flex items-center gap-2 mb-1">
                     <User className="w-4 h-4 text-purple-600" />
-                    <p className="text-xs text-purple-700 font-semibold uppercase">Assigned Professional</p>
+                    <p className="text-xs text-purple-700 font-semibold uppercase">
+                      Assigned Professional
+                    </p>
                   </div>
-                  <p className="text-base font-semibold text-gray-900">{selectedBooking.professionalId.name || 'N/A'}</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedBooking.professionalId.name || "N/A"}
+                  </p>
                 </div>
               )}
 
               {/* Created At */}
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase mb-1">Booking Created</p>
+                <p className="text-xs text-gray-600 font-semibold uppercase mb-1">
+                  Booking Created
+                </p>
                 <p className="text-sm text-gray-700">
-                  {new Date(selectedBooking.createdAt).toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                  {new Date(selectedBooking.createdAt).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </p>
               </div>
@@ -451,13 +547,18 @@ const Bookings = () => {
       {/* Review Modal */}
       {showReviewModal && selectedBooking && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-hidden">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full flex flex-col" style={{ maxHeight: '90vh' }}>
+          <div
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full flex flex-col"
+            style={{ maxHeight: "90vh" }}
+          >
             {/* Modal Header */}
             <div className="flex-shrink-0 bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 shadow-md z-10">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold">Submit Review & Payment</h2>
-                  <p className="text-sm text-green-100 mt-0.5">{selectedBooking.service} - {selectedBooking.issueType}</p>
+                  <p className="text-sm text-green-100 mt-0.5">
+                    {selectedBooking.service} - {selectedBooking.issueType}
+                  </p>
                 </div>
                 <button
                   onClick={handleCloseReviewModal}
@@ -475,9 +576,13 @@ const Bookings = () => {
                 <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
                   <div className="flex items-center gap-2 mb-1">
                     <User className="w-4 h-4 text-purple-600" />
-                    <p className="text-xs text-purple-700 font-semibold uppercase">Professional</p>
+                    <p className="text-xs text-purple-700 font-semibold uppercase">
+                      Professional
+                    </p>
                   </div>
-                  <p className="text-base font-semibold text-gray-900">{selectedBooking.professionalId.name}</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {selectedBooking.professionalId.name}
+                  </p>
                 </div>
               )}
 
@@ -491,14 +596,16 @@ const Bookings = () => {
                     <button
                       key={star}
                       type="button"
-                      onClick={() => setReviewData({ ...reviewData, rating: star })}
+                      onClick={() =>
+                        setReviewData({ ...reviewData, rating: star })
+                      }
                       className="focus:outline-none transition-transform hover:scale-110"
                     >
                       <Star
                         className={`w-8 h-8 ${
                           star <= reviewData.rating
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300'
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300"
                         }`}
                       />
                     </button>
@@ -516,7 +623,9 @@ const Bookings = () => {
                 </label>
                 <textarea
                   value={reviewData.comment}
-                  onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                  onChange={(e) =>
+                    setReviewData({ ...reviewData, comment: e.target.value })
+                  }
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm"
                   placeholder="Share your experience with this professional..."
@@ -533,14 +642,21 @@ const Bookings = () => {
                   <input
                     type="number"
                     value={reviewData.paymentByUser}
-                    onChange={(e) => setReviewData({ ...reviewData, paymentByUser: e.target.value })}
+                    onChange={(e) =>
+                      setReviewData({
+                        ...reviewData,
+                        paymentByUser: e.target.value,
+                      })
+                    }
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                     placeholder="Enter amount you paid"
                     min="0"
                     step="0.01"
                   />
                 </div>
-                <p className="text-xs text-gray-500">Enter the amount you paid for this service</p>
+                <p className="text-xs text-gray-500">
+                  Enter the amount you paid for this service
+                </p>
               </div>
             </div>
 

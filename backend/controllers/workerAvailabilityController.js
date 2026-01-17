@@ -1,33 +1,46 @@
-const Professional = require('../models/Professional');
+const Professional = require("../models/Professional");
 
 /**
  * Get professional availability status
  * GET /api/worker/availability/:professionalId
  */
 exports.getAvailability = async (req, res) => {
-    try {
-        const { professionalId } = req.params;
+  try {
+    const { professionalId } = req.params;
+    const tokenProfessionalId = req.user?.professionalId || req.user?.userId;
 
-        const professional = await Professional.findById(professionalId).select('isAvailable');
-
-        if (!professional) {
-            return res.status(404).json({
-                success: false,
-                message: 'Professional not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            isAvailable: professional.isAvailable
-        });
-    } catch (error) {
-        console.error('Get availability error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+    if (
+      !tokenProfessionalId ||
+      String(tokenProfessionalId) !== String(professionalId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to access this professional",
+      });
     }
+
+    const professional = await Professional.findById(professionalId).select(
+      "isAvailable"
+    );
+
+    if (!professional) {
+      return res.status(404).json({
+        success: false,
+        message: "Professional not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      isAvailable: professional.isAvailable,
+    });
+  } catch (error) {
+    console.error("Get availability error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
 };
 
 /**
@@ -35,39 +48,50 @@ exports.getAvailability = async (req, res) => {
  * PUT /api/worker/availability/:professionalId
  */
 exports.updateAvailability = async (req, res) => {
-    try {
-        const { professionalId } = req.params;
-        const { isAvailable } = req.body;
+  try {
+    const { professionalId } = req.params;
+    const { isAvailable } = req.body;
+    const tokenProfessionalId = req.user?.professionalId || req.user?.userId;
 
-        if (typeof isAvailable !== 'boolean') {
-            return res.status(400).json({
-                success: false,
-                message: 'isAvailable must be a boolean'
-            });
-        }
-
-        const professional = await Professional.findByIdAndUpdate(
-            professionalId,
-            { isAvailable },
-            { new: true, select: 'isAvailable' }
-        );
-
-        if (!professional) {
-            return res.status(404).json({
-                success: false,
-                message: 'Professional not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            isAvailable: professional.isAvailable
-        });
-    } catch (error) {
-        console.error('Update availability error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+    if (
+      !tokenProfessionalId ||
+      String(tokenProfessionalId) !== String(professionalId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this professional",
+      });
     }
+
+    if (typeof isAvailable !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "isAvailable must be a boolean",
+      });
+    }
+
+    const professional = await Professional.findByIdAndUpdate(
+      professionalId,
+      { isAvailable },
+      { new: true, select: "isAvailable" }
+    );
+
+    if (!professional) {
+      return res.status(404).json({
+        success: false,
+        message: "Professional not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      isAvailable: professional.isAvailable,
+    });
+  } catch (error) {
+    console.error("Update availability error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
 };

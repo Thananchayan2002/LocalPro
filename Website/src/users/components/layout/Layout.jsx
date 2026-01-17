@@ -1,18 +1,32 @@
-import React from 'react'
-import { Header } from './Header'
-import { Footer } from './Footer'
-import { Outlet } from 'react-router-dom'
+import React, { useState } from "react";
+import { Header } from "./Header";
+import { Footer } from "./Footer";
+import { Outlet } from "react-router-dom";
+import MobileNavbar from "./MobileNavbar";
+
+// Add CSS for hiding mobile components when BookService or IssuesModal is open
+const styles = `
+  body.bookservice-mobile-open .lg\\:hidden,
+  body.issuesmodal-mobile-open .lg\\:hidden {
+    display: none !important;
+  }
+`;
 
 export const Layout = () => {
+  const [activeTab, setActiveTab] = useState("home");
   return (
-    <div className='overflow-x-hidden'>
+    <>
+      <style>{styles}</style>
+      <div className="min-h-screen">
         <Header />
-        <main className="relative z-1 min-h-screen">
-            <Outlet />
+        <main className="relative z-1 min-h-screen pb-24 lg:pb-0">
+          <Outlet />
         </main>
-        <footer>
-            <Footer /> 
+        <footer className="hidden md:block">
+          <Footer />
         </footer>
-    </div>
-  )
-}
+        <MobileNavbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      </div>
+    </>
+  );
+};

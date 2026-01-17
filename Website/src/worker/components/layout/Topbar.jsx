@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import toast from 'react-hot-toast';
+import { authFetch } from '../../../utils/authFetch';
 
 export const Topbar = ({ onMenuClick }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -13,7 +14,7 @@ export const Topbar = ({ onMenuClick }) => {
   const [loading, setLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, user, token } = useAuth();
+  const { logout, user } = useAuth();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
   // Get page title and icon based on current route
@@ -37,11 +38,7 @@ export const Topbar = ({ onMenuClick }) => {
       if (!user?.professionalId) return;
       
       try {
-        const res = await fetch(`${apiUrl}/api/worker/availability/${user.professionalId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const res = await authFetch(`${apiUrl}/api/worker/availability/${user.professionalId}`);
         const data = await res.json();
         
         if (data.success) {
@@ -53,7 +50,7 @@ export const Topbar = ({ onMenuClick }) => {
     };
 
     fetchAvailability();
-  }, [user?.professionalId, token, apiUrl]);
+  }, [user?.professionalId, apiUrl]);
 
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
@@ -75,11 +72,10 @@ export const Topbar = ({ onMenuClick }) => {
     setShowAvailabilityConfirm(false);
 
     try {
-      const res = await fetch(`${apiUrl}/api/worker/availability/${user.professionalId}`, {
+      const res = await authFetch(`${apiUrl}/api/worker/availability/${user.professionalId}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ isAvailable: pendingAvailability })
       });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import HeroSection from "./sections/HeroSection";
 import AnimatedSection from "../animations/AnimatedSection";
@@ -20,6 +20,7 @@ import {
 
 export const Home = () => {
   const location = useLocation();
+  const heroRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -57,15 +58,17 @@ export const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      <HeroSection
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        bannerImg={assets.bannerImg}
-        categories={categories}
-        onStartBooking={handleStartBooking}
-        setShowProfessionalModal={setShowProfessionalModal}
-      />
+    <div className="min-h-screen text-foreground overflow-x-hidden">
+      <div ref={heroRef}>
+        <HeroSection
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          bannerImg={assets.bannerImg}
+          categories={categories}
+          onStartBooking={handleStartBooking}
+          setShowProfessionalModal={setShowProfessionalModal}
+        />
+      </div>
 
       <AnimatedSection>
         <PopularServicesSection
@@ -75,7 +78,11 @@ export const Home = () => {
       </AnimatedSection>
 
       <AnimatedSection>
-        <WhyChooseAndHowItWorksSection steps={steps} features={features} />
+        <WhyChooseAndHowItWorksSection
+          steps={steps}
+          features={features}
+          heroRef={heroRef}
+        />
       </AnimatedSection>
 
       <AnimatedSection>

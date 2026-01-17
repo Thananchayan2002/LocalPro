@@ -3,16 +3,9 @@ import {
     CreditCard, Download, Calendar, Clock, MapPin, User, Phone, 
     CheckCircle, Loader, Search, DollarSign, Star, X, AlertCircle
 } from 'lucide-react';
+import { authFetch } from '../../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    };
-};
 
 const statusConfig = {
     completed: { label: 'Pending Payment', color: 'bg-orange-100 text-orange-800', icon: AlertCircle },
@@ -41,9 +34,7 @@ export const Payments = () => {
         try {
             setLoading(true);
             
-            const response = await fetch(`${API_BASE_URL}/api/bookings/professional-bookings`, {
-                headers: getAuthHeaders()
-            });
+            const response = await authFetch(`${API_BASE_URL}/api/bookings/professional-bookings`);
 
             const data = await response.json();
 
@@ -132,9 +123,9 @@ export const Payments = () => {
             if (isBulk) {
                 // Handle multiple bookings
                 const updatePromises = paymentBooking.map(booking =>
-                    fetch(`${API_BASE_URL}/api/bookings/update-status/${booking._id}`, {
+                    authFetch(`${API_BASE_URL}/api/bookings/update-status/${booking._id}`, {
                         method: 'PUT',
-                        headers: getAuthHeaders(),
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status: 'paid' })
                     }).then(res => res.json())
                 );
@@ -154,9 +145,9 @@ export const Payments = () => {
                 }
             } else {
                 // Handle single booking
-                const response = await fetch(`${API_BASE_URL}/api/bookings/update-status/${paymentBooking._id}`, {
+                const response = await authFetch(`${API_BASE_URL}/api/bookings/update-status/${paymentBooking._id}`, {
                     method: 'PUT',
-                    headers: getAuthHeaders(),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'paid' })
                 });
 

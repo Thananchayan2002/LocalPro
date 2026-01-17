@@ -1,48 +1,56 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { UserPlus, Mail, Phone, Lock, MapPin, Loader2 } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { UserPlus, Mail, Phone, Lock, MapPin, Loader2 } from "lucide-react";
+import { register } from "../../api/auth/auth";
 
 const Signup = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '', location: '' });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    location: "",
+  });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState({ type: "", text: "" });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
-      setMessage({ type: 'error', text: 'Passwords do not match.' });
+      setMessage({ type: "error", text: "Passwords do not match." });
       return;
     }
     setLoading(true);
-    setMessage({ type: '', text: '' });
+    setMessage({ type: "", text: "" });
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          password: form.password,
-          location: form.location
-        })
+      const data = await register({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        location: form.location,
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setMessage({ type: 'success', text: 'Account created. Redirecting...' });
-        setTimeout(() => navigate('/'), 800);
+      if (data.success) {
+        setMessage({
+          type: "success",
+          text: "Account created. Redirecting...",
+        });
+        setTimeout(() => navigate("/"), 800);
       } else {
-        setMessage({ type: 'error', text: data.message || 'Signup failed. Please try again.' });
+        setMessage({
+          type: "error",
+          text: data.message || "Signup failed. Please try again.",
+        });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Signup failed. Please try again.' });
+      setMessage({
+        type: "error",
+        text: err.message || "Signup failed. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -55,19 +63,29 @@ const Signup = () => {
           <div className="mx-auto w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 mb-3">
             <UserPlus size={22} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create an account</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Create an account
+          </h1>
           <p className="text-gray-600 mt-1">Sign up to get started</p>
         </div>
 
         {message.text && (
-          <div className={`mb-4 rounded-xl px-4 py-3 border text-sm ${message.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+          <div
+            className={`mb-4 rounded-xl px-4 py-3 border text-sm ${
+              message.type === "success"
+                ? "bg-green-50 border-green-200 text-green-800"
+                : "bg-red-50 border-red-200 text-red-800"
+            }`}
+          >
             {message.text}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Full Name
+            </label>
             <input
               type="text"
               value={form.name}
@@ -77,7 +95,9 @@ const Signup = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Email
+            </label>
             <div className="relative">
               <input
                 type="email"
@@ -86,11 +106,16 @@ const Signup = () => {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                 required
               />
-              <Mail className="absolute right-3 top-3 text-gray-400" size={18} />
+              <Mail
+                className="absolute right-3 top-3 text-gray-400"
+                size={18}
+              />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Phone
+            </label>
             <div className="relative">
               <input
                 type="tel"
@@ -99,11 +124,16 @@ const Signup = () => {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                 required
               />
-              <Phone className="absolute right-3 top-3 text-gray-400" size={18} />
+              <Phone
+                className="absolute right-3 top-3 text-gray-400"
+                size={18}
+              />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Location (optional)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Location (optional)
+            </label>
             <div className="relative">
               <input
                 type="text"
@@ -112,34 +142,51 @@ const Signup = () => {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                 placeholder="City / Area"
               />
-              <MapPin className="absolute right-3 top-3 text-gray-400" size={18} />
+              <MapPin
+                className="absolute right-3 top-3 text-gray-400"
+                size={18}
+              />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Password
+              </label>
               <div className="relative">
                 <input
                   type="password"
                   value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                   required
                 />
-                <Lock className="absolute right-3 top-3 text-gray-400" size={18} />
+                <Lock
+                  className="absolute right-3 top-3 text-gray-400"
+                  size={18}
+                />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Confirm Password
+              </label>
               <div className="relative">
                 <input
                   type="password"
                   value={form.confirmPassword}
-                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, confirmPassword: e.target.value })
+                  }
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
                   required
                 />
-                <Lock className="absolute right-3 top-3 text-gray-400" size={18} />
+                <Lock
+                  className="absolute right-3 top-3 text-gray-400"
+                  size={18}
+                />
               </div>
             </div>
           </div>
@@ -150,12 +197,18 @@ const Signup = () => {
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl font-semibold shadow-lg shadow-purple-200 hover:shadow-purple-300 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="animate-spin" size={18} />}
-            {loading ? 'Creating account...' : 'Create account'}
+            {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
         <p className="text-sm text-gray-600 mt-4 text-center">
-          Already have an account? <Link to="/login" className="text-purple-600 font-semibold hover:underline">Sign in</Link>
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="text-purple-600 font-semibold hover:underline"
+          >
+            Sign in
+          </Link>
         </p>
       </div>
     </div>

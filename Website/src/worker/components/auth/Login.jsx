@@ -52,7 +52,8 @@ export const Login = () => {
                 body: JSON.stringify({
                     username: formData.username.trim(),
                     password: formData.password
-                })
+                }),
+                credentials: "include"
             });
 
             const data = await response.json();
@@ -74,7 +75,7 @@ export const Login = () => {
 
             if (data.success) {
                 // Store token and user data via AuthContext (updates state + localStorage)
-                setAuthData(data.token, data.user);
+                setAuthData(data.user);
                 navigate('/worker/dashboard');
             } else {
                 setError(data.message || 'Login failed');

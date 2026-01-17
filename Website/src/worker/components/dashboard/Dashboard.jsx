@@ -7,19 +7,12 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { authFetch } from '../../../utils/authFetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-    };
-};
-
 export const Dashboard = () => {
-    const { user, token } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -54,9 +47,7 @@ export const Dashboard = () => {
                 // Try by professionalId first
                 if (user?.professionalId) {
                     try {
-                        const res = await fetch(`${API_BASE_URL}/api/professionals/${user.professionalId}`, { 
-                            headers: getAuthHeaders() 
-                        });
+                        const res = await authFetch(`${API_BASE_URL}/api/professionals/${user.professionalId}`);
                         const data = await res.json();
 
                         if (data.success) {
@@ -70,9 +61,7 @@ export const Dashboard = () => {
                 // Fallback: lookup by phone using search filter
                 if (!professionalData && user?.phone) {
                     try {
-                        const res = await fetch(`${API_BASE_URL}/api/professionals?search=${encodeURIComponent(user.phone)}`, { 
-                            headers: getAuthHeaders() 
-                        });
+                        const res = await authFetch(`${API_BASE_URL}/api/professionals?search=${encodeURIComponent(user.phone)}`);
                         const data = await res.json();
                         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
                             professionalData = data.data[0];
@@ -100,7 +89,7 @@ export const Dashboard = () => {
         };
 
         fetchProfessionalData();
-    }, [user?.professionalId, user?.phone, user, token]);
+    }, [user?.professionalId, user?.phone, user]);
 
     useEffect(() => {
         fetchDashboardData();
@@ -113,9 +102,7 @@ export const Dashboard = () => {
 
         const fetchPendingBookings = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/bookings/all?status=requested`, {
-                    headers: getAuthHeaders()
-                });
+            const response = await authFetch(`${API_BASE_URL}/api/bookings/all?status=requested`);
 
                 const data = await response.json();
 
@@ -137,7 +124,7 @@ export const Dashboard = () => {
         };
 
         fetchPendingBookings();
-    }, [userWithService?.service, userWithService?.district, token]);
+    }, [userWithService?.service, userWithService?.district]);
 
     // WebSocket connection for real-time bookings
     useEffect(() => {
@@ -183,9 +170,7 @@ export const Dashboard = () => {
         try {
             setLoading(true);
             
-            const response = await fetch(`${API_BASE_URL}/api/bookings/professional-bookings`, {
-                headers: getAuthHeaders()
-            });
+            const response = await authFetch(`${API_BASE_URL}/api/bookings/professional-bookings`);
 
             const data = await response.json();
 
@@ -254,9 +239,7 @@ export const Dashboard = () => {
 
     const fetchAssignedTasks = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/bookings/professional-bookings`, {
-                headers: getAuthHeaders()
-            });
+            const response = await authFetch(`${API_BASE_URL}/api/bookings/professional-bookings`);
 
             const data = await response.json();
 

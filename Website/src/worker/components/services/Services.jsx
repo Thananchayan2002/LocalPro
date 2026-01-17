@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Wrench, AlertTriangle, Loader2, DollarSign } from 'lucide-react';
+import { authFetch } from '../../../utils/authFetch';
 
 const Services = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const apiUrl = import.meta.env.VITE_API_BASE_URL;
 
   const [issues, setIssues] = useState([]);
@@ -18,11 +19,9 @@ const Services = () => {
       if (user?.serviceId || (!user?.professionalId && !user?.phone)) return;
 
       setLoadingProfile(true);
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
       try {
         if (user?.professionalId) {
-          const res = await fetch(`${apiUrl}/api/professionals/${user.professionalId}`, { headers });
+          const res = await authFetch(`${apiUrl}/api/professionals/${user.professionalId}`);
           const data = await res.json();
           if (data.success) {
             setProfessionalData(data.data);
@@ -31,7 +30,7 @@ const Services = () => {
           }
         }
 
-        const res = await fetch(`${apiUrl}/api/professionals?search=${encodeURIComponent(user.phone)}`, { headers });
+        const res = await authFetch(`${apiUrl}/api/professionals?search=${encodeURIComponent(user.phone)}`);
         const data = await res.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setProfessionalData(data.data[0]);
@@ -44,7 +43,7 @@ const Services = () => {
     };
 
     fetchProfessional();
-  }, [apiUrl, token, user?.phone, user?.professionalId, user?.serviceId]);
+  }, [apiUrl, user?.phone, user?.professionalId, user?.serviceId]);
 
   useEffect(() => {
     const fetchIssues = async () => {
@@ -58,11 +57,7 @@ const Services = () => {
       try {
         setLoading(true);
         setError('');
-        const res = await fetch(`${apiUrl}/api/issues?serviceId=${effectiveServiceId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const res = await authFetch(`${apiUrl}/api/issues?serviceId=${effectiveServiceId}`);
         const data = await res.json();
         if (!res.ok || !data.success) {
           throw new Error(data.message || 'Failed to load issues');
@@ -76,7 +71,7 @@ const Services = () => {
     };
 
     fetchIssues();
-  }, [apiUrl, token, user?.serviceId, professionalData?.serviceId]);
+  }, [apiUrl, user?.serviceId, professionalData?.serviceId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 p-4 md:p-10">
