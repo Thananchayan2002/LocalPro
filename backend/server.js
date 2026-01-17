@@ -8,7 +8,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const workerAuthRoutes = require("./routes/workerAuthRoutes");
 const otpRoutes = require("./routes/otpRoutes");
-
+const adminDashboardRoutes = require("./routes/adminDashboardRoutes")
 dotenv.config();
 
 // Connect to MongoDB
@@ -61,6 +61,7 @@ app.use("/api/professionals", professionalRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/push", pushNotificationRoutes);
+app.use("/api/admin/dashboard", adminDashboardRoutes);
 
 console.log(process.env.MONGO_URI);
 
