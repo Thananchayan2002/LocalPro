@@ -22,7 +22,7 @@ import {
   Info,
   MessageSquare,
 } from "lucide-react";
-import { performLogout } from "../auth/logout";
+import { performLogout } from "../../../auth/Logout";
 import { getCurrentUser } from "../../api/auth/auth";
 import {
   motion,
@@ -35,21 +35,18 @@ export const Header = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState("English");
 
-  // Mobile/Tablet panels
-  const [isSheetOpen, setIsSheetOpen] = useState(false); // right-side sheet for <= lg
-  const [isProfileOpen, setIsProfileOpen] = useState(false); // desktop profile dropdown (>= lg)
-  const [isLanguageOpen, setIsLanguageOpen] = useState(false); // desktop language dropdown (>= lg)
+  // Mobile/Tablet hamburger menu
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Sheet inner collapsibles
-  const [sheetLangOpen, setSheetLangOpen] = useState(false);
-  const [sheetAccountOpen, setSheetAccountOpen] = useState(true);
+  // Desktop dropdowns (LG+)
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
 
   const [user, setUser] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
-
   const headerRef = useRef(null);
 
   // -------------------------
@@ -68,11 +65,7 @@ export const Header = () => {
       try {
         setLoadingUser(true);
         const data = await getCurrentUser();
-        if (data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
+        setUser(data?.user || null);
       } catch (error) {
         console.error("Failed to load user:", error);
         setUser(null);
@@ -89,8 +82,7 @@ export const Header = () => {
   const closeAll = useCallback(() => {
     setIsProfileOpen(false);
     setIsLanguageOpen(false);
-    setIsSheetOpen(false);
-    setSheetLangOpen(false);
+    setIsMenuOpen(false);
   }, []);
 
   useEffect(() => {
@@ -103,23 +95,16 @@ export const Header = () => {
 
   useEffect(() => {
     const onClick = (e) => {
-      // Desktop dropdowns close if clicked outside header
       if (!headerRef.current) return;
       if (!headerRef.current.contains(e.target)) {
         setIsProfileOpen(false);
         setIsLanguageOpen(false);
+        setIsMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
-
-  // Prevent body scroll when sheet open
-  useEffect(() => {
-    if (isSheetOpen) document.body.classList.add("overflow-hidden");
-    else document.body.classList.remove("overflow-hidden");
-    return () => document.body.classList.remove("overflow-hidden");
-  }, [isSheetOpen]);
 
   // -------------------------
   // Actions
@@ -229,6 +214,42 @@ export const Header = () => {
           },
   };
 
+  const overlay = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: reduceMotion ? { duration: 0 } : { duration: 0.18 },
+    },
+    exit: {
+      opacity: 0,
+      transition: reduceMotion ? { duration: 0 } : { duration: 0.16 },
+    },
+  };
+
+  const mobileMenuPanel = {
+    hidden: reduceMotion
+      ? { opacity: 1 }
+      : { opacity: 0, y: -10, scale: 0.98, filter: "blur(4px)" },
+    visible: reduceMotion
+      ? { opacity: 1 }
+      : {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          transition: { ...spring },
+        },
+    exit: reduceMotion
+      ? { opacity: 1 }
+      : {
+          opacity: 0,
+          y: -10,
+          scale: 0.985,
+          filter: "blur(4px)",
+          transition: { duration: 0.16 },
+        },
+  };
+
   const subtleHover = reduceMotion
     ? {}
     : {
@@ -243,23 +264,6 @@ export const Header = () => {
         whileHover: { rotate: 10 },
         transition: { type: "spring", stiffness: 500, damping: 28 },
       };
-
-  // Sheet animations
-  const overlay = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.15 } },
-    exit: { opacity: 0, transition: { duration: 0.15 } },
-  };
-
-  const sheet = {
-    hidden: reduceMotion ? { x: 0 } : { x: "100%" },
-    visible: reduceMotion
-      ? { x: 0 }
-      : { x: 0, transition: { ...spring, damping: 36 } },
-    exit: reduceMotion
-      ? { x: 0 }
-      : { x: "100%", transition: { duration: 0.2 } },
-  };
 
   // -------------------------
   // Helpers
@@ -305,10 +309,6 @@ export const Header = () => {
         initial="hidden"
         animate="visible"
       >
-        <style>{`
-          body.modal-open .header-nav { display: none; }
-        `}</style>
-
         <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
           <div className="flex h-16 items-center justify-between gap-3">
             {/* Left */}
@@ -325,7 +325,7 @@ export const Header = () => {
                 <NavLink
                   to="/"
                   className="group inline-flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-gray-100 dark:hover:bg-gray-900"
-                  onClick={() => setIsSheetOpen(false)}
+                  onClick={() => closeAll()}
                 >
                   <motion.span
                     className="text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl"
@@ -444,7 +444,7 @@ export const Header = () => {
               </div>
             </div>
 
-            {/* Right */}
+            {/* Right (language + theme always visible) */}
             <motion.div
               className="flex items-center gap-2 sm:gap-3"
               {...(!reduceMotion
@@ -458,13 +458,14 @@ export const Header = () => {
                   }
                 : {})}
             >
-              {/* Language (desktop LG+) */}
-              <div className="relative hidden lg:block">
+              {/* Language (always visible) */}
+              <div className="relative">
                 <motion.button
                   type="button"
                   onClick={() => {
                     setIsLanguageOpen((v) => !v);
                     setIsProfileOpen(false);
+                    setIsMenuOpen(false);
                   }}
                   className={[
                     "group inline-flex items-center gap-2 rounded-xl border border-gray-200/70 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition",
@@ -480,7 +481,9 @@ export const Header = () => {
                   <motion.span {...iconSpin} style={{ display: "inline-flex" }}>
                     <Globe className="h-4 w-4 opacity-80 group-hover:opacity-100" />
                   </motion.span>
-                  <span className="max-w-[140px] truncate">{language}</span>
+                  <span className="hidden max-w-[140px] truncate sm:inline">
+                    {language}
+                  </span>
                   <motion.span
                     animate={
                       reduceMotion ? {} : { rotate: isLanguageOpen ? 180 : 0 }
@@ -556,7 +559,7 @@ export const Header = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Dark mode */}
+              {/* Dark mode (always visible) */}
               <motion.button
                 type="button"
                 onClick={() => setIsDarkMode((v) => !v)}
@@ -630,6 +633,7 @@ export const Header = () => {
                   onClick={() => {
                     setIsProfileOpen((v) => !v);
                     setIsLanguageOpen(false);
+                    setIsMenuOpen(false);
                   }}
                   className={[
                     "group inline-flex items-center gap-2 rounded-2xl border border-transparent bg-transparent p-1 transition",
@@ -764,10 +768,14 @@ export const Header = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Tablet + Mobile: one menu button (<= lg) */}
+              {/* Hamburger menu (tablet + mobile only) */}
               <motion.button
                 type="button"
-                onClick={() => setIsSheetOpen(true)}
+                onClick={() => {
+                  setIsMenuOpen((v) => !v);
+                  setIsProfileOpen(false);
+                  setIsLanguageOpen(false);
+                }}
                 className={[
                   "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200/70 bg-white text-gray-700 shadow-sm transition lg:hidden",
                   "hover:bg-gray-50 hover:shadow-md dark:border-gray-800/70 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900",
@@ -775,36 +783,92 @@ export const Header = () => {
                   "cursor-pointer",
                 ].join(" ")}
                 aria-label="Open menu"
-                aria-expanded={isSheetOpen}
+                aria-expanded={isMenuOpen}
                 {...subtleHover}
               >
-                <Menu className="h-6 w-6" />
+                <AnimatePresence mode="wait" initial={false}>
+                  {isMenuOpen ? (
+                    <motion.span
+                      key="x"
+                      initial={
+                        reduceMotion
+                          ? {}
+                          : { opacity: 0, rotate: -20, scale: 0.95 }
+                      }
+                      animate={
+                        reduceMotion
+                          ? {}
+                          : {
+                              opacity: 1,
+                              rotate: 0,
+                              scale: 1,
+                              transition: { ...spring },
+                            }
+                      }
+                      exit={
+                        reduceMotion
+                          ? {}
+                          : {
+                              opacity: 0,
+                              rotate: 20,
+                              scale: 0.95,
+                              transition: { duration: 0.12 },
+                            }
+                      }
+                      style={{ display: "inline-flex" }}
+                    >
+                      <X className="h-6 w-6" />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="menu"
+                      initial={
+                        reduceMotion
+                          ? {}
+                          : { opacity: 0, rotate: 20, scale: 0.95 }
+                      }
+                      animate={
+                        reduceMotion
+                          ? {}
+                          : {
+                              opacity: 1,
+                              rotate: 0,
+                              scale: 1,
+                              transition: { ...spring },
+                            }
+                      }
+                      exit={
+                        reduceMotion
+                          ? {}
+                          : {
+                              opacity: 0,
+                              rotate: -20,
+                              scale: 0.95,
+                              transition: { duration: 0.12 },
+                            }
+                      }
+                      style={{ display: "inline-flex" }}
+                    >
+                      <Menu className="h-6 w-6" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </motion.button>
             </motion.div>
           </div>
         </div>
 
-        {/* Responsive Sheet for Tablet + Mobile (<= lg) */}
+        {/* Mobile/Tablet menu panel (hamburger) */}
         <AnimatePresence>
-          {isSheetOpen && (
+          {isMenuOpen && (
             <>
               {/* Overlay */}
-              <motion.button
-                type="button"
-                className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px] lg:hidden"
-                aria-label="Close menu"
-                onClick={() => setIsSheetOpen(false)}
-                variants={overlay}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                style={{ cursor: "pointer" }}
-              />
+             
 
-              {/* Sheet */}
-              <motion.aside
-                className="fixed right-0 top-0 z-[70] h-full w-[88vw] max-w-sm border-l border-gray-200/70 bg-white shadow-2xl dark:border-gray-800/70 dark:bg-gray-950 lg:hidden"
-                variants={sheet}
+              {/* Panel */}
+              <motion.div
+                className="fixed left-1/2 top-20 z-[70] w-[92vw] max-w-md -translate-x-1/2 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-950 dark:ring-white/10 lg:hidden"
+                variants={mobileMenuPanel}
                 initial="hidden"
                 animate="visible"
                 exit="exit"
@@ -812,212 +876,88 @@ export const Header = () => {
                 aria-modal="true"
                 aria-label="Navigation menu"
               >
-                <div className="flex h-full flex-col">
-                  {/* Sheet header */}
-                  <div className="flex items-center justify-between border-b border-gray-200/70 px-4 py-4 dark:border-gray-800/70">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-50">
-                        {displayName}
-                      </p>
-                      <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                        {user?.email || "Not available"}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {/* Theme */}
-                      <button
-                        type="button"
-                        onClick={() => setIsDarkMode((v) => !v)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200/70 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-800/70 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900"
-                        aria-label="Toggle dark mode"
-                      >
-                        {isDarkMode ? (
-                          <Sun className="h-5 w-5 text-amber-500" />
-                        ) : (
-                          <Moon className="h-5 w-5" />
-                        )}
-                      </button>
-
-                      {/* Close */}
-                      <button
-                        type="button"
-                        onClick={() => setIsSheetOpen(false)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200/70 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-800/70 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900"
-                        aria-label="Close menu"
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    </div>
+                {/* Profile header */}
+                <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-gray-900">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-50">
+                      {loadingUser ? "Loading..." : displayName}
+                    </p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                      {user?.email || "Not available"}
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200/70 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-800/70 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900"
+                    aria-label="Close menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
 
-                  {/* Sheet content */}
-                  <div className="flex-1 overflow-y-auto px-4 py-4">
-                    {/* Nav */}
-                    <div className="mb-4">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        Navigation
-                      </p>
-                      <div className="grid gap-1">
-                        {navLinks.map((link) => (
-                          <NavItem
-                            key={link.name}
-                            link={link}
-                            onSelect={() => setIsSheetOpen(false)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Language */}
-                    <div className="mb-4 rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800/70 dark:bg-gray-950">
-                      <button
-                        type="button"
-                        onClick={() => setSheetLangOpen((v) => !v)}
-                        className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left text-sm font-semibold text-gray-800 transition hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-900"
-                      >
-                        <span className="inline-flex items-center gap-2">
-                          <Globe className="h-4 w-4 opacity-80" />
-                          Language
-                        </span>
-                        <span className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                          <span className="max-w-[140px] truncate text-sm font-semibold">
-                            {language}
-                          </span>
-                          <ChevronDown
-                            className={[
-                              "h-4 w-4 transition-transform",
-                              sheetLangOpen ? "rotate-180" : "",
-                            ].join(" ")}
-                          />
-                        </span>
-                      </button>
-
-                      <AnimatePresence initial={false}>
-                        {sheetLangOpen && (
-                          <motion.div
-                            className="mt-2 grid gap-1"
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{
-                              height: "auto",
-                              opacity: 1,
-                              transition: { ...spring },
-                            }}
-                            exit={{
-                              height: 0,
-                              opacity: 0,
-                              transition: { duration: 0.18 },
-                            }}
-                            style={{ overflow: "hidden" }}
-                          >
-                            {languages.map((lang) => {
-                              const active = language === lang.name;
-                              return (
-                                <button
-                                  key={lang.code}
-                                  type="button"
-                                  onClick={() => {
-                                    setLanguage(lang.name);
-                                    setSheetLangOpen(false);
-                                  }}
-                                  className={[
-                                    "flex items-center justify-between rounded-xl px-3 py-2 text-sm font-semibold transition",
-                                    "hover:bg-gray-50 dark:hover:bg-gray-900",
-                                    active
-                                      ? "text-gray-900 dark:text-gray-50"
-                                      : "text-gray-700 dark:text-gray-200",
-                                  ].join(" ")}
-                                >
-                                  <span>{lang.name}</span>
-                                  <span
-                                    className={[
-                                      "h-2 w-2 rounded-full",
-                                      active
-                                        ? "bg-blue-600"
-                                        : "bg-gray-200 dark:bg-gray-800",
-                                    ].join(" ")}
-                                  />
-                                </button>
-                              );
-                            })}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Account */}
-                    <div className="rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800/70 dark:bg-gray-950">
-                      <button
-                        type="button"
-                        onClick={() => setSheetAccountOpen((v) => !v)}
-                        className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left text-sm font-semibold text-gray-800 transition hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-900"
-                      >
-                        <span className="inline-flex items-center gap-2">
-                          <User className="h-4 w-4 opacity-80" />
-                          Account
-                        </span>
-                        <ChevronDown
-                          className={[
-                            "h-4 w-4 transition-transform",
-                            sheetAccountOpen ? "rotate-180" : "",
-                          ].join(" ")}
+                {/* Content */}
+                <div className="max-h-[70vh] overflow-y-auto px-4 py-4">
+                  {/* Nav */}
+                  <div className="mb-4">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Navigation
+                    </p>
+                    <div className="grid gap-1">
+                      {navLinks.map((link) => (
+                        <NavItem
+                          key={link.name}
+                          link={link}
+                          onSelect={() => setIsMenuOpen(false)}
                         />
-                      </button>
-
-                      <AnimatePresence initial={false}>
-                        {sheetAccountOpen && (
-                          <motion.div
-                            className="mt-2 grid gap-1"
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{
-                              height: "auto",
-                              opacity: 1,
-                              transition: { ...spring },
-                            }}
-                            exit={{
-                              height: 0,
-                              opacity: 0,
-                              transition: { duration: 0.18 },
-                            }}
-                            style={{ overflow: "hidden" }}
-                          >
-                            {profileMenu.map((item, i) => {
-                              const Icon = item.icon;
-                              return (
-                                <button
-                                  key={item.name}
-                                  type="button"
-                                  onClick={() => {
-                                    setIsSheetOpen(false);
-                                    item.action();
-                                  }}
-                                  className={[
-                                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition",
-                                    item.isDanger
-                                      ? "bg-red-600 text-white hover:bg-red-500"
-                                      : "text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-900",
-                                  ].join(" ")}
-                                >
-                                  <Icon className="h-4 w-4 opacity-90" />
-                                  <span>{item.name}</span>
-                                </button>
-                              );
-                            })}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Sheet footer */}
-                  <div className="border-t border-gray-200/70 px-4 py-3 text-xs text-gray-500 dark:border-gray-800/70 dark:text-gray-400">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      Session: {user ? "Signed in" : "Guest"}
-                    </span>
+                  {/* Account */}
+                  <div className="rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800/70 dark:bg-gray-950">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Account
+                    </p>
+                    <div className="grid gap-1">
+                      {profileMenu.map((item, i) => {
+                        const Icon = item.icon;
+                        return (
+                          <motion.button
+                            key={item.name}
+                            type="button"
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              item.action();
+                            }}
+                            className={[
+                              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition",
+                              item.isDanger
+                                ? "bg-red-600 text-white hover:bg-red-500"
+                                : "text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-900",
+                            ].join(" ")}
+                            custom={i}
+                            variants={dropdownItem}
+                            initial="hidden"
+                            animate="visible"
+                          >
+                            <Icon className="h-4 w-4 opacity-90" />
+                            <span>{item.name}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </motion.aside>
+
+                {/* Footer */}
+                <div className="border-t border-gray-100 px-4 py-3 text-xs text-gray-500 dark:border-gray-900 dark:text-gray-400">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    Session: {user ? "Signed in" : "Guest"}
+                  </span>
+                </div>
+              </motion.div>
             </>
           )}
         </AnimatePresence>

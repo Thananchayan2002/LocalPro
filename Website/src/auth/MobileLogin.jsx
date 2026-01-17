@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { motion, useMotionValue, AnimatePresence } from "framer-motion";
@@ -56,6 +56,7 @@ const MobileLogin = () => {
   const navigate = useNavigate();
   const { fadeInUp } = useAnimations();
   const y = useMotionValue(0);
+
   const { displayText } = useTypewriter("Welcome to", 80, 300);
   const { displayText: subtitleText } = useTypewriter(
     "To continue, enter your phone number",
@@ -63,21 +64,28 @@ const MobileLogin = () => {
     1500
   );
 
-  const abortRef = React.useRef(null);
-  const mountedRef = React.useRef(true);
-
   const { setAuthData } = useAuth();
 
-  /* -------------------------------------------
-     PHONE VERIFIED HANDLER (UNCHANGED LOGIC)
-     ------------------------------------------- */
-  const handlePhoneVerified = async ({ phoneE164, userExists }) => {
-    try {
-      if (abortRef.current) abortRef.current.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+  // --- Alignment with Login page behavior ---
+  const mountedRef = useRef(true);
 
-      if (userExists) {
+  // Dedupe: prevent double onVerified calls + double toasts
+  const handlingRef = useRef(false);
+  const lastHandledKeyRef = useRef("");
+  const successToastRef = useRef(false);
+
+  const showLoginSuccessOnce = useCallback((msg = "Login successful!") => {
+    if (successToastRef.current) return;
+    successToastRef.current = true;
+    toast.success(msg);
+  }, []);
+
+  // Login existing user (returns { user } or null) - same behavior as Login page
+  const loginExistingUser = useCallback(
+    async (phoneE164, showToast = true) => {
+      try {
+        const controller = new AbortController();
+
         const res = await fetch(`${API_BASE_URL}/api/auth/login-with-phone`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -88,92 +96,139 @@ const MobileLogin = () => {
 
         const data = await res.json();
 
-        if (!res.ok || !data?.user) {
+        if (res.ok && data.success) {
           if (mountedRef.current) {
-            toast.error(data?.message || "Login failed. Please try again.");
+            setAuthData(data.user);
+            localStorage.setItem("userPhone", phoneE164);
+            localStorage.setItem("phone_verified", "true");
+          }
+          return { user: data.user };
+        } else {
+          if (showToast && mountedRef.current) {
+            toast.error(data.message || "Login failed");
+          }
+          return null;
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          console.error("Login error:", error);
+          if (showToast && mountedRef.current) {
+            toast.error("Network error. Please try again.");
+          }
+        }
+        return null;
+      }
+    },
+    [setAuthData]
+  );
+
+  // Fully aligned onVerified handler (logic mirrors Login page)
+  const handlePhoneVerified = useCallback(
+    async ({ phoneE164, userExists, user }) => {
+      const key = `${phoneE164 || "no-phone"}:${String(userExists)}:${
+        user?._id || "no-user"
+      }`;
+
+      if (handlingRef.current && lastHandledKeyRef.current === key) return;
+      handlingRef.current = true;
+      lastHandledKeyRef.current = key;
+
+      try {
+        if (!userExists) {
+          // Fallback: attempt login API once before redirecting to signup
+          const fallback = await loginExistingUser(phoneE164, false);
+
+          if (fallback) {
+            const existingUser = fallback.user;
+
+            if (existingUser?.role === "professional") {
+              if (existingUser?.status === "active") {
+                if (mountedRef.current) {
+                  showLoginSuccessOnce();
+                  navigate("/worker/dashboard", { replace: true });
+                }
+                return;
+              } else {
+                if (mountedRef.current) {
+                  toast.error(
+                    existingUser?.status
+                      ? `Account status: ${existingUser.status}`
+                      : "Account not active."
+                  );
+                }
+                return;
+              }
+            }
+
+            if (mountedRef.current) {
+              showLoginSuccessOnce();
+              navigate("/app", { replace: true });
+            }
+            return;
+          }
+
+          if (mountedRef.current) {
+            toast.success("Phone verified! Please complete your profile.");
+            navigate("/signup", {
+              state: { phoneNumber: phoneE164, phoneVerified: true },
+              replace: true,
+            });
           }
           return;
         }
 
+        // userExists true
+        let existingUser = user || null;
+
+        if (!existingUser) {
+          const res = await loginExistingUser(phoneE164, false);
+          if (!res) return;
+          existingUser = res.user;
+        }
+
         if (mountedRef.current) {
-          setAuthData(data.user);
+          setAuthData(existingUser);
           localStorage.setItem("userPhone", phoneE164);
           localStorage.setItem("phone_verified", "true");
-          toast.success("Logged in successfully");
-
-          if (
-            data.user.role === "professional" &&
-            data.user.status === "active"
-          ) {
-            navigate("/worker/dashboard");
-          } else if (data.user.role === "professional") {
-            toast.error(
-              data.user.status
-                ? `Account status: ${data.user.status}`
-                : "Account not active."
-            );
-          } else {
-            navigate("/app");
-          }
         }
-      } else {
-        try {
-          const fallbackRes = await fetch(
-            `${API_BASE_URL}/api/auth/login-with-phone`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ phoneNumber: phoneE164 }),
-              credentials: "include",
-              signal: controller.signal,
-            }
-          );
-          const fallbackData = await fallbackRes.json();
 
-          if (fallbackRes.ok && fallbackData?.user) {
+        if (existingUser?.role === "professional") {
+          if (existingUser?.status === "active") {
             if (mountedRef.current) {
-              setAuthData(fallbackData.user);
-              localStorage.setItem("userPhone", phoneE164);
-              localStorage.setItem("phone_verified", "true");
-              toast.success("Logged in successfully");
-
-              if (
-                fallbackData.user.role === "professional" &&
-                fallbackData.user.status === "active"
-              ) {
-                navigate("/worker/dashboard");
-              } else if (fallbackData.user.role === "professional") {
-                toast.error(
-                  fallbackData.user.status
-                    ? `Account status: ${fallbackData.user.status}`
-                    : "Account not active."
-                );
-              } else {
-                navigate("/app");
-              }
+              showLoginSuccessOnce();
+              navigate("/worker/dashboard", { replace: true });
+            }
+            return;
+          } else {
+            if (mountedRef.current) {
+              toast.error(
+                existingUser?.status
+                  ? `Account status: ${existingUser.status}`
+                  : "Account not active."
+              );
             }
             return;
           }
-        } catch {}
+        }
 
         if (mountedRef.current) {
-          navigate("/signup", {
-            state: { phoneNumber: phoneE164, phoneVerified: true },
-          });
+          showLoginSuccessOnce();
+          navigate("/app", { replace: true });
         }
+      } finally {
+        // small release so accidental rapid double events don’t fire twice
+        setTimeout(() => {
+          handlingRef.current = false;
+        }, 600);
       }
-    } catch (error) {
-      if (error?.name !== "AbortError" && mountedRef.current) {
-        toast.error("Network error. Please try again.");
-      }
-    }
-  };
+    },
+    [loginExistingUser, navigate, setAuthData, showLoginSuccessOnce]
+  );
 
-  React.useEffect(() => {
+  useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (abortRef.current) abortRef.current.abort();
     };
   }, []);
 
@@ -224,8 +279,9 @@ const MobileLogin = () => {
           >
             <PhoneAuth
               initialCountryDial="+94"
-              variant="login"
               onVerified={handlePhoneVerified}
+              variant="login"
+              suppressVerifiedToast={true}
             />
           </motion.div>
 

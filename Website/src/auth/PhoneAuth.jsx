@@ -4,7 +4,6 @@ import toast from "react-hot-toast";
 import { colors } from "../styles/colors";
 import { authFetch } from "../utils/authFetch";
 import {
-  toE164FromAny,
   validatePhoneNumber,
   stripCountryDialFromInput,
   normalizeLocalPhone,
@@ -22,11 +21,9 @@ const STORAGE = {
 };
 
 const OTP_LENGTH = 6;
-const OTP_EXPIRES_SECONDS = 300; // 5 minutes
-const RESEND_COOLDOWN_SECONDS = 30; // 30 seconds
+const RESEND_COOLDOWN_SECONDS = 30;
 
 async function safeJson(res) {
-  // Some servers return empty body or non-JSON on error
   const text = await res.text();
   if (!text) return {};
   try {
@@ -41,22 +38,22 @@ async function safeJson(res) {
  *
  * @param {Object} props
  * @param {string} props.initialCountryDial - Initial dial (accepted only if "+94")
- * @param {Function} props.onVerified - Callback({ phoneE164, user, token })
+ * @param {Function} props.onVerified - Callback({ phoneE164, user, token, userExists })
  * @param {string} props.className - Additional CSS classes
  * @param {"login"|"signup"} props.variant - Layout variant
+ * @param {boolean} props.suppressVerifiedToast - Prevent "Phone verified!" toast (parent will show its own)
  */
 export default function PhoneAuth({
   initialCountryDial = "+94",
   onVerified,
   className = "",
   variant = "login",
+  suppressVerifiedToast = false,
 }) {
   const isLoginLayout = variant === "login";
   const purpose = variant === "signup" ? "SIGNUP" : "LOGIN";
 
-  // This component is LK-only in UI; keep dial strict.
   const [countryDial] = useState(initialCountryDial === "+94" ? "+94" : "+94");
-
   const [rawPhone, setRawPhone] = useState("");
   const [otp, setOtp] = useState("");
 
@@ -67,22 +64,19 @@ export default function PhoneAuth({
   const [verifying, setVerifying] = useState(false);
 
   const [resendCooldown, setResendCooldown] = useState(0);
-
   const [errors, setErrors] = useState({ phone: "", otp: "" });
   const [touched, setTouched] = useState({ phone: false, otp: false });
 
-  const notifiedRef = useRef(false);
   const mountedRef = useRef(true);
   const sendAbortRef = useRef(null);
   const verifyAbortRef = useRef(null);
+
+  // Prevent duplicate verify for same OTP & prevent duplicate onVerified
   const lastVerifiedOtpRef = useRef("");
+  const verifiedCallbackFiredRef = useRef(false);
+  const lastCallbackKeyRef = useRef(""); // (phoneE164 + purpose) so restoreSession + verify won't double-call
 
-  const countryDigits = useMemo(
-    () => (countryDial || "").replace("+", ""),
-    [countryDial]
-  );
-
-  const canShowOtpInput = otpSent && !phoneVerified; // ✅ fixed: independent of cooldown
+  const canShowOtpInput = otpSent && !phoneVerified;
 
   const setFieldError = useCallback((field, msg) => {
     setErrors((e) => ({ ...e, [field]: msg || "" }));
@@ -95,9 +89,7 @@ export default function PhoneAuth({
 
   const triggerHapticSuccess = useCallback(() => {
     if (typeof window === "undefined") return;
-    if (navigator?.vibrate) {
-      navigator.vibrate([12, 8, 12]);
-    }
+    if (navigator?.vibrate) navigator.vibrate([12, 8, 12]);
   }, []);
 
   const validateOtpCode = useCallback((code) => {
@@ -105,11 +97,6 @@ export default function PhoneAuth({
     if (!v) return "OTP is required.";
     if (v.length !== OTP_LENGTH) return "OTP must be exactly 6 digits.";
     return "";
-  }, []);
-
-  const buildE164 = useCallback((dial, localDigits) => {
-    const local = (localDigits || "").replace(/[^\d]/g, "");
-    return `${dial}${local}`;
   }, []);
 
   const resendProgress = useMemo(() => {
@@ -131,6 +118,7 @@ export default function PhoneAuth({
 
   // Web OTP API: auto-fill when supported
   useEffect(() => {
+    if (typeof window === "undefined") return;
     if (!("OTPCredential" in window)) return;
 
     const controller = new AbortController();
@@ -148,14 +136,12 @@ export default function PhoneAuth({
         clearFieldError("otp");
         toast.success("OTP detected automatically");
       })
-      .catch(() => {
-        /* Silent fail — expected on unsupported devices */
-      });
+      .catch(() => {});
 
     return () => controller.abort();
   }, [clearFieldError]);
 
-  // Component mount/unmount safety
+  // mount/unmount safety
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -165,23 +151,23 @@ export default function PhoneAuth({
     };
   }, []);
 
-  // Bootstrap from localStorage (prefill)
+  // prefill phone
   useEffect(() => {
     const savedPhone = localStorage.getItem(STORAGE.userPhone) || "";
     if (savedPhone && /^\+\d{6,15}$/.test(savedPhone)) {
       if (savedPhone.startsWith(LK_COUNTRY.dial)) {
-        const local = savedPhone.slice(LK_COUNTRY.dial.length);
-        setRawPhone(local);
+        setRawPhone(savedPhone.slice(LK_COUNTRY.dial.length));
       }
     }
   }, []);
 
-  // Restore session from cookies if available
+  // Restore session from cookies (deduped)
   useEffect(() => {
     const restoreSession = async () => {
-      if (notifiedRef.current) return;
+      if (verifiedCallbackFiredRef.current) return;
+      if (phoneVerified) return;
+
       try {
-        // Use silent401 to prevent redirect loop on initial session check
         const res = await authFetch(
           `${API_BASE_URL}/api/auth/me`,
           {},
@@ -190,46 +176,51 @@ export default function PhoneAuth({
         if (!res.ok) return;
         const data = await res.json();
         if (!data?.user) return;
-        notifiedRef.current = true;
-        setPhoneVerified(true);
-        const phoneE164 = data.user.phoneNumber || data.user.phone || "";
-        onVerified?.({ phoneE164, user: data.user, token: null });
-      } catch {
-        /* ignore */
-      }
-    };
-    restoreSession();
-  }, [onVerified]);
 
-  // If phone changes after OTP sent, reset OTP flow (prevents verifying wrong number)
+        const phoneE164 = data.user.phoneNumber || data.user.phone || "";
+        const key = `${purpose}:${phoneE164 || "no-phone"}`;
+
+        if (lastCallbackKeyRef.current === key) return;
+
+        lastCallbackKeyRef.current = key;
+        verifiedCallbackFiredRef.current = true;
+
+        if (!mountedRef.current) return;
+        setPhoneVerified(true);
+        onVerified?.({
+          phoneE164,
+          user: data.user,
+          token: null,
+          userExists: true,
+        });
+      } catch {}
+    };
+
+    restoreSession();
+  }, [onVerified, purpose, phoneVerified]);
+
+  // If phone changes after OTP sent, reset OTP flow
   useEffect(() => {
     if (!otpSent) return;
-    // Any change to the phone should invalidate previously sent OTP UI state
     setOtp("");
     lastVerifiedOtpRef.current = "";
     setOtpSent(false);
     setResendCooldown(0);
     clearFieldError("otp");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawPhone]); // intentionally only rawPhone: reset when phone changes
+  }, [rawPhone]);
 
   const handlePhoneChange = (e) => {
     const nextLocal = stripCountryDialFromInput(e.target.value, countryDial);
     setRawPhone(nextLocal);
-
-    // Clear prior errors; full validation runs on Send OTP
     if (errors.phone) clearFieldError("phone");
   };
 
-  const handlePhoneBlur = () => {
-    setTouched((t) => ({ ...t, phone: true }));
-  };
+  const handlePhoneBlur = () => setTouched((t) => ({ ...t, phone: true }));
 
   const handleOtpChange = (e) => {
     const v = (e.target.value || "").replace(/\D/g, "").slice(0, OTP_LENGTH);
     setOtp(v);
-
-    // Validate immediately on every keystroke
     setFieldError("otp", validateOtpCode(v));
   };
 
@@ -264,7 +255,6 @@ export default function PhoneAuth({
     const local = normalizeLocalPhone(rawPhone);
     const e164 = buildE164Phone(countryDial, local);
 
-    // Abort any previous send request
     if (sendAbortRef.current) sendAbortRef.current.abort();
     const controller = new AbortController();
     sendAbortRef.current = controller;
@@ -309,6 +299,9 @@ export default function PhoneAuth({
     if (phoneVerified || verifying) return;
 
     const currentOtp = otp;
+
+    // hard dedupe (prevents double calls from auto-fill + rerender)
+    if (currentOtp && currentOtp === lastVerifiedOtpRef.current) return;
     lastVerifiedOtpRef.current = currentOtp;
 
     setTouched((t) => ({ ...t, otp: true, phone: true }));
@@ -323,7 +316,6 @@ export default function PhoneAuth({
 
     const e164 = buildE164Phone(countryDial, normalizeLocalPhone(rawPhone));
 
-    // Abort any previous verify request
     if (verifyAbortRef.current) verifyAbortRef.current.abort();
     const controller = new AbortController();
     verifyAbortRef.current = controller;
@@ -334,7 +326,7 @@ export default function PhoneAuth({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: e164, otp: currentOtp, purpose }),
-        credentials: "include", // ensure auth cookies from OTP verification are set
+        credentials: "include",
         signal: controller.signal,
       });
 
@@ -352,25 +344,38 @@ export default function PhoneAuth({
       const userExists = data?.userExists;
       const phoneE164 = data?.phoneNumber || e164;
 
-      // If token+user returned (login existing user), persist session
-      if (user) {
-        localStorage.setItem(STORAGE.userPhone, phoneE164);
-        localStorage.setItem(STORAGE.phoneVerified, "true");
+      // Dedup callback (restoreSession + verify flow)
+      const callbackKey = `${purpose}:${phoneE164 || "no-phone"}`;
+      if (lastCallbackKeyRef.current === callbackKey) {
         if (!mountedRef.current) return;
         setPhoneVerified(true);
         triggerHapticSuccess();
-       
+        return;
+      }
+
+      lastCallbackKeyRef.current = callbackKey;
+      verifiedCallbackFiredRef.current = true;
+
+      if (!mountedRef.current) return;
+      setPhoneVerified(true);
+      triggerHapticSuccess();
+
+      // If user returned -> existing user login style
+      if (user) {
+        localStorage.setItem(STORAGE.userPhone, phoneE164);
+        localStorage.setItem(STORAGE.phoneVerified, "true");
         onVerified?.({ phoneE164, user, token: null, userExists: true });
         return;
       }
 
-      // No token/user returned: treat as verified phone (e.g., signup flow or login with no account)
-      if (!mountedRef.current) return;
-      setPhoneVerified(true);
+      // Phone verified but no user returned
       localStorage.setItem(STORAGE.userPhone, phoneE164);
       localStorage.removeItem(STORAGE.phoneVerified);
-      triggerHapticSuccess();
-      toast.success("Phone verified!", { duration: 3000 });
+
+      if (!suppressVerifiedToast) {
+        toast.success("Phone verified!", { duration: 3000 });
+      }
+
       onVerified?.({ phoneE164, user: null, token: null, userExists });
     } catch (err) {
       if (err?.name === "AbortError") return;
@@ -392,19 +397,14 @@ export default function PhoneAuth({
     triggerHapticSuccess,
     onVerified,
     setFieldError,
+    suppressVerifiedToast,
   ]);
 
   const resendDisabled = sending || resendCooldown > 0 || phoneVerified;
 
-  // Auto-verify when OTP reaches required length
+  // Auto-verify when OTP reaches required length (deduped by lastVerifiedOtpRef)
   useEffect(() => {
-    if (
-      otp.length === OTP_LENGTH &&
-      !verifying &&
-      !sending &&
-      !phoneVerified &&
-      otp !== lastVerifiedOtpRef.current
-    ) {
+    if (otp.length === OTP_LENGTH && !verifying && !sending && !phoneVerified) {
       verifyOtp();
     }
   }, [otp, verifying, sending, phoneVerified, verifyOtp]);
@@ -438,6 +438,7 @@ export default function PhoneAuth({
 
   return (
     <div className={className}>
+      {/* PHONE INPUT */}
       {isLoginLayout ? (
         <>
           <label
@@ -622,7 +623,7 @@ export default function PhoneAuth({
         </div>
       )}
 
-      {/* OTP Input Row */}
+      {/* OTP Input */}
       {canShowOtpInput && (
         <div className="mt-3">
           <div className="flex gap-3">
