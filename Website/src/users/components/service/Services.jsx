@@ -912,7 +912,14 @@ export const Services = () => {
                           <button
                             onClick={() => {
                               handleCloseModal();
-                              navigate("/professionals");
+                              navigate("/app", {
+                                state: {
+                                  bookService: {
+                                    service: selectedService.service,
+                                    issueName: issue.issueName,
+                                  },
+                                },
+                              });
                             }}
                             className="mt-5 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm ring-1 transition-all duration-200 hover:-translate-y-[1px] hover:shadow-md active:translate-y-0 active:shadow-sm focus:outline-none focus:ring-2"
                             style={{

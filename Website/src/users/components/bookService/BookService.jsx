@@ -16,7 +16,12 @@ import { colors } from "../../../styles/colors";
 import { getAllServices } from "../../api/service/service";
 import { createBooking } from "../../api/booking/booking";
 
-const BookService = ({ isOpen, onClose }) => {
+const BookService = ({
+  isOpen,
+  onClose,
+  initialService = null,
+  initialIssueName = "",
+}) => {
   const [step, setStep] = useState(1);
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
@@ -54,19 +59,61 @@ const BookService = ({ isOpen, onClose }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, step]);
 
-  // Hide header and prevent body scroll when modal is open
+  // Initialize form with pre-filled service and issue data when modal opens
+  useEffect(() => {
+    if (isOpen && initialService && services.length > 0) {
+      const matchedService = services.find((s) => s.service === initialService);
+      if (matchedService) {
+        setSelectedService(matchedService);
+        setFormData((prev) => ({
+          ...prev,
+          service: matchedService.service,
+          issueType: initialIssueName || "",
+        }));
+        // Auto-advance to step 2 if we have both service and issue
+        setStep(2);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialService, initialIssueName, services]);
+
+  // Hide header and mobile navbar, prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add("modal-open");
       // Prevent body scroll on mobile to avoid double scrollbars
       document.body.style.overflow = "hidden";
+
+      // Hide mobile navbar
+      const mobileNavbar = document.querySelector(
+        "nav[aria-label='Mobile navigation']"
+      );
+      if (mobileNavbar) {
+        mobileNavbar.style.display = "none";
+      }
     } else {
       document.body.classList.remove("modal-open");
       document.body.style.overflow = "";
+
+      // Show mobile navbar
+      const mobileNavbar = document.querySelector(
+        "nav[aria-label='Mobile navigation']"
+      );
+      if (mobileNavbar) {
+        mobileNavbar.style.display = "";
+      }
     }
     return () => {
       document.body.classList.remove("modal-open");
       document.body.style.overflow = "";
+
+      // Ensure mobile navbar is shown on cleanup
+      const mobileNavbar = document.querySelector(
+        "nav[aria-label='Mobile navigation']"
+      );
+      if (mobileNavbar) {
+        mobileNavbar.style.display = "";
+      }
     };
   }, [isOpen]);
 
@@ -459,7 +506,10 @@ const BookService = ({ isOpen, onClose }) => {
         <motion.button
           type="button"
           aria-label="Close modal overlay"
-          className="absolute inset-0 cursor-pointer bg-black/60 backdrop-blur-[6px]"
+          className="absolute inset-0 cursor-pointer backdrop-blur-[6px]"
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+          }}
           onClick={() => {
             onClose();
             resetForm();
@@ -477,10 +527,10 @@ const BookService = ({ isOpen, onClose }) => {
             aria-modal="true"
             aria-label="Book a Service"
             className={[
-              // Mobile = true fullscreen "app screen" with bottom padding for mobile navbar
-              "relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none pb-20 lg:pb-0",
+              // Mobile = true fullscreen "app screen" without padding since navbar is hidden
+              "relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none",
               // Tablet/Desktop = responsive sheet
-              "sm:h-auto sm:max-h-[92vh] sm:w-full sm:max-w-4xl sm:rounded-3xl",
+              "sm:h-auto sm:max-h-[92vh] sm:w-full sm:max-w-4xl sm:rounded-3xl sm:pb-0",
               "shadow-[0_22px_60px_-28px_rgba(0,0,0,0.55)]",
             ].join(" ")}
             style={{
@@ -893,9 +943,327 @@ const BookService = ({ isOpen, onClose }) => {
               {/* Step 2 */}
               {step === 2 && (
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* (UNCHANGED: your whole Step 2 form content) */}
-                  {/* Keep exactly as you wrote it */}
-                  {/* ... */}
+                  <div
+                    className="p-4 rounded-lg"
+                    style={{ backgroundColor: colors.primary.light }}
+                  >
+                    <p
+                      className="text-sm"
+                      style={{ color: colors.text.secondary }}
+                    >
+                      Selected Service:
+                    </p>
+                    <p
+                      className="font-semibold"
+                      style={{ color: colors.primary.dark }}
+                    >
+                      {selectedService?.service}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-sm font-semibold mb-2"
+                      style={{ color: colors.text.primary }}
+                    >
+                      Issue Type <span>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="issueType"
+                      value={formData.issueType}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 transition"
+                      style={{
+                        borderColor: colors.border.light,
+                        color: colors.text.primary,
+                        outlineColor: colors.primary.DEFAULT,
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = colors.primary.DEFAULT;
+                        e.target.style.boxShadow = `0 0 0 2px ${colors.primary.light}`;
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = colors.border.light;
+                        e.target.style.boxShadow = "none";
+                      }}
+                      placeholder="e.g., Fan not working"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-sm font-semibold mb-2"
+                      style={{ color: colors.text.primary }}
+                    >
+                      Description <span>*</span>
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      rows={4}
+                      className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 transition"
+                      style={{
+                        borderColor: colors.border.light,
+                        color: colors.text.primary,
+                        backgroundColor: colors.background.primary,
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = colors.primary.DEFAULT;
+                        e.target.style.boxShadow = `0 0 0 2px ${colors.primary.light}`;
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = colors.border.light;
+                        e.target.style.boxShadow = "none";
+                      }}
+                      placeholder="Describe the issue in detail..."
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-sm font-semibold mb-2"
+                      style={{ color: colors.text.primary }}
+                    >
+                      Scheduled Service Time <span>*</span>
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="relative">
+                          <Calendar
+                            className="absolute left-3 top-1/2 -translate-y-1/2"
+                            size={20}
+                            style={{ color: colors.text.secondary }}
+                          />
+                          <input
+                            type="datetime-local"
+                            name="scheduledTime"
+                            value={formData.scheduledTime}
+                            onChange={handleChange}
+                            min={getMinDateTime()}
+                            max={getMaxDateTime()}
+                            className="w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:ring-2 transition"
+                            style={{
+                              borderColor: colors.border.light,
+                              color: colors.text.primary,
+                              backgroundColor: colors.background.primary,
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor =
+                                colors.primary.DEFAULT;
+                              e.target.style.boxShadow = `0 0 0 2px ${colors.primary.light}`;
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = colors.border.light;
+                              e.target.style.boxShadow = "none";
+                            }}
+                            required
+                          />
+                        </div>
+                        <p
+                          className="text-xs mt-2"
+                          style={{ color: colors.text.tertiary }}
+                        >
+                          Available: Today or Tomorrow only
+                        </p>
+                      </div>
+                      {formData.scheduledTime && (
+                        <div
+                          className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                          style={{
+                            backgroundColor: colors.background.secondary,
+                          }}
+                        >
+                          <Clock
+                            size={20}
+                            style={{ color: colors.text.secondary }}
+                          />
+                          <div>
+                            <p
+                              className="text-xs"
+                              style={{ color: colors.text.secondary }}
+                            >
+                              Estimated End Time
+                            </p>
+                            <p
+                              className="font-semibold"
+                              style={{ color: colors.text.primary }}
+                            >
+                              {calculateEndTime(formData.scheduledTime)}
+                            </p>
+                            <p
+                              className="text-xs mt-1"
+                              style={{ color: colors.text.tertiary }}
+                            >
+                              Duration: +2 hours
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-sm font-semibold mb-2"
+                      style={{ color: colors.text.primary }}
+                    >
+                      Service Location <span>*</span>
+                    </label>
+
+                    <div className="flex items-center gap-3 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseCurrentLocation(!useCurrentLocation);
+                          if (!useCurrentLocation) {
+                            getCurrentLocation();
+                          }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition"
+                        style={{
+                          backgroundColor: colors.primary.light,
+                          color: colors.primary.dark,
+                        }}
+                        onMouseEnter={(e) => (e.target.style.opacity = "0.8")}
+                        onMouseLeave={(e) => (e.target.style.opacity = "1")}
+                      >
+                        <Navigation className="w-4 h-4" />
+                        Use Current Location
+                      </button>
+                      {locationLoading && (
+                        <Loader
+                          className="w-5 h-5 animate-spin"
+                          style={{ color: colors.primary.DEFAULT }}
+                        />
+                      )}
+                    </div>
+
+                    <div className="relative">
+                      <MapPin
+                        className="absolute left-3 top-1/2 -translate-y-1/2"
+                        size={20}
+                        style={{ color: colors.text.secondary }}
+                      />
+                      <input
+                        ref={locationInputRef}
+                        type="text"
+                        name="location.address"
+                        value={formData.location.address}
+                        onChange={handleChange}
+                        className="w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:ring-2 transition"
+                        style={{
+                          borderColor: colors.border.light,
+                          color: colors.text.primary,
+                          backgroundColor: colors.background.primary,
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = colors.primary.DEFAULT;
+                          e.target.style.boxShadow = `0 0 0 2px ${colors.primary.light}`;
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = colors.border.light;
+                          e.target.style.boxShadow = "none";
+                        }}
+                        placeholder="Enter your service location"
+                        required
+                      />
+                    </div>
+
+                    {formData.location.address && (
+                      <div
+                        className="mt-3 p-3 rounded-lg border"
+                        style={{
+                          backgroundColor: colors.success.bg,
+                          borderColor: colors.success.light,
+                        }}
+                      >
+                        <div className="flex items-start gap-2">
+                          <MapPin
+                            className="flex-shrink-0 mt-0.5"
+                            size={18}
+                            style={{ color: colors.success.DEFAULT }}
+                          />
+                          <div>
+                            <p
+                              className="text-xs"
+                              style={{ color: colors.text.secondary }}
+                            >
+                              Selected Location:
+                            </p>
+                            <p
+                              className="text-sm"
+                              style={{ color: colors.text.primary }}
+                            >
+                              {formData.location.address}
+                            </p>
+                            <p
+                              className="text-xs mt-1"
+                              style={{ color: colors.text.tertiary }}
+                            >
+                              Coordinates: {formData.location.lat?.toFixed(6)},{" "}
+                              {formData.location.lng?.toFixed(6)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="px-6 py-3 border-2 rounded-xl font-semibold transition"
+                      style={{
+                        borderColor: colors.border.dark,
+                        color: colors.text.primary,
+                        backgroundColor: colors.background.primary,
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.target.style.backgroundColor =
+                          colors.background.secondary)
+                      }
+                      onMouseLeave={(e) =>
+                        (e.target.style.backgroundColor =
+                          colors.background.primary)
+                      }
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all"
+                      style={{
+                        background: colors.primary.gradient,
+                        color: colors.text.inverse,
+                        opacity: loading ? 0.5 : 1,
+                        cursor: loading ? "not-allowed" : "pointer",
+                      }}
+                      onMouseEnter={(e) =>
+                        !loading &&
+                        (e.target.style.boxShadow =
+                          "0 10px 25px rgba(0,0,0,0.2)")
+                      }
+                      onMouseLeave={(e) => (e.target.style.boxShadow = "none")}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader className="w-5 h-5 animate-spin" />
+                          Creating Booking...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-5 h-5" />
+                          Confirm Booking
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>
