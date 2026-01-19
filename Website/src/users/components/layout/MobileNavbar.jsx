@@ -1,14 +1,14 @@
 import { NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home, Briefcase, Calendar, MessageSquare, User } from "lucide-react";
+import { Home, Briefcase, MessageSquare, Users, Info } from "lucide-react";
 import { useAnimations } from "../animations/animations";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/app" },
   { icon: Briefcase, label: "Services", path: "/app/services" },
-  { icon: Calendar, label: "Bookings", path: "/app/bookings" },
+  { icon: Users, label: "Professionals", path: "/app/professionals" },
   { icon: MessageSquare, label: "Feedback", path: "/app/feedback" },
-  { icon: User, label: "Profile", path: "/app/profile" },
+  { icon: Info, label: "About", path: "/app/about" },
 ];
 
 function MobileNavbar() {

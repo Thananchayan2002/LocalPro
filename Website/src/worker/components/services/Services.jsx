@@ -247,7 +247,6 @@ const Services = () => {
                 key={issue._id}
                 className="group rounded-2xl p-4 sm:p-5 ring-1 ring-black/5 shadow-sm motion-safe:transition-all motion-safe:duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(2,6,23,0.10)] cursor-pointer"
                 style={{
-                  background: colors.category.emerald.bg,
                   border: `1px solid ${colors.success.bg}`,
                 }}
               >
@@ -261,7 +260,7 @@ const Services = () => {
                     </p>
                     <h3
                       className="mt-1 text-base sm:text-lg font-extrabold truncate"
-                      style={{ color: colors.text.primary }}
+                      style={{ color: colors.primary.light }}
                       title={issue.issueName}
                     >
                       {issue.issueName}

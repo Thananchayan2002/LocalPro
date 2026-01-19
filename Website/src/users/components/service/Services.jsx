@@ -81,7 +81,7 @@ export const Services = () => {
   // Handle body scroll lock and hide header/navbar when modal is open
   useEffect(() => {
     const mobileNavbar = document.querySelector(
-      "nav[aria-label='Mobile navigation']"
+      "nav[aria-label='Mobile navigation']",
     );
 
     if (showModal) {
@@ -115,11 +115,11 @@ export const Services = () => {
   const filteredServices = services.filter(
     (service) =>
       service.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.description.toLowerCase().includes(searchQuery.toLowerCase())
+      service.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const filteredIssues = issues.filter((issue) =>
-    issue.issueName.toLowerCase().includes(searchQuery.toLowerCase())
+    issue.issueName.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (loading) {
@@ -338,7 +338,7 @@ export const Services = () => {
               </div>
 
               <div
-                className="mt-4 flex flex-wrap items-center gap-4 text-xs"
+                className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs"
                 style={{ color: "white", opacity: 0.6 }}
               >
                 <span
@@ -714,7 +714,7 @@ export const Services = () => {
                 <div className="flex min-w-0 items-start gap-4">
                   {(() => {
                     const IconComponent = getIconComponent(
-                      selectedService.iconName
+                      selectedService.iconName,
                     );
                     return (
                       <div

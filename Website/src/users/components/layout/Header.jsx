@@ -10,7 +10,6 @@ import {
   Sun,
   Moon,
   Globe,
-  Menu,
   X,
   User,
   Calendar,
@@ -33,21 +32,18 @@ import {
 
 export const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const reduceMotion = useReducedMotion();
+  const headerRef = useRef(null);
+
+  const { user, loading: loadingUser } = useAuth();
+
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState("English");
-
-  // Mobile/Tablet hamburger menu
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Desktop dropdowns (LG+)
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
-
-  const { user, loading: loadingUser } = useAuth();
-
-  const navigate = useNavigate();
-  const reduceMotion = useReducedMotion();
-  const headerRef = useRef(null);
 
   // -------------------------
   // Theme
@@ -58,12 +54,11 @@ export const Header = () => {
   }, [isDarkMode]);
 
   // -------------------------
-  // Close panels on outside click / ESC
+  // Close dropdowns
   // -------------------------
   const closeAll = useCallback(() => {
     setIsProfileOpen(false);
     setIsLanguageOpen(false);
-    setIsMenuOpen(false);
   }, []);
 
   useEffect(() => {
@@ -77,15 +72,11 @@ export const Header = () => {
   useEffect(() => {
     const onClick = (e) => {
       if (!headerRef.current) return;
-      if (!headerRef.current.contains(e.target)) {
-        setIsProfileOpen(false);
-        setIsLanguageOpen(false);
-        setIsMenuOpen(false);
-      }
+      if (!headerRef.current.contains(e.target)) closeAll();
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, []);
+  }, [closeAll]);
 
   // -------------------------
   // Actions
@@ -118,22 +109,13 @@ export const Header = () => {
 
   const profileMenu = useMemo(
     () => [
-      {
-        name: "Profile",
-        icon: User,
-        action: () => navigate("/app/profile"),
-      },
+      { name: "Profile", icon: User, action: () => navigate("/app/profile") },
       {
         name: "My Bookings",
         icon: Calendar,
         action: () => navigate("/app/bookings"),
       },
-      {
-        name: "Logout",
-        icon: LogOut,
-        action: handleLogout,
-        isDanger: true,
-      },
+      { name: "Logout", icon: LogOut, action: handleLogout, isDanger: true },
     ],
     [handleLogout, navigate],
   );
@@ -146,18 +128,11 @@ export const Header = () => {
   }, [user]);
 
   // -------------------------
-  // Motion variants
+  // Motion
   // -------------------------
   const spring = reduceMotion
     ? { duration: 0 }
-    : { type: "spring", stiffness: 420, damping: 34, mass: 0.9 };
-
-  const headerEnter = {
-    hidden: reduceMotion ? { opacity: 1 } : { opacity: 0, y: -10 },
-    visible: reduceMotion
-      ? { opacity: 1 }
-      : { opacity: 1, y: 0, transition: { ...spring } },
-  };
+    : { type: "spring", stiffness: 520, damping: 34, mass: 0.9 };
 
   const dropdownPanel = {
     hidden: reduceMotion
@@ -195,217 +170,86 @@ export const Header = () => {
           },
   };
 
-  const mobileMenuPanel = {
-    hidden: reduceMotion
-      ? { opacity: 1 }
-      : { opacity: 0, y: -10, scale: 0.98, filter: "blur(4px)" },
-    visible: reduceMotion
-      ? { opacity: 1 }
-      : {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          filter: "blur(0px)",
-          transition: { ...spring },
-        },
-    exit: reduceMotion
-      ? { opacity: 1 }
-      : {
-          opacity: 0,
-          y: -10,
-          scale: 0.985,
-          filter: "blur(4px)",
-          transition: { duration: 0.16 },
-        },
-  };
-
-  const subtleHover = reduceMotion
-    ? {}
-    : {
-        whileHover: { y: -1 },
-        whileTap: { scale: 0.98 },
-        transition: { ...spring },
-      };
-
-  const iconSpin = reduceMotion
-    ? {}
-    : {
-        whileHover: { rotate: 10 },
-        transition: { type: "spring", stiffness: 500, damping: 28 },
-      };
-
   // -------------------------
   // Helpers
   // -------------------------
-  const NavItem = ({ link, onSelect }) => {
-    const Icon = link.icon;
-    const isActive = location.pathname === link.path;
-    return (
-      <NavLink
-        to={link.path}
-        onClick={onSelect}
-        className={[
-          "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950",
-          isActive
-            ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/20"
-            : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-900",
-        ].join(" ")}
-      >
-        <motion.span
-          className="opacity-80 transition group-hover:opacity-100"
-          {...(!reduceMotion
-            ? {
-                whileHover: { scale: 1.05 },
-                transition: { type: "spring", stiffness: 520, damping: 28 },
-              }
-            : {})}
-        >
-          <Icon className="h-4 w-4" />
-        </motion.span>
-        <span className="truncate">{link.name}</span>
-      </NavLink>
-    );
-  };
+  const isActivePath = (path) => location.pathname === path;
 
   return (
     <LayoutGroup>
       <motion.nav
         ref={headerRef}
-        className="header-nav sticky top-0  w-full border-b border-gray-200/70 bg-white/80 backdrop-blur-xl dark:border-gray-800/70 dark:bg-gray-950/70"
-        variants={headerEnter}
-        initial="hidden"
-        animate="visible"
+        className="sticky top-0 z-50 w-full border-b border-gray-200/70 bg-white/90 backdrop-blur dark:border-gray-800/70 dark:bg-gray-950/90"
+        initial={reduceMotion ? false : { opacity: 0, y: -10 }}
+        animate={reduceMotion ? {} : { opacity: 1, y: 0, transition: spring }}
       >
         <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
           <div className="flex h-16 items-center justify-between gap-3">
-            {/* Left */}
+            {/* Left: brand + desktop nav */}
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-              {/* Logo */}
-              <motion.div
-                {...(reduceMotion
-                  ? {}
-                  : {
-                      initial: { opacity: 0, y: -6 },
-                      animate: { opacity: 1, y: 0, transition: { ...spring } },
-                    })}
+              {/* Brand */}
+              <NavLink
+                to="/"
+                onClick={closeAll}
+                className="inline-flex items-center rounded-xl px-2 py-1.5 transition hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer"
               >
-                <NavLink
-                  to="/"
-                  className="group inline-flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-gray-100 dark:hover:bg-gray-900"
-                  onClick={() => closeAll()}
-                >
-                  <motion.span
-                    className="text-lg font-semibold tracking-tight text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl"
-                    {...(!reduceMotion
-                      ? {
-                          initial: { opacity: 0, y: -4, filter: "blur(4px)" },
-                          animate: {
-                            opacity: 1,
-                            y: 0,
-                            filter: "blur(0px)",
-                            transition: { ...spring, delay: 0.04 },
-                          },
-                        }
-                      : {})}
-                  >
-                    <motion.span
-                      style={{ color: "#0f64c8" }}
-                      {...(!reduceMotion
-                        ? {
-                            initial: { opacity: 0, x: -8 },
-                            animate: {
-                              opacity: 1,
-                              x: 0,
-                              transition: { ...spring, delay: 0.08 },
-                            },
-                          }
-                        : {})}
-                    >
-                      Help
-                    </motion.span>
-                    <motion.span
-                      style={{ color: "#1fa34a" }}
-                      {...(!reduceMotion
-                        ? {
-                            initial: { opacity: 0, x: 8 },
-                            animate: {
-                              opacity: 1,
-                              x: 0,
-                              transition: { ...spring, delay: 0.12 },
-                            },
-                          }
-                        : {})}
-                    >
-                      Go
-                    </motion.span>
-                  </motion.span>
-                </NavLink>
-              </motion.div>
+                <span className="text-lg font-semibold tracking-tight sm:text-xl">
+                  <span style={{ color: "#0f64c8" }}>Help</span>
+                  <span style={{ color: "#1fa34a" }}>Go</span>
+                </span>
+              </NavLink>
 
               {/* Desktop nav (LG+) */}
               <div className="hidden min-w-0 flex-1 items-center justify-center lg:flex">
-                <motion.div
-                  className="flex items-center gap-1 rounded-2xl border border-gray-200/70 bg-gray-50/80 p-1 shadow-sm dark:border-gray-800/70 dark:bg-gray-900/60"
-                  {...(!reduceMotion
-                    ? {
-                        initial: { opacity: 0, y: -8 },
-                        animate: {
-                          opacity: 1,
-                          y: 0,
-                          transition: { ...spring, delay: 0.08 },
-                        },
-                      }
-                    : {})}
-                >
-                  {navLinks.map((link, idx) => (
-                    <motion.div
-                      key={link.name}
-                      {...subtleHover}
-                      {...(reduceMotion
-                        ? {}
-                        : {
-                            initial: { opacity: 0, y: -6 },
-                            animate: {
-                              opacity: 1,
-                              y: 0,
-                              transition: {
-                                ...spring,
-                                delay: 0.12 + idx * 0.03,
-                              },
-                            },
-                          })}
-                      style={{ willChange: "transform" }}
-                    >
-                      <NavItem link={link} />
-                    </motion.div>
-                  ))}
-                </motion.div>
+                <div className="flex items-center gap-1 rounded-2xl border border-gray-200/70 bg-white/80 p-1 shadow-sm dark:border-gray-800/70 dark:bg-gray-950/70">
+                  {navLinks.map((link) => {
+                    const active = isActivePath(link.path);
+                    const Icon = link.icon;
+                    return (
+                      <NavLink
+                        key={link.name}
+                        to={link.path}
+                        onClick={closeAll}
+                        className={[
+                          "group flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold transition cursor-pointer",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950",
+                          active
+                            ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100 dark:bg-blue-700/20 dark:text-blue-200 dark:ring-blue-700/30"
+                            : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-900",
+                        ].join(" ")}
+                      >
+                        <motion.span
+                          className="opacity-80 transition group-hover:opacity-100"
+                          {...(!reduceMotion
+                            ? {
+                                whileHover: { scale: 1.06 },
+                                transition: {
+                                  type: "spring",
+                                  stiffness: 600,
+                                  damping: 30,
+                                },
+                              }
+                            : {})}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </motion.span>
+                        <span className="truncate">{link.name}</span>
+                      </NavLink>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Right (language + theme always visible) */}
-            <motion.div
-              className="flex items-center gap-2 sm:gap-3"
-              {...(!reduceMotion
-                ? {
-                    initial: { opacity: 0, y: -8 },
-                    animate: {
-                      opacity: 1,
-                      y: 0,
-                      transition: { ...spring, delay: 0.12 },
-                    },
-                  }
-                : {})}
-            >
-              {/* Language (always visible) */}
+            {/* Right: controls (no hamburger on mobile) */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Language */}
               <div className="relative">
-                <motion.button
+                <button
                   type="button"
                   onClick={() => {
                     setIsLanguageOpen((v) => !v);
                     setIsProfileOpen(false);
-                    setIsMenuOpen(false);
                   }}
                   className={[
                     "group inline-flex items-center gap-2 rounded-xl border border-gray-200/70 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition",
@@ -415,12 +259,8 @@ export const Header = () => {
                   ].join(" ")}
                   aria-expanded={isLanguageOpen}
                   aria-haspopup="menu"
-                  {...subtleHover}
-                  style={{ willChange: "transform" }}
                 >
-                  <motion.span {...iconSpin} style={{ display: "inline-flex" }}>
-                    <Globe className="h-4 w-4 opacity-80 group-hover:opacity-100" />
-                  </motion.span>
+                  <Globe className="h-4 w-4 opacity-80 group-hover:opacity-100" />
                   <span className="hidden max-w-[140px] truncate sm:inline">
                     {language}
                   </span>
@@ -428,12 +268,12 @@ export const Header = () => {
                     animate={
                       reduceMotion ? {} : { rotate: isLanguageOpen ? 180 : 0 }
                     }
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.18 }}
                     style={{ display: "inline-flex" }}
                   >
                     <ChevronDown className="h-4 w-4 opacity-70" />
                   </motion.span>
-                </motion.button>
+                </button>
 
                 <AnimatePresence>
                   {isLanguageOpen && (
@@ -460,8 +300,8 @@ export const Header = () => {
                                 setIsLanguageOpen(false);
                               }}
                               className={[
-                                "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition",
-                                "hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer",
+                                "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition cursor-pointer",
+                                "hover:bg-gray-50 dark:hover:bg-gray-900",
                                 active
                                   ? "text-gray-900 dark:text-gray-50"
                                   : "text-gray-700 dark:text-gray-200",
@@ -475,7 +315,7 @@ export const Header = () => {
                                     whileHover: { x: 2 },
                                     transition: {
                                       type: "spring",
-                                      stiffness: 500,
+                                      stiffness: 600,
                                       damping: 32,
                                     },
                                   }
@@ -499,8 +339,8 @@ export const Header = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Dark mode (always visible) */}
-              <motion.button
+              {/* Dark mode */}
+              <button
                 type="button"
                 onClick={() => setIsDarkMode((v) => !v)}
                 className={[
@@ -510,30 +350,36 @@ export const Header = () => {
                   "cursor-pointer",
                 ].join(" ")}
                 aria-label="Toggle dark mode"
-                {...subtleHover}
-                style={{ willChange: "transform" }}
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {isDarkMode ? (
                     <motion.span
                       key="sun"
-                      {...(reduceMotion
-                        ? {}
-                        : {
-                            initial: { opacity: 0, rotate: -30, scale: 0.9 },
-                            animate: {
+                      initial={
+                        reduceMotion
+                          ? false
+                          : { opacity: 0, rotate: -30, scale: 0.95 }
+                      }
+                      animate={
+                        reduceMotion
+                          ? {}
+                          : {
                               opacity: 1,
                               rotate: 0,
                               scale: 1,
-                              transition: { ...spring },
-                            },
-                            exit: {
+                              transition: spring,
+                            }
+                      }
+                      exit={
+                        reduceMotion
+                          ? {}
+                          : {
                               opacity: 0,
                               rotate: 25,
-                              scale: 0.9,
+                              scale: 0.95,
                               transition: { duration: 0.12 },
-                            },
-                          })}
+                            }
+                      }
                       style={{ display: "inline-flex" }}
                     >
                       <Sun className="h-5 w-5 text-amber-500" />
@@ -541,103 +387,87 @@ export const Header = () => {
                   ) : (
                     <motion.span
                       key="moon"
-                      {...(reduceMotion
-                        ? {}
-                        : {
-                            initial: { opacity: 0, rotate: 30, scale: 0.9 },
-                            animate: {
+                      initial={
+                        reduceMotion
+                          ? false
+                          : { opacity: 0, rotate: 30, scale: 0.95 }
+                      }
+                      animate={
+                        reduceMotion
+                          ? {}
+                          : {
                               opacity: 1,
                               rotate: 0,
                               scale: 1,
-                              transition: { ...spring },
-                            },
-                            exit: {
+                              transition: spring,
+                            }
+                      }
+                      exit={
+                        reduceMotion
+                          ? {}
+                          : {
                               opacity: 0,
                               rotate: -25,
-                              scale: 0.9,
+                              scale: 0.95,
                               transition: { duration: 0.12 },
-                            },
-                          })}
+                            }
+                      }
                       style={{ display: "inline-flex" }}
                     >
                       <Moon className="h-5 w-5" />
                     </motion.span>
                   )}
                 </AnimatePresence>
-              </motion.button>
+              </button>
 
-              {/* Profile (desktop LG+) */}
-              <div className="relative hidden lg:block">
-                <motion.button
+              {/* Profile (ALL viewports; fixes "not opening" by ensuring it exists everywhere) */}
+              <div className="relative">
+                <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    // Prevent any outside-click handler edge cases
+                    e.stopPropagation();
                     setIsProfileOpen((v) => !v);
                     setIsLanguageOpen(false);
-                    setIsMenuOpen(false);
                   }}
                   className={[
-                    "group inline-flex items-center gap-2 rounded-2xl border border-transparent bg-transparent p-1 transition",
-                    "hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer",
+                    "group inline-flex items-center gap-2 rounded-2xl p-1 transition",
+                    "hover:bg-gray-100 dark:hover:bg-gray-900",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950",
+                    "cursor-pointer",
                   ].join(" ")}
                   aria-expanded={isProfileOpen}
                   aria-haspopup="menu"
-                  {...subtleHover}
-                  style={{ willChange: "transform" }}
                 >
-                  <div className="relative">
-                    <motion.div
-                      className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm ring-1 ring-black/5 transition group-hover:shadow-md dark:ring-white/10"
-                      {...(!reduceMotion
-                        ? {
-                            whileHover: { scale: 1.03 },
-                            transition: {
-                              type: "spring",
-                              stiffness: 520,
-                              damping: 30,
-                            },
-                          }
-                        : {})}
-                      style={{ willChange: "transform" }}
-                    >
-                      <User className="h-5 w-5" />
-                    </motion.div>
-
-                    <motion.span
-                      className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 dark:border-gray-950"
-                      {...(!reduceMotion
-                        ? {
-                            initial: { scale: 0.8, opacity: 0.6 },
-                            animate: {
-                              scale: [0.95, 1.05, 0.95],
-                              opacity: 1,
-                              transition: {
-                                duration: 1.8,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                              },
-                            },
-                          }
-                        : {})}
-                      style={{ willChange: "transform" }}
-                    />
-                  </div>
+                  <motion.div
+                    className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                    {...(!reduceMotion
+                      ? {
+                          whileHover: { scale: 1.03 },
+                          whileTap: { scale: 0.98 },
+                          transition: {
+                            type: "spring",
+                            stiffness: 650,
+                            damping: 34,
+                          },
+                        }
+                      : {})}
+                    style={{ willChange: "transform" }}
+                  >
+                    <User className="h-5 w-5" />
+                  </motion.div>
 
                   <motion.span
+                    className="hidden sm:inline-flex"
                     animate={
                       reduceMotion ? {} : { rotate: isProfileOpen ? 180 : 0 }
                     }
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.18 }}
                     style={{ display: "inline-flex" }}
                   >
-                    <ChevronDown
-                      className={[
-                        "h-4 w-4 text-gray-500 transition-transform duration-200 dark:text-gray-400",
-                        isProfileOpen ? "rotate-180" : "",
-                      ].join(" ")}
-                    />
+                    <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                   </motion.span>
-                </motion.button>
+                </button>
 
                 <AnimatePresence>
                   {isProfileOpen && (
@@ -648,6 +478,7 @@ export const Header = () => {
                       initial="hidden"
                       animate="visible"
                       exit="exit"
+                      onMouseDown={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-4 dark:border-gray-900">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10">
@@ -655,7 +486,7 @@ export const Header = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-50">
-                            {displayName}
+                            {loadingUser ? "Loading..." : displayName}
                           </p>
                           <p className="truncate text-xs text-gray-500 dark:text-gray-400">
                             {user?.email || "Not available"}
@@ -677,8 +508,8 @@ export const Header = () => {
                               className={[
                                 "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold transition cursor-pointer",
                                 item.isDanger
-                                  ? "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
-                                  : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800",
+                                  ? "text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                                  : "text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-900",
                               ].join(" ")}
                               custom={i}
                               variants={dropdownItem}
@@ -687,17 +518,16 @@ export const Header = () => {
                               {...(!reduceMotion
                                 ? {
                                     whileHover: { x: 2 },
+                                    whileTap: { scale: 0.99 },
                                     transition: {
                                       type: "spring",
-                                      stiffness: 520,
-                                      damping: 32,
+                                      stiffness: 650,
+                                      damping: 34,
                                     },
                                   }
                                 : {})}
                             >
-                              <span className="opacity-80">
-                                <Icon className="h-4 w-4" />
-                              </span>
+                              <Icon className="h-4 w-4 opacity-85" />
                               <span>{item.name}</span>
                             </motion.button>
                           );
@@ -707,197 +537,9 @@ export const Header = () => {
                   )}
                 </AnimatePresence>
               </div>
-
-              {/* Hamburger menu (tablet + mobile only) */}
-              <motion.button
-                type="button"
-                onClick={() => {
-                  setIsMenuOpen((v) => !v);
-                  setIsProfileOpen(false);
-                  setIsLanguageOpen(false);
-                }}
-                className={[
-                  "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200/70 bg-white text-gray-700 shadow-sm transition lg:hidden",
-                  "hover:bg-gray-50 hover:shadow-md dark:border-gray-800/70 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950",
-                  "cursor-pointer",
-                ].join(" ")}
-                aria-label="Open menu"
-                aria-expanded={isMenuOpen}
-                {...subtleHover}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {isMenuOpen ? (
-                    <motion.span
-                      key="x"
-                      initial={
-                        reduceMotion
-                          ? {}
-                          : { opacity: 0, rotate: -20, scale: 0.95 }
-                      }
-                      animate={
-                        reduceMotion
-                          ? {}
-                          : {
-                              opacity: 1,
-                              rotate: 0,
-                              scale: 1,
-                              transition: { ...spring },
-                            }
-                      }
-                      exit={
-                        reduceMotion
-                          ? {}
-                          : {
-                              opacity: 0,
-                              rotate: 20,
-                              scale: 0.95,
-                              transition: { duration: 0.12 },
-                            }
-                      }
-                      style={{ display: "inline-flex" }}
-                    >
-                      <X className="h-6 w-6" />
-                    </motion.span>
-                  ) : (
-                    <motion.span
-                      key="menu"
-                      initial={
-                        reduceMotion
-                          ? {}
-                          : { opacity: 0, rotate: 20, scale: 0.95 }
-                      }
-                      animate={
-                        reduceMotion
-                          ? {}
-                          : {
-                              opacity: 1,
-                              rotate: 0,
-                              scale: 1,
-                              transition: { ...spring },
-                            }
-                      }
-                      exit={
-                        reduceMotion
-                          ? {}
-                          : {
-                              opacity: 0,
-                              rotate: -20,
-                              scale: 0.95,
-                              transition: { duration: 0.12 },
-                            }
-                      }
-                      style={{ display: "inline-flex" }}
-                    >
-                      <Menu className="h-6 w-6" />
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-            </motion.div>
+            </div>
           </div>
         </div>
-
-        {/* Mobile/Tablet menu panel (hamburger) */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <>
-              {/* Panel */}
-              <motion.div
-                className="fixed left-1/2 top-20 z-[9999] w-[92vw] max-w-md -translate-x-1/2 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-950 dark:ring-white/10 lg:hidden"
-                variants={mobileMenuPanel}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Navigation menu"
-              >
-                {/* Profile header */}
-                <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-gray-900">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-50">
-                      {loadingUser ? "Loading..." : displayName}
-                    </p>
-                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                      {user?.email || "Not available"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200/70 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-800/70 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900"
-                    aria-label="Close menu"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {/* Content */}
-                <div className="max-h-[70vh] overflow-y-auto px-4 py-4">
-                  {/* Nav */}
-                  <div className="mb-4">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Navigation
-                    </p>
-                    <div className="grid gap-1">
-                      {navLinks.map((link) => (
-                        <NavItem
-                          key={link.name}
-                          link={link}
-                          onSelect={() => setIsMenuOpen(false)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Account */}
-                  <div className="rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800/70 dark:bg-gray-950">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Account
-                    </p>
-                    <div className="grid gap-1">
-                      {profileMenu.map((item, i) => {
-                        const Icon = item.icon;
-                        return (
-                          <motion.button
-                            key={item.name}
-                            type="button"
-                            onClick={() => {
-                              setIsMenuOpen(false);
-                              item.action();
-                            }}
-                            className={[
-                              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition",
-                              item.isDanger
-                                ? "bg-red-600 text-white hover:bg-red-500"
-                                : "text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-900",
-                            ].join(" ")}
-                            custom={i}
-                            variants={dropdownItem}
-                            initial="hidden"
-                            animate="visible"
-                          >
-                            <Icon className="h-4 w-4 opacity-90" />
-                            <span>{item.name}</span>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="border-t border-gray-100 px-4 py-3 text-xs text-gray-500 dark:border-gray-900 dark:text-gray-400">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    Session: {user ? "Signed in" : "Guest"}
-                  </span>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
       </motion.nav>
     </LayoutGroup>
   );

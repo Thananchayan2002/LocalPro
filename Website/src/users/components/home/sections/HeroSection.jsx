@@ -98,7 +98,7 @@ const HeroSection = ({
 
     if (query) {
       const filtered = services.filter((service) =>
-        service?.service?.toLowerCase().startsWith(query)
+        service?.service?.toLowerCase().startsWith(query),
       );
       setFilteredServices(filtered);
       setShowDropdown(true);
@@ -143,7 +143,7 @@ const HeroSection = ({
       setSearchQuery("");
       setActiveIndex(-1);
     },
-    [startBooking, setSearchQuery]
+    [startBooking, setSearchQuery],
   );
 
   // Keyboard nav inside input (↑ ↓ Enter)
@@ -701,7 +701,7 @@ const HeroSection = ({
                   key={idx}
                   variants={staggerItem}
                   whileHover={{ y: -2 }}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-gray-200/70 bg-white/70 px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm backdrop-blur-xl transition dark:border-gray-800/70 dark:bg-gray-950/50 dark:text-gray-100"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-gray-200/70  px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm backdrop-blur-xl transition dark:border-gray-800/70  dark:text-gray-100"
                 >
                   <item.icon
                     className={`h-4 w-4 ${item.tone}`}
@@ -731,7 +731,7 @@ const HeroSection = ({
                   key={index}
                   variants={staggerItem}
                   whileHover={{ y: -4, scale: 1.02 }}
-                  className="group rounded-2xl border border-gray-200/70 bg-white/70 p-4 text-center shadow-sm backdrop-blur-xl transition hover:shadow-md dark:border-gray-800/70 dark:bg-gray-950/50"
+                  className="group rounded-2xl border border-gray-200/70  p-4 text-center shadow-sm backdrop-blur-xl transition hover:shadow-md dark:border-gray-800/70 "
                 >
                   <div className="mb-2 flex items-center justify-center gap-2">
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 ring-1 ring-black/5 dark:ring-white/10">
