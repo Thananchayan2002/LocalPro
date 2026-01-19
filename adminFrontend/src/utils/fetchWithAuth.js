@@ -35,29 +35,27 @@ export const fetchWithAuth = async (url, options = {}) => {
       // Refresh failed - only show toast and redirect if not already redirecting
       if (!isRedirecting) {
         isRedirecting = true;
-        
+
         toast.error("Your session has expired. Please login again.", {
           duration: 4000,
           position: "top-right",
         });
-        
+
         // Clear any stored auth state
         localStorage.clear();
         sessionStorage.clear();
-        
+
         // Redirect to login after a short delay to show the toast
         setTimeout(() => {
           window.location.href = "/login";
         }, 1000);
       }
-      
+
       throw new Error("Session expired. Please login again.");
     }
   }
 
   return response;
 };
-
-export default fetchWithAuth;
 
 export default fetchWithAuth;

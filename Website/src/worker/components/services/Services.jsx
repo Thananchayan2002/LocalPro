@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { Wrench, AlertTriangle, Loader2, DollarSign } from 'lucide-react';
-import { authFetch } from '../../../utils/authFetch';
+import React, { useEffect, useMemo, useState } from "react";
+import { Briefcase, Wrench, AlertTriangle } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import AppLoader from "../common/AppLoader";
+import { colors } from "../../../styles/colors";
+import { authFetch } from "../../../utils/authFetch";
+import { motion } from "framer-motion";
 
 const Services = () => {
   const { user } = useAuth();
@@ -9,7 +12,7 @@ const Services = () => {
 
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [professionalData, setProfessionalData] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
 
@@ -21,7 +24,9 @@ const Services = () => {
       setLoadingProfile(true);
       try {
         if (user?.professionalId) {
-          const res = await authFetch(`${apiUrl}/api/professionals/${user.professionalId}`);
+          const res = await authFetch(
+            `${apiUrl}/api/professionals/${user.professionalId}`,
+          );
           const data = await res.json();
           if (data.success) {
             setProfessionalData(data.data);
@@ -30,13 +35,16 @@ const Services = () => {
           }
         }
 
-        const res = await authFetch(`${apiUrl}/api/professionals?search=${encodeURIComponent(user.phone)}`);
+        const res = await authFetch(
+          `${apiUrl}/api/professionals?search=${encodeURIComponent(user.phone)}`,
+        );
         const data = await res.json();
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setProfessionalData(data.data[0]);
         }
       } catch (err) {
-        console.error('Failed to fetch professional for service view:', err);
+        // eslint-disable-next-line no-console
+        console.error("Failed to fetch professional for service view:", err);
       } finally {
         setLoadingProfile(false);
       }
@@ -45,10 +53,16 @@ const Services = () => {
     fetchProfessional();
   }, [apiUrl, user?.phone, user?.professionalId, user?.serviceId]);
 
+  const effectiveServiceId = useMemo(() => {
+    return (
+      user?.serviceId ||
+      professionalData?.serviceId?._id ||
+      professionalData?.serviceId
+    );
+  }, [user?.serviceId, professionalData?.serviceId]);
+
   useEffect(() => {
     const fetchIssues = async () => {
-      const effectiveServiceId = user?.serviceId || professionalData?.serviceId?._id || professionalData?.serviceId;
-
       if (!effectiveServiceId) {
         setLoading(false);
         return;
@@ -56,79 +70,234 @@ const Services = () => {
 
       try {
         setLoading(true);
-        setError('');
-        const res = await authFetch(`${apiUrl}/api/issues?serviceId=${effectiveServiceId}`);
+        setError("");
+        const res = await authFetch(
+          `${apiUrl}/api/issues?serviceId=${effectiveServiceId}`,
+        );
         const data = await res.json();
         if (!res.ok || !data.success) {
-          throw new Error(data.message || 'Failed to load issues');
+          throw new Error(data.message || "Failed to load issues");
         }
         setIssues(data.data || []);
       } catch (err) {
-        setError(err.message || 'Failed to load issues');
+        setError(err.message || "Failed to load issues");
       } finally {
         setLoading(false);
       }
     };
 
     fetchIssues();
-  }, [apiUrl, user?.serviceId, professionalData?.serviceId]);
+  }, [apiUrl, effectiveServiceId]);
+
+  const serviceTitle =
+    user?.serviceName || professionalData?.serviceId?.service || "Not Assigned";
+
+  const fadeUp = {
+    hidden: { opacity: 0, y: 14, filter: "blur(6px)" },
+    visible: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: { type: "spring", stiffness: 380, damping: 30 },
+    },
+  };
+
+  // ✅ Cleanest placement for full-screen loader
+  if (loading) {
+    return (
+      <AppLoader
+        title="Loading available services..."
+        subtitle="Fetching your service list and details"
+      />
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 p-4 md:p-10">
-      <div className="max-w-4xl mx-auto space-y-6 mt-16 lg:mt-10">
+    <div className="w-full min-h-screen">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pb-20 sm:pb-10 space-y-6">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-white/80 backdrop-blur border border-gray-100 shadow-sm p-6">
-          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.08),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(56,189,248,0.08),transparent_32%)]" />
-          <div className="relative flex flex-col gap-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold border border-purple-100 w-fit">
-              <Wrench className="w-4 h-4" />
-              My Service
+        <div
+          className="mt-18 rounded-2xl shadow-[0_10px_30px_rgba(2,6,23,0.06)] ring-1 ring-black/5 p-5 sm:p-6 relative overflow-hidden motion-safe:transition-all motion-safe:duration-300"
+          style={{ background: colors.background.primary }}
+        >
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-20 -right-24 h-56 w-56 rounded-full bg-black/5 blur-3xl" />
+            <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-black/5 blur-3xl" />
+          </div>
+
+          <div className="relative flex flex-col gap-3">
+            <div className="flex items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="p-3 rounded-2xl shadow-lg"
+                  style={{ background: colors.primary.gradient }}
+                >
+                  <Briefcase size={22} className="text-white" />
+                </div>
+
+                <div className="min-w-0">
+                  <h1
+                    className="text-xl sm:text-2xl font-bold tracking-tight truncate"
+                    style={{ color: colors.primary.dark }}
+                    title={serviceTitle}
+                  >
+                    {serviceTitle}
+                  </h1>
+
+                  <p
+                    className="mt-1 text-sm font-bold"
+                    style={{ color: colors.text.secondary }}
+                  >
+                    Base rates and notes are shown below
+                  </p>
+                  <p
+                    className="mt-1 text-sm"
+                    style={{ color: colors.text.secondary }}
+                  >
+                    These amounts are starting estimates and can be adjusted or
+                    negotiated based on the situation
+                  </p>
+                </div>
+              </div>
+
+              {loadingProfile ? (
+                <div
+                  className="shrink-0 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold bg-white/60 backdrop-blur ring-1 ring-black/5"
+                  style={{ color: colors.text.secondary }}
+                >
+                  <span
+                    className="h-4 w-4 rounded-full border-2 border-t-transparent animate-spin"
+                    style={{
+                      borderColor: colors.primary.DEFAULT,
+                      borderTopColor: "transparent",
+                    }}
+                  />
+                  Loading profile...
+                </div>
+              ) : (
+                <div
+                  className="shrink-0 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold bg-black/5"
+                  style={{ color: colors.text.secondary }}
+                >
+                  Base pricing
+                </div>
+              )}
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-              {user?.serviceName || professionalData?.serviceId?.service || 'Not assigned'}
-            </h1>
-            <p className="text-sm text-gray-600">Issues and base amounts. This is only a basic amount. You can negotiate or adjust based on specific circumstances.</p>
           </div>
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          {loading ? (
-            <div className="flex items-center gap-3 text-gray-600">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Loading issues...</span>
-            </div>
-          ) : error ? (
-            <div className="flex items-center gap-3 text-red-600 bg-red-50 border border-red-100 rounded-lg p-4">
+        {error ? (
+          <div
+            className="flex items-start gap-3 rounded-2xl p-4 sm:p-5 shadow-sm"
+            style={{
+              color: colors.error.DEFAULT,
+              background: colors.error.bg,
+              border: `1px solid ${colors.error.light}`,
+            }}
+          >
+            <div className="mt-0.5">
               <AlertTriangle className="w-5 h-5" />
-              <span>{error}</span>
             </div>
-          ) : (!user?.serviceId && !professionalData?.serviceId) ? (
-            <div className="text-gray-600">You do not have a service assigned yet.</div>
-          ) : issues.length === 0 ? (
-            <div className="text-gray-600">No issues found for this service.</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {issues.map((issue) => (
-                <div
-                  key={issue._id}
-                  className="border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow bg-green-100/60"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-gray-500">Issue</p>
-                      <h3 className="text-lg font-semibold text-gray-900">{issue.issueName}</h3>
-            
-                    </div>
-                    <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold border border-emerald-100">
-                      Rs. {issue.basicCost ?? '—'}
-                    </div>
+            <div className="min-w-0">
+              <p className="font-bold">Something went wrong</p>
+              <p className="text-sm mt-1 break-words">{error}</p>
+            </div>
+          </div>
+        ) : !user?.serviceId && !professionalData?.serviceId ? (
+          <div className="text-center py-12">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-black/5 ring-1 ring-black/5 flex items-center justify-center shadow-sm">
+              <Wrench
+                className="w-7 h-7"
+                style={{ color: colors.text.secondary }}
+              />
+            </div>
+            <p
+              className="mt-4 text-sm"
+              style={{ color: colors.text.secondary }}
+            >
+              You currently have no assigned services. New tasks will appear
+              here once assigned
+            </p>
+          </div>
+        ) : issues.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-black/5 ring-1 ring-black/5 flex items-center justify-center shadow-sm">
+              <AlertTriangle
+                className="w-7 h-7"
+                style={{ color: colors.text.secondary }}
+              />
+            </div>
+            <p
+              className="mt-4 text-sm"
+              style={{ color: colors.text.secondary }}
+            >
+              No issues found for this service.
+            </p>
+          </div>
+        ) : (
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          >
+            {issues.map((issue) => (
+              <div
+                key={issue._id}
+                className="group rounded-2xl p-4 sm:p-5 ring-1 ring-black/5 shadow-sm motion-safe:transition-all motion-safe:duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(2,6,23,0.10)] cursor-pointer"
+                style={{
+                  background: colors.category.emerald.bg,
+                  border: `1px solid ${colors.success.bg}`,
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p
+                      className="text-[11px] uppercase tracking-wide"
+                      style={{ color: colors.text.tertiary }}
+                    >
+                      Issue
+                    </p>
+                    <h3
+                      className="mt-1 text-base sm:text-lg font-extrabold truncate"
+                      style={{ color: colors.text.primary }}
+                      title={issue.issueName}
+                    >
+                      {issue.issueName}
+                    </h3>
+                  </div>
+                  <div
+                    className="shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-extrabold shadow-sm ring-1 ring-black/5 motion-safe:transition-transform motion-safe:duration-200 group-hover:scale-[1.02]"
+                    style={{
+                      background: colors.category.emerald.bg,
+                      color: colors.category.emerald.text,
+                      border: `1px solid ${colors.success.bg}`,
+                    }}
+                  >
+                    LKR {issue.basicCost ?? "—"}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <div
+                    className="h-1.5 w-20 rounded-full bg-black/10 overflow-hidden"
+                    aria-hidden="true"
+                  >
+                    <div className="h-full w-2/3 rounded-full bg-black/20 motion-safe:animate-pulse" />
+                  </div>
+                  <span
+                    className="text-xs font-semibold"
+                    style={{ color: colors.text.secondary }}
+                  >
+                    Base amount
+                  </span>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        <div className="h-6 sm:hidden" />
       </div>
     </div>
   );

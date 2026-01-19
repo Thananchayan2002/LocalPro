@@ -11,9 +11,9 @@ import {
   Loader,
   X,
 } from "lucide-react";
-import { getCurrentUser } from "../../api/auth/auth";
 import { getAllServices } from "../../api/service/service";
 import { registerProfessional } from "../../api/professional/professional";
+import { useAuth } from "../../../worker/context/AuthContext";
 
 const SRI_LANKAN_DISTRICTS = [
   "Colombo",
@@ -66,44 +66,24 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
   const [servicesLoading, setServicesLoading] = useState(false);
   const locationInputRef = useRef(null);
   const autocompleteRef = useRef(null);
+  const { user, loading: authLoading } = useAuth();
 
   // Pre-fill form with logged-in user data (support both `phone` and `phoneNumber`)
   useEffect(() => {
-    let active = true;
-    const loadProfile = async () => {
-      try {
-        const storedUserPhone =
-          typeof window !== "undefined"
-            ? localStorage.getItem("userPhone")
-            : null;
-        const data = await getCurrentUser();
-        const userData = data.user || {};
-        const phoneValue =
-          userData.phone || userData.phoneNumber || storedUserPhone || "";
-        if (!active) return;
-        setForm((prevForm) => ({
-          ...prevForm,
-          name: userData.name || "",
-          email: userData.email || "",
-          phone: phoneValue,
-          location: userData.location || "",
-        }));
-      } catch (error) {
-        console.error("Error loading user data:", error);
-        const storedUserPhone =
-          typeof window !== "undefined"
-            ? localStorage.getItem("userPhone")
-            : null;
-        if (storedUserPhone) {
-          setForm((prevForm) => ({ ...prevForm, phone: storedUserPhone }));
-        }
-      }
-    };
-    loadProfile();
-    return () => {
-      active = false;
-    };
-  }, []);
+    if (authLoading) return;
+    const storedUserPhone =
+      typeof window !== "undefined" ? localStorage.getItem("userPhone") : null;
+    const userData = user || {};
+    const phoneValue =
+      userData.phone || userData.phoneNumber || storedUserPhone || "";
+    setForm((prevForm) => ({
+      ...prevForm,
+      name: userData.name || "",
+      email: userData.email || "",
+      phone: phoneValue,
+      location: userData.location || "",
+    }));
+  }, [authLoading, user]);
 
   // Load Google Maps script (robust loader with onload/onerror to avoid callback collisions)
   useEffect(() => {

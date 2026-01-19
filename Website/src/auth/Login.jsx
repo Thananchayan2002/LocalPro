@@ -13,14 +13,14 @@ const API_BASE_URL =
 const Login = () => {
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 640 : false
+    typeof window !== "undefined" ? window.innerWidth < 640 : false,
   );
 
   const { displayText } = useTypewriter("Welcome to", 80, 200);
   const { displayText: subtitleText } = useTypewriter(
     "To continue, enter your phone number",
     50,
-    1400
+    1400,
   );
 
   useEffect(() => {
@@ -100,7 +100,7 @@ const Login = () => {
               toast.error(
                 existingUser?.status
                   ? `Account status: ${existingUser.status}`
-                  : "Account not active."
+                  : "Account not active.",
               );
               return;
             }
@@ -141,7 +141,7 @@ const Login = () => {
           toast.error(
             existingUser?.status
               ? `Account status: ${existingUser.status}`
-              : "Account not active."
+              : "Account not active.",
           );
           return;
         }

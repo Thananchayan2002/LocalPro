@@ -33,7 +33,6 @@ const workerReviewSchema = new mongoose.Schema({
 });
 
 // Index for faster lookups
-workerReviewSchema.index({ bookingId: 1 });
 workerReviewSchema.index({ professionalId: 1 });
 workerReviewSchema.index({ customerId: 1 });
 

@@ -5,7 +5,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Sun,
   Moon,
@@ -23,7 +23,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { performLogout } from "../../../auth/Logout";
-import { getCurrentUser } from "../../api/auth/auth";
+import { useAuth } from "../../../worker/context/AuthContext";
 import {
   motion,
   AnimatePresence,
@@ -32,6 +32,7 @@ import {
 } from "framer-motion";
 
 export const Header = () => {
+  const location = useLocation();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState("English");
 
@@ -42,8 +43,7 @@ export const Header = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
 
-  const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const { user, loading: loadingUser } = useAuth();
 
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
@@ -56,25 +56,6 @@ export const Header = () => {
     if (isDarkMode) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
   }, [isDarkMode]);
-
-  // -------------------------
-  // Load user from API
-  // -------------------------
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        setLoadingUser(true);
-        const data = await getCurrentUser();
-        setUser(data?.user || null);
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        setUser(null);
-      } finally {
-        setLoadingUser(false);
-      }
-    };
-    loadUser();
-  }, []);
 
   // -------------------------
   // Close panels on outside click / ESC
@@ -123,7 +104,7 @@ export const Header = () => {
       { name: "About", path: "/app/about", icon: Info },
       { name: "Feedback", path: "/app/feedback", icon: MessageSquare },
     ],
-    []
+    [],
   );
 
   const languages = useMemo(
@@ -132,7 +113,7 @@ export const Header = () => {
       { code: "ta", name: "Tamil" },
       { code: "si", name: "Sinhala" },
     ],
-    []
+    [],
   );
 
   const profileMenu = useMemo(
@@ -154,7 +135,7 @@ export const Header = () => {
         isDanger: true,
       },
     ],
-    [handleLogout, navigate]
+    [handleLogout, navigate],
   );
 
   const displayName = useMemo(() => {
@@ -214,18 +195,6 @@ export const Header = () => {
           },
   };
 
-  const overlay = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: reduceMotion ? { duration: 0 } : { duration: 0.18 },
-    },
-    exit: {
-      opacity: 0,
-      transition: reduceMotion ? { duration: 0 } : { duration: 0.16 },
-    },
-  };
-
   const mobileMenuPanel = {
     hidden: reduceMotion
       ? { opacity: 1 }
@@ -270,19 +239,18 @@ export const Header = () => {
   // -------------------------
   const NavItem = ({ link, onSelect }) => {
     const Icon = link.icon;
+    const isActive = location.pathname === link.path;
     return (
       <NavLink
         to={link.path}
         onClick={onSelect}
-        className={({ isActive }) =>
-          [
-            "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950",
-            isActive
-              ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/20"
-              : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-900",
-          ].join(" ")
-        }
+        className={[
+          "group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950",
+          isActive
+            ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/20"
+            : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-900",
+        ].join(" ")}
       >
         <motion.span
           className="opacity-80 transition group-hover:opacity-100"
@@ -304,7 +272,7 @@ export const Header = () => {
     <LayoutGroup>
       <motion.nav
         ref={headerRef}
-        className="header-nav sticky top-0 z-50 w-full border-b border-gray-200/70 bg-white/80 backdrop-blur-xl dark:border-gray-800/70 dark:bg-gray-950/70"
+        className="header-nav sticky top-0  w-full border-b border-gray-200/70 bg-white/80 backdrop-blur-xl dark:border-gray-800/70 dark:bg-gray-950/70"
         variants={headerEnter}
         initial="hidden"
         animate="visible"
@@ -409,35 +377,7 @@ export const Header = () => {
                           })}
                       style={{ willChange: "transform" }}
                     >
-                      <NavLink
-                        to={link.path}
-                        className={({ isActive }) =>
-                          [
-                            "group inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
-                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950",
-                            isActive
-                              ? "bg-white text-gray-900 shadow-sm ring-1 ring-black/5 dark:bg-gray-950 dark:text-gray-50 dark:ring-white/10"
-                              : "text-gray-600 hover:bg-white hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-950 dark:hover:text-gray-50",
-                          ].join(" ")
-                        }
-                      >
-                        <motion.span
-                          className="opacity-80 transition group-hover:opacity-100"
-                          {...(!reduceMotion
-                            ? {
-                                whileHover: { scale: 1.05 },
-                                transition: {
-                                  type: "spring",
-                                  stiffness: 520,
-                                  damping: 28,
-                                },
-                              }
-                            : {})}
-                        >
-                          <link.icon className="h-4 w-4" />
-                        </motion.span>
-                        <span className="whitespace-nowrap">{link.name}</span>
-                      </NavLink>
+                      <NavItem link={link} />
                     </motion.div>
                   ))}
                 </motion.div>
@@ -862,12 +802,9 @@ export const Header = () => {
         <AnimatePresence>
           {isMenuOpen && (
             <>
-              {/* Overlay */}
-             
-
               {/* Panel */}
               <motion.div
-                className="fixed left-1/2 top-20 z-[70] w-[92vw] max-w-md -translate-x-1/2 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-950 dark:ring-white/10 lg:hidden"
+                className="fixed left-1/2 top-20 z-[9999] w-[92vw] max-w-md -translate-x-1/2 overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl ring-1 ring-black/5 dark:border-gray-800 dark:bg-gray-950 dark:ring-white/10 lg:hidden"
                 variants={mobileMenuPanel}
                 initial="hidden"
                 animate="visible"

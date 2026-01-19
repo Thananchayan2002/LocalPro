@@ -7,7 +7,7 @@ const parsePositiveNumber = (name, value, fallback) => {
   if (Number.isFinite(parsed) && parsed > 0) return parsed;
   if (value !== undefined) {
     console.warn(
-      `[authTokens] Invalid ${name} value "${value}", using default ${fallback}.`
+      `[authTokens] Invalid ${name} value "${value}", using default ${fallback}.`,
     );
   }
   return fallback;
@@ -16,20 +16,35 @@ const parsePositiveNumber = (name, value, fallback) => {
 const ACCESS_TOKEN_TTL_MINUTES = parsePositiveNumber(
   "ACCESS_TOKEN_TTL_MINUTES",
   process.env.ACCESS_TOKEN_TTL_MINUTES,
-  15
+  15,
 );
 const REFRESH_TOKEN_TTL_DAYS = parsePositiveNumber(
   "REFRESH_TOKEN_TTL_DAYS",
   process.env.REFRESH_TOKEN_TTL_DAYS,
-  7
+  7,
 );
 
 const isProduction = process.env.NODE_ENV === "production";
 
+const normalizeSameSite = (value, fallback) => {
+  const normalized = String(value || "").toLowerCase();
+  if (["strict", "lax", "none"].includes(normalized)) return normalized;
+  return fallback;
+};
+
+const cookieSameSite = normalizeSameSite(
+  process.env.COOKIE_SAMESITE,
+  isProduction ? "none" : "lax",
+);
+const cookieSecure =
+  process.env.COOKIE_SECURE !== undefined
+    ? String(process.env.COOKIE_SECURE).toLowerCase() === "true"
+    : isProduction || cookieSameSite === "none";
+
 const cookieOptions = (maxAgeMs) => ({
   httpOnly: true,
-  secure: isProduction,
-  sameSite: "strict",
+  secure: cookieSecure,
+  sameSite: cookieSameSite,
   maxAge: maxAgeMs,
   path: "/",
 });
@@ -42,7 +57,7 @@ const createAccessToken = (payload) =>
 const createRefreshToken = () => {
   const token = crypto.randomBytes(48).toString("hex");
   const expiresAt = new Date(
-    Date.now() + REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000
+    Date.now() + REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
   );
   return { token, expiresAt };
 };
@@ -54,20 +69,20 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
   res.cookie(
     "accessToken",
     accessToken,
-    cookieOptions(ACCESS_TOKEN_TTL_MINUTES * 60 * 1000)
+    cookieOptions(ACCESS_TOKEN_TTL_MINUTES * 60 * 1000),
   );
   res.cookie(
     "refreshToken",
     refreshToken,
-    cookieOptions(REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000)
+    cookieOptions(REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
   );
 };
 
 const clearAuthCookies = (res) => {
   const options = {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: "strict",
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
     path: "/",
   };
   res.clearCookie("accessToken", options);

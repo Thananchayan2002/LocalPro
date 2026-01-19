@@ -1,10 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, Bell, LogOut, LayoutDashboard, Briefcase, Calendar, CreditCard, TrendingUp, UserCog, Power } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { ConfirmModal } from '../../components/common/ConfirmModal';
-import toast from 'react-hot-toast';
-import { authFetch } from '../../../utils/authFetch';
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  Menu,
+  Bell,
+  LogOut,
+  LayoutDashboard,
+  Briefcase,
+  Calendar,
+  CreditCard,
+  UserCog,
+  Power,
+} from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { ConfirmModal } from "../../components/common/ConfirmModal";
+import toast from "react-hot-toast";
+import { authFetch } from "../../../utils/authFetch";
+import { colors } from "../../../styles/colors";
 
 export const Topbar = ({ onMenuClick }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -19,14 +30,16 @@ export const Topbar = ({ onMenuClick }) => {
 
   // Get page title and icon based on current route
   const getPageInfo = () => {
-    const path = location.pathname.replace(/^\/worker/, '') || '/';
-    if (path === '/' || path === '/dashboard') return { title: 'Dashboard', icon: LayoutDashboard };
-    if (path === '/services') return { title: 'Services', icon: Briefcase };
-    if (path === '/bookings') return { title: 'Bookings', icon: Calendar };
-    if (path === '/payments') return { title: 'Payments', icon: CreditCard };
-    if (path === '/notifications') return { title: 'Notifications', icon: Bell };
-    if (path === '/account') return { title: 'Account', icon: UserCog };
-    return { title: 'Dashboard', icon: LayoutDashboard };
+    const path = location.pathname.replace(/^\/worker/, "") || "/";
+    if (path === "/" || path === "/dashboard")
+      return { title: "Dashboard", icon: LayoutDashboard };
+    if (path === "/services") return { title: "Services", icon: Briefcase };
+    if (path === "/bookings") return { title: "Bookings", icon: Calendar };
+    if (path === "/payments") return { title: "Payments", icon: CreditCard };
+    if (path === "/notifications")
+      return { title: "Notifications", icon: Bell };
+    if (path === "/account") return { title: "Account", icon: UserCog };
+    return { title: "Dashboard", icon: LayoutDashboard };
   };
 
   const pageInfo = getPageInfo();
@@ -36,16 +49,18 @@ export const Topbar = ({ onMenuClick }) => {
   useEffect(() => {
     const fetchAvailability = async () => {
       if (!user?.professionalId) return;
-      
+
       try {
-        const res = await authFetch(`${apiUrl}/api/worker/availability/${user.professionalId}`);
+        const res = await authFetch(
+          `${apiUrl}/api/worker/availability/${user.professionalId}`,
+        );
         const data = await res.json();
-        
+
         if (data.success) {
           setIsAvailable(data.isAvailable);
         }
       } catch (error) {
-        console.error('Failed to fetch availability:', error);
+        console.error("Failed to fetch availability:", error);
       }
     };
 
@@ -54,12 +69,12 @@ export const Topbar = ({ onMenuClick }) => {
 
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
-  }; 
+  };
 
   const confirmLogout = () => {
     setShowLogoutConfirm(false);
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   const handleToggleClick = () => {
@@ -72,93 +87,285 @@ export const Topbar = ({ onMenuClick }) => {
     setShowAvailabilityConfirm(false);
 
     try {
-      const res = await authFetch(`${apiUrl}/api/worker/availability/${user.professionalId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
+      const res = await authFetch(
+        `${apiUrl}/api/worker/availability/${user.professionalId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ isAvailable: pendingAvailability }),
         },
-        body: JSON.stringify({ isAvailable: pendingAvailability })
-      });
+      );
 
       const data = await res.json();
 
       if (data.success) {
         setIsAvailable(pendingAvailability);
-        toast.success(`You are now ${pendingAvailability ? 'available' : 'unavailable'} for bookings`);
+        toast.success(
+          `You are now ${pendingAvailability ? "available" : "unavailable"} for bookings`,
+        );
       } else {
-        toast.error(data.message || 'Failed to update availability');
+        toast.error(data.message || "Failed to update availability");
       }
     } catch (error) {
-      toast.error('Failed to update availability');
+      toast.error("Failed to update availability");
     } finally {
       setLoading(false);
       setPendingAvailability(null);
     }
   };
 
+  const availabilityLabel = useMemo(
+    () => (isAvailable ? "Available" : "Unavailable"),
+    [isAvailable],
+  );
+
   return (
-    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/90 backdrop-blur-lg border-b border-gray-200 z-30 shadow-md">
-      <div className="flex items-center justify-between h-full px-3 lg:px-6">
-        {/* Left section - Menu button and Brand (Mobile) */}
-        <div className="flex items-center gap-3">
-          {/* Styled Menu button for mobile */}
+    <header
+      className={[
+        "fixed top-0 left-0 right-0 z-45",
+        "h-16 lg:h-[72px]",
+        "border-b",
+        "shadow-[0_10px_30px_-20px_rgba(0,0,0,0.35)]",
+        "backdrop-blur supports-[backdrop-filter]:backdrop-blur-md",
+        "transition-[box-shadow,transform] duration-300 ease-out",
+        "lg:left-64",
+      ].join(" ")}
+      style={{
+        background: colors.background.primary,
+        borderColor: colors.border.DEFAULT,
+      }}
+    >
+      {/* subtle top sheen */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-60"
+        style={{
+          background:
+            "linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.24), rgba(255,255,255,0))",
+        }}
+      />
+
+      <div className="relative mx-auto flex h-full max-w-[1600px] items-center justify-between px-3 sm:px-4 lg:px-6">
+        {/* Left section */}
+        <div className="flex min-w-0 items-center gap-3">
+          {/* Mobile menu button */}
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/50 hover:scale-105 transition-all duration-200 active:scale-95"
+            type="button"
+            className={[
+              "lg:hidden",
+              "group inline-flex items-center justify-center",
+              "h-11 w-11 rounded-2xl",
+              "shadow-sm",
+              "ring-1 ring-white/10",
+              "transition-all duration-200 ease-out",
+              "hover:shadow-md hover:scale-[1.03]",
+              "active:scale-95",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              "cursor-pointer",
+            ].join(" ")}
+            style={{
+              background: colors.primary.gradient,
+              color: colors.neutral[50],
+            }}
+            aria-label="Open menu"
           >
-            <Menu size={20} />
+            <Menu
+              size={20}
+              className="transition-transform duration-200 group-hover:rotate-3"
+            />
           </button>
 
-          {/* Mobile Brand */}
-          <div className="lg:hidden flex items-center gap-2">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                LocalPro
+          {/* Mobile brand */}
+          <div className="lg:hidden flex min-w-0 items-center gap-2">
+            <div className="min-w-0">
+              <h1
+                className="text-lg font-semibold tracking-tight"
+                style={{ color: colors.primary.DEFAULT }}
+              >
+                <span style={{ color: "#0f64c8" }}>Help</span>
+                <span style={{ color: "#1fa34a" }}>Go</span>
               </h1>
+              <p
+                className="text-xs"
+                style={{ color: colors.secondary.DEFAULT }}
+              >
+                Service Partner Dashboard
+              </p>
             </div>
           </div>
 
-          {/* Desktop - Styled Page Title */}
-          <div className="hidden lg:flex items-center gap-3 px-4 py-2">
-            <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-md">
-              <PageIcon size={20} className="text-white" />
+          {/* Desktop page title */}
+          <div className="hidden lg:flex min-w-0 items-center gap-3">
+            <div className="relative">
+              <div
+                className="absolute -inset-2 rounded-2xl opacity-20 blur-md"
+                style={{ background: colors.primary.gradient }}
+              />
+              <div
+                className={[
+                  "relative grid h-11 w-11 place-items-center rounded-2xl",
+                  "shadow-sm ring-1 ring-white/10",
+                  "transition-transform duration-200 ease-out",
+                  "hover:scale-[1.03]",
+                ].join(" ")}
+                style={{ background: colors.primary.gradient }}
+              >
+                <PageIcon size={20} style={{ color: colors.neutral[50] }} />
+              </div>
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              {pageInfo.title}
-            </h2>
+
+            <div className="min-w-0">
+              <p
+                className="text-[11px] font-semibold uppercase tracking-[0.18em]"
+                style={{ color: colors.text.secondary }}
+              >
+                Service Partner
+              </p>
+              <h2
+                className="truncate text-xl font-extrabold tracking-tight"
+                style={{
+                  background: colors.primary.gradient,
+                  WebkitBackgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
+                {pageInfo.title}
+              </h2>
+            </div>
           </div>
         </div>
 
-        {/* Right section - Actions */}
-        <div className="flex items-center gap-2 lg:gap-3">
-          {/* Availability Toggle */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 shadow-sm">
-            <Power className={`${isAvailable ? 'text-green-600' : 'text-red-600'}`} size={18} />
-            <span className="hidden sm:inline text-sm font-medium text-gray-700">
-              {isAvailable ? 'Available' : 'Unavailable'}
-            </span>
+        {/* Right section */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Availability pill */}
+          <div
+            className={[
+              "group relative flex items-center gap-2",
+              "rounded-2xl border",
+              "px-2.5 py-2 sm:px-3",
+              "shadow-sm",
+              "transition-all duration-200 ease-out",
+              "hover:shadow-md",
+            ].join(" ")}
+            style={{
+              background: colors.background.secondary,
+              borderColor: colors.border.DEFAULT,
+            }}
+          >
+            <div className="relative flex items-center gap-2">
+              <span className="relative inline-flex h-2.5 w-2.5">
+                <span
+                  className={[
+                    "absolute inline-flex h-full w-full rounded-full",
+                    "animate-ping",
+                  ].join(" ")}
+                  style={{
+                    backgroundColor: isAvailable
+                      ? `${colors.success.DEFAULT}55`
+                      : `${colors.error.DEFAULT}55`,
+                  }}
+                />
+                <span
+                  className="relative inline-flex h-2.5 w-2.5 rounded-full"
+                  style={{
+                    backgroundColor: isAvailable
+                      ? colors.success.DEFAULT
+                      : colors.error.DEFAULT,
+                  }}
+                />
+              </span>
+
+              <Power
+                size={18}
+                className="transition-transform duration-200 group-hover:scale-110"
+                style={{
+                  color: isAvailable
+                    ? colors.success.DEFAULT
+                    : colors.error.DEFAULT,
+                }}
+              />
+
+              <span
+                className="hidden sm:inline text-sm font-semibold"
+                style={{ color: colors.text.primary }}
+              >
+                {availabilityLabel}
+              </span>
+            </div>
+
+            {/* Switch */}
             <button
               onClick={handleToggleClick}
               disabled={loading}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
-                isAvailable ? 'bg-green-600' : 'bg-gray-300'
-              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              type="button"
+              className={[
+                "relative inline-flex h-6 w-11 items-center rounded-full",
+                "transition-all duration-200 ease-out",
+                "ring-1 ring-black/5",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                loading ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
+                !loading ? "hover:brightness-[1.02] active:scale-[0.98]" : "",
+              ].join(" ")}
+              style={{
+                background: isAvailable
+                  ? colors.success.DEFAULT
+                  : colors.neutral[200],
+              }}
+              aria-label="Toggle availability"
             >
               <span
-                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                  isAvailable ? 'translate-x-5' : 'translate-x-0.5'
-                }`}
+                className={[
+                  "inline-block h-4.5 w-4.5 rounded-full bg-white",
+                  "shadow-[0_6px_14px_-10px_rgba(0,0,0,0.6)]",
+                  "transition-all duration-200 ease-out",
+                  isAvailable ? "translate-x-6" : "translate-x-1",
+                ].join(" ")}
               />
+              {/* sheen */}
+              <span className="pointer-events-none absolute inset-0 rounded-full bg-white/10 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
             </button>
+
+            {/* Loading shimmer */}
+            {loading && (
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+                <div className="absolute -left-1/2 top-0 h-full w-1/2 animate-[shimmer_1.1s_ease-in-out_infinite] bg-white/10 blur-sm" />
+              </div>
+            )}
           </div>
 
-          {/* Logout button with red shades */}
+          {/* Logout button */}
           <button
             onClick={handleLogoutClick}
-            className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg hover:shadow-red-500/50 hover:scale-105 transition-all duration-200 group active:scale-95"
+            type="button"
+            className={[
+              "group inline-flex items-center gap-2",
+              "rounded-2xl",
+              "px-3 py-2 sm:px-4",
+              "shadow-sm",
+              "ring-1 ring-black/5",
+              "transition-all duration-200 ease-out",
+              "hover:shadow-md hover:scale-[1.02]",
+              "active:scale-95",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              "cursor-pointer",
+            ].join(" ")}
+            style={{
+              background: colors.error.DEFAULT,
+              color: colors.neutral[50],
+            }}
+            aria-label="Logout"
           >
-            <LogOut size={18} className="group-hover:rotate-12 text-white transition-transform" />
-            <span className="block text-sm font-medium text-white">
+            <LogOut
+              size={18}
+              className="transition-transform duration-200 group-hover:rotate-6 group-hover:scale-105"
+              style={{ color: colors.neutral[50] }}
+            />
+            <span
+              className="hidden sm:block text-sm font-semibold tracking-tight"
+              style={{ color: colors.neutral[50] }}
+            >
               Logout
             </span>
           </button>
@@ -182,7 +389,9 @@ export const Topbar = ({ onMenuClick }) => {
       <ConfirmModal
         isOpen={showAvailabilityConfirm}
         title="Confirm Availability Change"
-        message={`Are you sure you want to change your availability status to ${pendingAvailability ? 'Available' : 'Unavailable'}?`}
+        message={`Are you sure you want to change your availability status to ${
+          pendingAvailability ? "Available" : "Unavailable"
+        }?`}
         confirmText="Confirm"
         cancelText="Cancel"
         onConfirm={confirmAvailabilityToggle}
@@ -193,6 +402,17 @@ export const Topbar = ({ onMenuClick }) => {
         isDangerous={!pendingAvailability}
         position="right"
       />
+
+      {/* keyframes for shimmer (Tailwind arbitrary animation) */}
+      <style>
+        {`
+          @keyframes shimmer {
+            0% { transform: translateX(-40%); opacity: 0; }
+            30% { opacity: 1; }
+            100% { transform: translateX(240%); opacity: 0; }
+          }
+        `}
+      </style>
     </header>
   );
 };

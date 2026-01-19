@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { colors } from "../../../styles/colors";
 import {
   Calendar,
   MapPin,
@@ -54,9 +55,10 @@ const Bookings = () => {
     try {
       setLoading(true);
       const data = await getMyBookings();
-      setBookings(data);
+      const bookingsArray = Array.isArray(data) ? data : [];
+      setBookings(bookingsArray);
       // Check review status for each booking
-      checkReviewableBookings(data);
+      checkReviewableBookings(bookingsArray);
     } catch (error) {
       console.error("Error fetching bookings:", error);
     } finally {
@@ -79,17 +81,24 @@ const Bookings = () => {
     setReviewableBookings(reviewStatus);
   };
 
+  // Use global colors for status
   const getStatusColor = (status) => {
-    const colors = {
-      requested: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      assigned: "bg-blue-100 text-blue-800 border-blue-200",
-      inspecting: "bg-purple-100 text-purple-800 border-purple-200",
-      approved: "bg-green-100 text-green-800 border-green-200",
-      inProgress: "bg-indigo-100 text-indigo-800 border-indigo-200",
-      completed: "bg-green-100 text-green-800 border-green-200",
-      cancelled: "bg-red-100 text-red-800 border-red-200",
-    };
-    return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
+    switch (status) {
+      case "requested":
+        return `bg-[${colors.secondary.light}] text-[${colors.secondary.dark}] border-[${colors.secondary.DEFAULT}]`;
+      case "assigned":
+      case "inspecting":
+        return `bg-[${colors.primary.light}] text-[${colors.primary.dark}] border-[${colors.primary.DEFAULT}]`;
+      case "approved":
+      case "completed":
+        return `bg-[${colors.success.bg}] text-[${colors.success.DEFAULT}] border-[${colors.success.DEFAULT}]`;
+      case "inProgress":
+        return `bg-[${colors.primary.light}] text-[${colors.primary.dark}] border-[${colors.primary.DEFAULT}]`;
+      case "cancelled":
+        return `bg-[${colors.error.bg}] text-[${colors.error.DEFAULT}] border-[${colors.error.DEFAULT}]`;
+      default:
+        return `bg-[${colors.neutral[50]}] text-[${colors.neutral[700]}] border-[${colors.neutral[100]}]`;
+    }
   };
 
   const getStatusIcon = (status) => {
@@ -174,20 +183,32 @@ const Bookings = () => {
 
   const filteredBookings =
     filterStatus === "all"
-      ? bookings
-      : bookings.filter((b) => b.status === filterStatus);
+      ? Array.isArray(bookings)
+        ? bookings
+        : []
+      : Array.isArray(bookings)
+        ? bookings.filter((b) => b.status === filterStatus)
+        : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen" style={{ background: colors.neutral[50] }}>
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 bg-purple-600 rounded-lg">
-            <Calendar size={20} className="text-white" />
+          <div
+            className="p-2.5 rounded-lg"
+            style={{ background: colors.primary.DEFAULT }}
+          >
+            <Calendar size={20} style={{ color: colors.neutral[50] }} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-800">My Bookings</h1>
-            <p className="text-sm text-gray-600">
+            <h1
+              className="text-xl font-bold"
+              style={{ color: colors.primary.dark }}
+            >
+              My Bookings
+            </h1>
+            <p className="text-sm" style={{ color: colors.neutral[500] }}>
               {bookings.length} total booking(s)
             </p>
           </div>
@@ -208,9 +229,21 @@ const Bookings = () => {
               onClick={() => setFilterStatus(status)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition ${
                 filterStatus === status
-                  ? "bg-purple-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                  ? "" // Use global primary for selected
+                  : "border"
               }`}
+              style={
+                filterStatus === status
+                  ? {
+                      background: colors.primary.DEFAULT,
+                      color: colors.neutral[50],
+                    }
+                  : {
+                      background: colors.neutral[50],
+                      color: colors.neutral[700],
+                      borderColor: colors.neutral[100],
+                    }
+              }
             >
               {status === "all" ? "All" : formatStatus(status)}
             </button>
@@ -222,19 +255,28 @@ const Bookings = () => {
       <div className="max-w-7xl mx-auto">
         {loading ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <Loader className="w-8 h-8 animate-spin text-purple-600 mx-auto mb-4" />
-            <p className="text-gray-600">Loading bookings...</p>
+            <Loader
+              className="w-8 h-8 animate-spin mx-auto mb-4"
+              style={{ color: colors.primary.DEFAULT }}
+            />
+            <p style={{ color: colors.neutral[500] }}>Loading bookings...</p>
           </div>
         ) : filteredBookings.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8">
             <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-3">
-                <Calendar size={32} className="text-purple-600" />
+              <div
+                className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-3"
+                style={{ background: colors.primary.light }}
+              >
+                <Calendar size={32} style={{ color: colors.primary.DEFAULT }} />
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              <h3
+                className="text-lg font-semibold mb-2"
+                style={{ color: colors.primary.dark }}
+              >
                 No Bookings Found
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-sm" style={{ color: colors.neutral[500] }}>
                 {filterStatus === "all"
                   ? "You haven't made any bookings yet."
                   : `No ${formatStatus(filterStatus).toLowerCase()} bookings.`}
@@ -280,19 +322,31 @@ const Bookings = () => {
                       className="hover:bg-gray-50 transition"
                     >
                       <td className="px-4 py-3">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p
+                          className="text-sm font-semibold"
+                          style={{ color: colors.primary.dark }}
+                        >
                           {booking.service}
                         </p>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="text-sm text-gray-700">
+                        <p
+                          className="text-sm"
+                          style={{ color: colors.secondary.dark }}
+                        >
                           {booking.issueType}
                         </p>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                          <p className="text-sm text-gray-900">
+                          <Clock
+                            className="w-4 h-4 flex-shrink-0"
+                            style={{ color: colors.primary.DEFAULT }}
+                          />
+                          <p
+                            className="text-sm"
+                            style={{ color: colors.primary.dark }}
+                          >
                             {new Date(booking.scheduledTime).toLocaleString(
                               "en-US",
                               {
@@ -300,15 +354,21 @@ const Bookings = () => {
                                 day: "numeric",
                                 hour: "2-digit",
                                 minute: "2-digit",
-                              }
+                              },
                             )}
                           </p>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-start gap-2 max-w-xs">
-                          <MapPin className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-gray-700 truncate">
+                          <MapPin
+                            className="w-4 h-4 flex-shrink-0 mt-0.5"
+                            style={{ color: colors.secondary.DEFAULT }}
+                          />
+                          <p
+                            className="text-sm truncate"
+                            style={{ color: colors.secondary.dark }}
+                          >
                             {booking.location?.address ||
                               `${booking.location?.area}, ${booking.location?.district}`}
                           </p>
@@ -317,19 +377,30 @@ const Bookings = () => {
                       <td className="px-4 py-3">
                         {booking.professionalId ? (
                           <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                            <p className="text-sm text-gray-900">
+                            <User
+                              className="w-4 h-4 flex-shrink-0"
+                              style={{ color: colors.primary.DEFAULT }}
+                            />
+                            <p
+                              className="text-sm"
+                              style={{ color: colors.primary.dark }}
+                            >
                               {booking.professionalId.name || "Assigned"}
                             </p>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-400">Not assigned</p>
+                          <p
+                            className="text-sm"
+                            style={{ color: colors.neutral[400] }}
+                          >
+                            Not assigned
+                          </p>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                            booking.status
+                            booking.status,
                           )}`}
                         >
                           {getStatusIcon(booking.status)}
@@ -339,13 +410,19 @@ const Bookings = () => {
                       <td className="px-4 py-3 text-center">
                         {" "}
                         {booking.payment && booking.payment.paymentByUser ? (
-                          <div className="flex items-center gap-1.5 text-green-700">
+                          <div
+                            className="flex items-center gap-1.5"
+                            style={{ color: colors.success.DEFAULT }}
+                          >
                             <span className="text-sm font-semibold">
                               {booking.payment.paymentByUser}/=
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400 italic">
+                          <span
+                            className="text-xs italic"
+                            style={{ color: colors.neutral[400] }}
+                          >
                             Not paid
                           </span>
                         )}
@@ -355,7 +432,11 @@ const Bookings = () => {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleViewDetails(booking)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:shadow transition"
+                            style={{
+                              background: colors.primary.DEFAULT,
+                              color: colors.neutral[50],
+                            }}
                           >
                             <Eye className="w-3.5 h-3.5" />
                             View
@@ -363,7 +444,11 @@ const Bookings = () => {
                           {reviewableBookings[booking._id] && (
                             <button
                               onClick={() => handleOpenReviewModal(booking)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:shadow transition"
+                              style={{
+                                background: colors.success.DEFAULT,
+                                color: colors.neutral[50],
+                              }}
                             >
                               <Star className="w-3.5 h-3.5" />
                               Review
@@ -388,11 +473,20 @@ const Bookings = () => {
             style={{ maxHeight: "90vh" }}
           >
             {/* Modal Header */}
-            <div className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 shadow-md z-10">
+            <div
+              className="flex-shrink-0 p-4 shadow-md z-10"
+              style={{
+                background: colors.primary.gradient,
+                color: colors.neutral[50],
+              }}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold">Booking Details</h2>
-                  <p className="text-sm text-purple-100 mt-0.5">
+                  <p
+                    className="text-sm mt-0.5"
+                    style={{ color: colors.primary.light }}
+                  >
                     Order ID: {selectedBooking._id.slice(-8).toUpperCase()}
                   </p>
                 </div>
@@ -410,50 +504,97 @@ const Bookings = () => {
               {/* Status */}
               <div
                 className={`rounded-lg p-3 border ${getStatusColor(
-                  selectedBooking.status
+                  selectedBooking.status,
                 )}`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   {getStatusIcon(selectedBooking.status)}
-                  <p className="text-xs font-semibold uppercase">Status</p>
+                  <p
+                    className="text-xs font-semibold uppercase"
+                    style={{ color: colors.primary.dark }}
+                  >
+                    Status
+                  </p>
                 </div>
-                <p className="text-base font-bold">
+                <p
+                  className="text-base font-bold"
+                  style={{ color: colors.primary.dark }}
+                >
                   {formatStatus(selectedBooking.status)}
                 </p>
               </div>
 
               {/* Service & Issue */}
-              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                <p className="text-xs text-blue-700 font-semibold uppercase mb-1">
+              <div
+                className="rounded-lg p-3 border"
+                style={{
+                  background: colors.secondary.light,
+                  borderColor: colors.secondary.DEFAULT,
+                }}
+              >
+                <p
+                  className="text-xs font-semibold uppercase mb-1"
+                  style={{ color: colors.secondary.dark }}
+                >
                   Service & Issue
                 </p>
-                <p className="text-base font-bold text-gray-900">
+                <p
+                  className="text-base font-bold"
+                  style={{ color: colors.primary.dark }}
+                >
                   {selectedBooking.service}
                 </p>
-                <p className="text-sm text-blue-700 mt-1">
+                <p
+                  className="text-sm mt-1"
+                  style={{ color: colors.secondary.dark }}
+                >
                   {selectedBooking.issueType}
                 </p>
               </div>
 
               {/* Description */}
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase mb-1">
+              <div
+                className="rounded-lg p-3 border"
+                style={{
+                  background: colors.neutral[50],
+                  borderColor: colors.neutral[100],
+                }}
+              >
+                <p
+                  className="text-xs font-semibold uppercase mb-1"
+                  style={{ color: colors.neutral[500] }}
+                >
                   Description
                 </p>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm" style={{ color: colors.neutral[700] }}>
                   {selectedBooking.description}
                 </p>
               </div>
 
               {/* Scheduled Time */}
-              <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+              <div
+                className="rounded-lg p-3 border"
+                style={{
+                  background: colors.secondary.light,
+                  borderColor: colors.secondary.DEFAULT,
+                }}
+              >
                 <div className="flex items-center gap-2 mb-1">
-                  <Clock className="w-4 h-4 text-orange-600" />
-                  <p className="text-xs text-orange-700 font-semibold uppercase">
+                  <Clock
+                    className="w-4 h-4"
+                    style={{ color: colors.secondary.DEFAULT }}
+                  />
+                  <p
+                    className="text-xs font-semibold uppercase"
+                    style={{ color: colors.secondary.dark }}
+                  >
                     Scheduled Time
                   </p>
                 </div>
-                <p className="text-base font-semibold text-gray-900">
+                <p
+                  className="text-base font-semibold"
+                  style={{ color: colors.primary.dark }}
+                >
                   {new Date(selectedBooking.scheduledTime).toLocaleString(
                     "en-US",
                     {
@@ -463,28 +604,46 @@ const Bookings = () => {
                       year: "numeric",
                       hour: "2-digit",
                       minute: "2-digit",
-                    }
+                    },
                   )}
                 </p>
                 {selectedBooking.duration && (
-                  <p className="text-xs text-orange-700 mt-1">
+                  <p
+                    className="text-xs mt-1"
+                    style={{ color: colors.secondary.dark }}
+                  >
                     Duration: {selectedBooking.duration} hours
                   </p>
                 )}
               </div>
 
               {/* Location */}
-              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+              <div
+                className="rounded-lg p-3 border"
+                style={{
+                  background: colors.success.bg,
+                  borderColor: colors.success.DEFAULT,
+                }}
+              >
                 <div className="flex items-center gap-2 mb-1">
-                  <MapPin className="w-4 h-4 text-green-600" />
-                  <p className="text-xs text-green-700 font-semibold uppercase">
+                  <MapPin
+                    className="w-4 h-4"
+                    style={{ color: colors.success.DEFAULT }}
+                  />
+                  <p
+                    className="text-xs font-semibold uppercase"
+                    style={{ color: colors.success.DEFAULT }}
+                  >
                     Location
                   </p>
                 </div>
-                <p className="text-sm text-gray-900">
+                <p className="text-sm" style={{ color: colors.primary.dark }}>
                   {selectedBooking.location?.address}
                 </p>
-                <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-green-700">
+                <div
+                  className="grid grid-cols-2 gap-2 mt-2 text-xs"
+                  style={{ color: colors.success.DEFAULT }}
+                >
                   {selectedBooking.location?.city && (
                     <p>City: {selectedBooking.location.city}</p>
                   )}
@@ -501,25 +660,49 @@ const Bookings = () => {
 
               {/* Professional (if assigned) */}
               {selectedBooking.professionalId && (
-                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                <div
+                  className="rounded-lg p-3 border"
+                  style={{
+                    background: colors.primary.light,
+                    borderColor: colors.primary.DEFAULT,
+                  }}
+                >
                   <div className="flex items-center gap-2 mb-1">
-                    <User className="w-4 h-4 text-purple-600" />
-                    <p className="text-xs text-purple-700 font-semibold uppercase">
+                    <User
+                      className="w-4 h-4"
+                      style={{ color: colors.primary.DEFAULT }}
+                    />
+                    <p
+                      className="text-xs font-semibold uppercase"
+                      style={{ color: colors.primary.dark }}
+                    >
                       Assigned Professional
                     </p>
                   </div>
-                  <p className="text-base font-semibold text-gray-900">
+                  <p
+                    className="text-base font-semibold"
+                    style={{ color: colors.primary.dark }}
+                  >
                     {selectedBooking.professionalId.name || "N/A"}
                   </p>
                 </div>
               )}
 
               {/* Created At */}
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <p className="text-xs text-gray-600 font-semibold uppercase mb-1">
+              <div
+                className="rounded-lg p-3 border"
+                style={{
+                  background: colors.neutral[50],
+                  borderColor: colors.neutral[100],
+                }}
+              >
+                <p
+                  className="text-xs font-semibold uppercase mb-1"
+                  style={{ color: colors.neutral[500] }}
+                >
                   Booking Created
                 </p>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm" style={{ color: colors.neutral[700] }}>
                   {new Date(selectedBooking.createdAt).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",

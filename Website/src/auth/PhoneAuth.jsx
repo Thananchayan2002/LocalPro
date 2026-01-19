@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Phone, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { colors } from "../styles/colors";
-import { authFetch } from "../utils/authFetch";
+import { useAuth } from "../worker/context/AuthContext";
 import {
   validatePhoneNumber,
   stripCountryDialFromInput,
@@ -21,7 +21,7 @@ const STORAGE = {
 };
 
 const OTP_LENGTH = 6;
-const RESEND_COOLDOWN_SECONDS = 30;
+const RESEND_COOLDOWN_SECONDS = 60;
 
 async function safeJson(res) {
   const text = await res.text();
@@ -52,6 +52,7 @@ export default function PhoneAuth({
 }) {
   const isLoginLayout = variant === "login";
   const purpose = variant === "signup" ? "SIGNUP" : "LOGIN";
+  const { user, loading: authLoading } = useAuth();
 
   const [countryDial] = useState(initialCountryDial === "+94" ? "+94" : "+94");
   const [rawPhone, setRawPhone] = useState("");
@@ -84,7 +85,7 @@ export default function PhoneAuth({
 
   const clearFieldError = useCallback(
     (field) => setFieldError(field, ""),
-    [setFieldError]
+    [setFieldError],
   );
 
   const triggerHapticSuccess = useCallback(() => {
@@ -111,7 +112,7 @@ export default function PhoneAuth({
     if (!resendCooldown) return;
     const id = setInterval(
       () => setResendCooldown((s) => Math.max(0, s - 1)),
-      1000
+      1000,
     );
     return () => clearInterval(id);
   }, [resendCooldown]);
@@ -161,43 +162,29 @@ export default function PhoneAuth({
     }
   }, []);
 
-  // Restore session from cookies (deduped)
+  // Restore session from shared auth state (deduped)
   useEffect(() => {
-    const restoreSession = async () => {
-      if (verifiedCallbackFiredRef.current) return;
-      if (phoneVerified) return;
+    if (verifiedCallbackFiredRef.current) return;
+    if (phoneVerified) return;
+    if (authLoading || !user) return;
 
-      try {
-        const res = await authFetch(
-          `${API_BASE_URL}/api/auth/me`,
-          {},
-          { silent401: true }
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data?.user) return;
+    const phoneE164 = user.phoneNumber || user.phone || "";
+    const key = `${purpose}:${phoneE164 || "no-phone"}`;
 
-        const phoneE164 = data.user.phoneNumber || data.user.phone || "";
-        const key = `${purpose}:${phoneE164 || "no-phone"}`;
+    if (lastCallbackKeyRef.current === key) return;
 
-        if (lastCallbackKeyRef.current === key) return;
+    lastCallbackKeyRef.current = key;
+    verifiedCallbackFiredRef.current = true;
 
-        lastCallbackKeyRef.current = key;
-        verifiedCallbackFiredRef.current = true;
-
-        if (!mountedRef.current) return;
-        setPhoneVerified(true);
-        onVerified?.({
-          phoneE164,
-          user: data.user,
-          token: null,
-          userExists: true,
-        });
-      } catch {}
-    };
-
-    restoreSession();
-  }, [onVerified, purpose, phoneVerified]);
+    if (!mountedRef.current) return;
+    setPhoneVerified(true);
+    onVerified?.({
+      phoneE164,
+      user,
+      token: null,
+      userExists: true,
+    });
+  }, [authLoading, onVerified, phoneVerified, purpose, user]);
 
   // If phone changes after OTP sent, reset OTP flow
   useEffect(() => {
@@ -511,10 +498,10 @@ export default function PhoneAuth({
                 {sending
                   ? "Sending..."
                   : otpSent && resendCooldown > 0
-                  ? `Resend in ${resendCooldown}s`
-                  : otpSent
-                  ? "Resend OTP"
-                  : "Send OTP"}
+                    ? `Resend in ${resendCooldown}s`
+                    : otpSent
+                      ? "Resend OTP"
+                      : "Send OTP"}
               </button>
             ) : (
               <div
@@ -602,10 +589,10 @@ export default function PhoneAuth({
               {sending
                 ? "Sending..."
                 : otpSent && resendCooldown > 0
-                ? `Resend in ${resendCooldown}s`
-                : otpSent
-                ? "Resend OTP"
-                : "Send OTP"}
+                  ? `Resend in ${resendCooldown}s`
+                  : otpSent
+                    ? "Resend OTP"
+                    : "Send OTP"}
             </button>
           ) : (
             <div

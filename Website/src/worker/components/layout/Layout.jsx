@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import { Sidebar } from './Sidebar';
-import { Topbar } from './Topbar';
+import React, { useState } from "react";
+import { Outlet } from "react-router-dom";
+import { Sidebar } from "./Sidebar";
+import { Topbar } from "./Topbar";
 
 export const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -15,7 +15,7 @@ export const Layout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen">
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
       <Topbar onMenuClick={toggleSidebar} />
 

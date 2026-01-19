@@ -8,7 +8,7 @@ import { Services as UserServices } from "./users/components/service/Services";
 import { About } from "./users/components/about/About";
 import { Feedback } from "./users/components/feedback/Feedback";
 import { Professionals } from "./users/components/professionals/Professionals";
-import { Profile } from "./users/components/profile/Profile";
+import Profile from "./users/components/profile/Profile";
 import RegisterProfessional from "./users/components/professionalRegister/RegisterProfessional";
 import CustomerBookings from "./users/components/bookService/Bookings";
 import UserProtectedRoute from "./users/components/auth/ProtectedRoute";

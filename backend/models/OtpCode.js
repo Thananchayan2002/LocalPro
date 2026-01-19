@@ -44,7 +44,4 @@ const otpCodeSchema = new mongoose.Schema(
 // Compound index for faster lookup (phone + purpose + not used)
 otpCodeSchema.index({ phone: 1, purpose: 1, used: 1 });
 
-// Automatically delete expired OTPs
-otpCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
 module.exports = mongoose.model("OtpCode", otpCodeSchema);

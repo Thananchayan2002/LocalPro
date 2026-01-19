@@ -1,63 +1,61 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: true,
-        trim: true
+      type: String,
+      required: true,
+      trim: true,
     },
     email: {
-        type: String,
-        required: false, // Optional for passwordless auth
-        unique: true,
-        sparse: true, // Allow null values while maintaining uniqueness
-        lowercase: true,
-        trim: true
+      type: String,
+      required: false, // Optional for passwordless auth
+      unique: true,
+      sparse: true, // Allow null values while maintaining uniqueness
+      lowercase: true,
+      trim: true,
     },
     passwordHash: {
-        type: String,
-        required: false // Optional for passwordless auth
+      type: String,
+      required: false, // Optional for passwordless auth
     },
     phone: {
-        type: String,
-        required: true,
-        trim: true
+      type: String,
+      required: true,
+      trim: true,
     },
     phoneNumber: {
-        type: String,
-        required: false, // E.164 format phone number
-        unique: true,
-        sparse: true, // Allow null values while maintaining uniqueness
-        trim: true
+      type: String,
+      required: false, // E.164 format phone number
+      unique: true,
+      sparse: true, // Allow null values while maintaining uniqueness
+      trim: true,
     },
     role: {
-        type: String,
-        enum: ['customer', 'professional', 'admin'],
-        required: true,
-        default: 'customer'
+      type: String,
+      enum: ["customer", "professional", "admin"],
+      required: true,
+      default: "customer",
     },
     location: {
-        type: String,
-        trim: true
+      type: String,
+      trim: true,
     },
     lastLogin: {
-        type: Date
+      type: Date,
     },
     status: {
-        type: String,
-        enum: ['active', 'blocked', 'pending', 'pause'],
-        default: 'active'
-    }
-}, {
-    timestamps: true
-});
-
-// Index for faster email lookups
-userSchema.index({ email: 1 });
+      type: String,
+      enum: ["active", "blocked", "pending", "pause"],
+      default: "active",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 
 // Index for faster phone lookups
 userSchema.index({ phone: 1 });
-userSchema.index({ phoneNumber: 1 });
 
-module.exports = mongoose.model('User', userSchema);
-
+module.exports = mongoose.model("User", userSchema);

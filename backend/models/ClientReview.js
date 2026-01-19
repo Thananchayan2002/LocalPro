@@ -22,7 +22,4 @@ const clientReviewSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Index for faster lookups
-clientReviewSchema.index({ bookingId: 1 });
-
 module.exports = mongoose.model('ClientReview', clientReviewSchema);

@@ -21,9 +21,6 @@ const serviceSchema = new mongoose.Schema({
     timestamps: true 
 });
 
-// Index for faster lookups
-serviceSchema.index({ service: 1 });
-
 // Cascade delete: Remove all issues when service is deleted
 serviceSchema.pre('deleteOne', { document: true, query: false }, async function (next) {
     try {

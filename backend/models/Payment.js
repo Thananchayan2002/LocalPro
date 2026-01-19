@@ -19,7 +19,4 @@ const paymentSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Index for faster lookups
-paymentSchema.index({ bookingId: 1 });
-
 module.exports = mongoose.model('Payment', paymentSchema);

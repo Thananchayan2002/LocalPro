@@ -1,28 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Navigate } from "react-router-dom";
-import { getCurrentUser } from "../users/api/auth/auth";
+import { useAuth } from "../worker/context/AuthContext";
 
 const ProtectedRoute = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    const loadSession = async () => {
-      try {
-        const data = await getCurrentUser();
-        if (active) setUser(data.user || null);
-      } catch (error) {
-        if (active) setUser(null);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    loadSession();
-    return () => {
-      active = false;
-    };
-  }, []);
+  const { user, loading } = useAuth();
 
   if (loading) {
     return null;
