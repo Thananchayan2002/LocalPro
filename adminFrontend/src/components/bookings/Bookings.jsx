@@ -28,7 +28,8 @@ export const Bookings = () => {
     const [viewBooking, setViewBooking] = useState(null);
     const [confirmModal, setConfirmModal] = useState({
         isOpen: false,
-        bookingId: null
+        bookingId: null,
+        action: null
     });
 
     // Filter and search state
@@ -37,6 +38,9 @@ export const Bookings = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [filterProfessional, setFilterProfessional] = useState('');
+    const [professionalsByDistrict, setProfessionalsByDistrict] = useState([]);
+
 
     // Fetch all bookings with populated data
     const fetchBookings = async () => {
@@ -82,6 +86,12 @@ export const Bookings = () => {
             filtered = filtered.filter(booking => booking.location?.district === filterDistrict);
         }
 
+        // Filter by professional
+        if (filterProfessional) {
+            filtered = filtered.filter(
+                booking => booking.professionalId?._id === filterProfessional
+            );
+        }
         // Search by customer name, professional name, or phone number
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
@@ -121,45 +131,93 @@ export const Bookings = () => {
         }
 
         setFilteredBookings(filtered);
-    }, [bookings, filterStatus, filterDistrict, searchQuery, startDate, endDate]);
+    }, [bookings, filterStatus, filterDistrict,filterProfessional, searchQuery, startDate, endDate]);
 
+    // distric wise Professional filter
+    useEffect(() => {
+        if (!filterDistrict) {
+            setProfessionalsByDistrict([]);
+            setFilterProfessional('');
+            return;
+        }
+    
+        const professionalsMap = new Map();
+    
+        bookings.forEach((booking) => {
+            if (
+                booking.location?.district === filterDistrict &&
+                booking.professionalId
+            ) {
+                professionalsMap.set(
+                    booking.professionalId._id,
+                    booking.professionalId
+                );
+            }
+        });
+    
+        setProfessionalsByDistrict(Array.from(professionalsMap.values()));
+        setFilterProfessional('');
+    }, [filterDistrict, bookings]);
+    
     // Handle verify booking
     const handleVerify = (bookingId) => {
         setConfirmModal({
             isOpen: true,
-            bookingId
+            bookingId,
+            action: 'verify'
         });
     };
-
-    // Confirm verification
-    const confirmVerification = async () => {
-        const { bookingId } = confirmModal;
-        setConfirmModal({ isOpen: false, bookingId: null });
-
+    // handleFailPaid booking
+    const handleFailPaid = (bookingId) => {
+        setConfirmModal({
+            isOpen: true,
+            bookingId,
+            action: 'failPaid'
+        });
+    };
+    // Confirm both action verification and change to complete 
+    const confirmAction = async () => {
+        const { bookingId, action } = confirmModal;
+    
+        setConfirmModal({ isOpen: false, bookingId: null, action: null });
+    
         try {
-            const res = await fetchWithAuth(`${API_BASE_URL}/api/bookings/update-status/${bookingId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: 'verified',
-                    verifiedAt: new Date()
-                })
-            });
-
+            const body =
+                action === 'verify'
+                    ? { status: 'verified', verifiedAt: new Date() }
+                    : { status: 'completed' };
+    
+            const res = await fetchWithAuth(
+                `${API_BASE_URL}/api/bookings/update-status/${bookingId}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                }
+            );
+    
             const data = await res.json();
-
+    
             if (data.success) {
-                toast.success('Booking verified successfully');
+                toast.success(
+                    action === 'verify'
+                        ? 'Booking verified successfully'
+                        : 'Payment failed. Booking marked as completed'
+                );
                 fetchBookings();
             } else {
-                toast.error(data.message || 'Failed to verify booking');
+                toast.error(data.message || 'Failed to update booking');
             }
         } catch (error) {
-            console.error('Verify booking error:', error);
-            toast.error('Failed to verify booking');
+            console.error('Confirm action error:', error);
+            toast.error('Something went wrong');
         }
     };
+    
 
+
+    
+    
     // Format date
     const formatDate = (date) => {
         if (!date) return 'N/A';
@@ -202,13 +260,26 @@ export const Bookings = () => {
             {/* Confirm Modal */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
-                title="Verify Booking"
-                message="Are you sure you want to mark this booking as verified?"
-                confirmText="Verify"
-                onConfirm={confirmVerification}
-                onCancel={() => setConfirmModal({ isOpen: false, bookingId: null })}
-                isDangerous={false}
+                title={
+                    confirmModal.action === 'verify'
+                        ? 'Verify Booking'
+                        : 'Fail Payment'
+                }
+                message={
+                    confirmModal.action === 'verify'
+                        ? 'Are you sure you want to mark this booking as verified?'
+                        : 'Are you sure the payment failed? This will mark the booking as completed.'
+                }
+                confirmText={
+                    confirmModal.action === 'verify' ? 'Verify' : 'Confirm'
+                }
+                onConfirm={confirmAction}
+                onCancel={() =>
+                    setConfirmModal({ isOpen: false, bookingId: null, action: null })
+                }
+                isDangerous={confirmModal.action === 'failPaid'}
             />
+
 
             {/* Header */}
             <div className="bg-white rounded-xl shadow-md p-6 mb-6 mt-16 lg:mt-8">
@@ -220,7 +291,20 @@ export const Bookings = () => {
 
             {/* Filters and Search */}
             <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-                <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+                <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <Search size={16} className="inline mr-2" />
+                            Search
+                        </label>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Name or phone..."
+                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
+                        />
+                    </div>
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             <Calendar size={16} className="inline mr-2" />
@@ -277,18 +361,30 @@ export const Bookings = () => {
                             ))}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            <Search size={16} className="inline mr-2" />
-                            Search
-                        </label>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Name or phone..."
-                            className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
-                        />
+                    <div  >
+                    {filterDistrict && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                <Briefcase size={16} className="inline mr-2" />
+                                Professional
+                            </label>
+                            <select
+                                value={filterProfessional}
+                                onChange={(e) => setFilterProfessional(e.target.value)}
+                                className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl
+                                        focus:ring-2 focus:ring-purple-500
+                                        focus:border-purple-500 transition-all outline-none"
+                            >
+                                <option value="">All Professionals</option>
+
+                                {professionalsByDistrict.map((pro) => (
+                                    <option key={pro._id} value={pro._id}>
+                                        {pro.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     </div>
                     <div className="flex items-end">
                         <button
@@ -297,6 +393,7 @@ export const Bookings = () => {
                                 setEndDate('');
                                 setFilterStatus('');
                                 setFilterDistrict('');
+                                setFilterProfessional('');
                                 setSearchQuery('');
                             }}
                             className="w-full px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-semibold transition-all"
@@ -399,13 +496,24 @@ export const Bookings = () => {
                                                     <Eye size={18} />
                                                 </button>
                                                 {booking.status === 'paid' && (
-                                                    <button
-                                                        onClick={() => handleVerify(booking._id)}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                        title="Verify Booking"
-                                                    >
-                                                        <CheckCircle size={18} />
-                                                    </button>
+                                                    <>
+                                                         {/* Verify Button */}
+                                                        <button
+                                                            onClick={() => handleVerify(booking._id)}
+                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                            title="Verify Booking"
+                                                        >
+                                                            <CheckCircle size={18} />
+                                                        </button>
+                                                        {/* Fail Paid Button */}
+                                                        <button
+                                                        onClick={() => handleFailPaid(booking._id)}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Fail Payment (Mark as Completed)"
+                                                        >
+                                                        <X size={18} />
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>

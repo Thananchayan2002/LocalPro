@@ -31,17 +31,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Login function - cookies are set by server automatically
-  const login = async (phone, password) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Receive HttpOnly cookies
-        body: JSON.stringify({ phone, password }),
-      });
+    // Login function
+    const login = async (phone, password) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/adminlogin`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ phone, password }),
+            });
 
       const data = await response.json();
 

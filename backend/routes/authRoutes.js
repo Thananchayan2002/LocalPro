@@ -12,6 +12,9 @@ const phoneEnumLimiter = rateLimit({
   keyPrefix: "phone-enum",
 });
 
+// POST /api/auth/adminlogin
+router.post('/adminlogin', authController.adminlogin);
+
 // POST /api/auth/login
 router.post("/login", authController.login);
 
