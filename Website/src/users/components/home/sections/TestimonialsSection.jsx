@@ -2,11 +2,13 @@ import { motion } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import { colors } from "../../../../styles/colors";
 import { useAnimations } from "../../animations/animations";
+import AppLoader from "../../common/AppLoader";
 
 const TestimonialsSection = ({
   testimonials,
   currentIndex,
   setCurrentIndex,
+  isLoading = false,
 }) => {
   const { ref, animate, staggerContainer, staggerItem } = useAnimations({
     scroll: true,
@@ -30,6 +32,12 @@ const TestimonialsSection = ({
       className="relative py-10 sm:py-12 lg:py-16 overflow-hidden"
       style={{ backgroundColor: colors.background.primary }}
     >
+      {isLoading && (
+        <AppLoader
+          title="Loading testimonials"
+          subtitle="Gathering the latest feedback"
+        />
+      )}
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div

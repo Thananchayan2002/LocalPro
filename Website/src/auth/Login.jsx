@@ -162,7 +162,7 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-row bg-slate-50">
+    <div className="min-h-screen flex flex-row ">
       <div className="hidden md:block flex-1 relative">
         <div
           className="absolute inset-0"
@@ -177,7 +177,7 @@ const Login = () => {
       </div>
 
       <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-purple-100/70 p-8">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-blue-100/70 p-8">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900 flex items-center justify-center gap-1">
               <span>{displayText}</span>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { colors } from "../../../styles/colors";
 import {
   Upload,
   Phone,
@@ -7,13 +8,14 @@ import {
   IdCard,
   Mail,
   Image,
-  Navigation,
   Loader,
   X,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { getAllServices } from "../../api/service/service";
 import { registerProfessional } from "../../api/professional/professional";
 import { useAuth } from "../../../worker/context/AuthContext";
+import AppLoader from "../common/AppLoader";
 
 const SRI_LANKAN_DISTRICTS = [
   "Colombo",
@@ -68,6 +70,40 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
   const autocompleteRef = useRef(null);
   const { user, loading: authLoading } = useAuth();
 
+  const showAppLoader =
+    authLoading || (servicesLoading && services.length === 0);
+  const loaderTitle = authLoading ? "Loading profile" : "Loading services";
+  const loaderSubtitle = authLoading
+    ? "Preparing your registration form"
+    : "Fetching available services";
+
+  // Animations
+  const ease = [0.22, 1, 0.36, 1];
+  const overlayMotion = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { duration: 0.25, ease } },
+    exit: { opacity: 0, transition: { duration: 0.2, ease } },
+  };
+  const sheetMotion = {
+    hidden: { opacity: 0, y: 18, scale: 0.99 },
+    show: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.35, ease },
+    },
+    exit: {
+      opacity: 0,
+      y: 18,
+      scale: 0.99,
+      transition: { duration: 0.2, ease },
+    },
+  };
+  const contentMotion = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.35, ease } },
+  };
+
   // Pre-fill form with logged-in user data (support both `phone` and `phoneNumber`)
   useEffect(() => {
     if (authLoading) return;
@@ -99,7 +135,7 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
 
       // If a script already exists, wait for it to load
       const existing = document.querySelector(
-        'script[src*="maps.googleapis.com"]'
+        'script[src*="maps.googleapis.com"]',
       );
       if (existing) {
         return new Promise((resolve, reject) => {
@@ -209,7 +245,7 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
         {
           types: ["geocode"],
           componentRestrictions: { country: "lk" },
-        }
+        },
       );
 
       autocomplete.addListener("place_changed", () => {
@@ -310,7 +346,7 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
     try {
       const formData = new FormData();
       Object.entries(form).forEach(([key, value]) =>
-        formData.append(key, value)
+        formData.append(key, value),
       );
       formData.append("way", "website");
       formData.append("status", "pending");
@@ -350,19 +386,33 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add("modal-open");
+      document.body.style.overflow = "hidden";
     } else {
       document.body.classList.remove("modal-open");
+      document.body.style.overflow = "";
     }
     return () => {
       document.body.classList.remove("modal-open");
+      document.body.style.overflow = "";
     };
   }, [isOpen]);
 
   // If not in modal mode (no isOpen prop), render normally
   if (isOpen === undefined) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-purple-50 px-4 py-10">
-        {renderContent()}
+      <div className="min-h-screen w-full bg-gradient-to-b from-indigo-50 via-white to-purple-50">
+        {showAppLoader && (
+          <AppLoader title={loaderTitle} subtitle={loaderSubtitle} />
+        )}
+
+        <motion.div
+          variants={contentMotion}
+          initial="hidden"
+          animate="show"
+          className="mx-auto w-full max-w-5xl px-4 pb-10 pt-6 sm:px-6 sm:pt-8"
+        >
+          {renderContent()}
+        </motion.div>
       </div>
     );
   }
@@ -371,167 +421,311 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 overflow-y-auto">
-      <div className="min-h-screen flex items-start justify-center py-8 px-4">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full">
+    <AnimatePresence>
+      <motion.div
+        key="overlay"
+        variants={overlayMotion}
+        initial="hidden"
+        animate="show"
+        exit="exit"
+        className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden"
+        style={{
+          backgroundColor: "rgba(2, 6, 23, 0.6)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        {showAppLoader && (
+          <AppLoader title={loaderTitle} subtitle={loaderSubtitle} />
+        )}
+
+        <motion.div
+          key="sheet"
+          variants={sheetMotion}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          className="w-full h-full sm:max-w-4xl sm:mx-6 sm:rounded-3xl sm:max-h-[calc(100vh-3rem)] overflow-y-auto mx-0 rounded-none max-w-none"
+          style={{
+            background: colors.neutral[50],
+            borderRadius: window.innerWidth < 640 ? "0" : "1.5rem",
+            boxShadow:
+              window.innerWidth < 640
+                ? "none"
+                : "0 18px 48px 0 " + colors.primary.light + "33",
+            height: window.innerWidth < 640 ? "100vh" : undefined,
+          }}
+        >
           {renderContent()}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+
+  function Field({ label, required, rightIcon, children, helper }) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-semibold text-gray-800">
+            {label} {required ? <span className="text-gray-500">*</span> : null}
+          </label>
+          {helper ? (
+            <span className="text-xs text-gray-500">{helper}</span>
+          ) : null}
+        </div>
+
+        <div className="relative">
+          {children}
+          {rightIcon ? (
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+              {rightIcon}
+            </span>
+          ) : null}
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  function inputBaseClass(disabled = false) {
+    return [
+      "w-full rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-[15px] text-gray-900 shadow-sm",
+      "outline-none transition-all duration-200",
+      "focus:border-transparent focus:ring-2 focus:ring-blue-500/40",
+      "placeholder:text-gray-400",
+      disabled ? "cursor-not-allowed opacity-70" : "cursor-text",
+    ].join(" ");
+  }
+
+  function selectBaseClass(disabled = false) {
+    return [
+      "w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 py-3.5 text-[15px] text-gray-900 shadow-sm",
+      "outline-none transition-all duration-200",
+      "focus:border-transparent focus:ring-2 focus:ring-blue-500/40",
+      disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer",
+    ].join(" ");
+  }
 
   function renderContent() {
     return (
       <div
-        className={
-          isOpen
-            ? "p-6 md:p-10"
-            : "max-w-4xl mx-auto bg-white rounded-3xl shadow-xl border border-purple-100/60 p-6 md:p-10"
+        className={[
+          "relative w-full",
+          isOpen ? "p-5 sm:p-8 md:p-10" : "p-5 sm:p-8 md:p-10",
+        ].join(" ")}
+        style={
+          !isOpen
+            ? {
+                background: colors.neutral[50],
+                borderRadius: "1.5rem",
+                boxShadow: "0 4px 24px 0 " + colors.primary.light + "22",
+                border: `1px solid ${colors.primary.light}99`,
+              }
+            : undefined
         }
       >
+        {/* Top bar / Header */}
         {!isOpen && (
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <div>
-              <p className="text-sm uppercase tracking-wide text-purple-600 font-semibold">
-                Join Our Network
-              </p>
-              <h1 className="text-3xl font-bold text-gray-900 mt-1">
-                Register as a Professional
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Provide your details. We keep your status pending and review
-                website submissions before approval.
-              </p>
+          <motion.div
+            variants={contentMotion}
+            initial="hidden"
+            animate="show"
+            className="mb-6 flex flex-col gap-4 sm:mb-8 sm:gap-5"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-2">
+                <p
+                  className="text-xs font-semibold tracking-[0.18em] sm:text-sm"
+                  style={{
+                    color: colors.primary.DEFAULT,
+                    textTransform: "uppercase",
+                    fontWeight: 600,
+                    letterSpacing: 1,
+                  }}
+                >
+                  Join Our Network
+                </p>
+
+                <h1
+                  className="text-2xl font-bold leading-tight sm:text-3xl"
+                  style={{ color: colors.neutral[700] }}
+                >
+                  Register as a Professional
+                </h1>
+
+                <p
+                  className="max-w-2xl text-sm leading-relaxed sm:text-[15px]"
+                  style={{ color: colors.neutral[500] }}
+                >
+                  Provide your details. We keep your status pending and review
+                  website submissions before approval.
+                </p>
+              </div>
+
+              <div
+                className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold shadow-sm"
+                style={{
+                  background: colors.primary.light,
+                  color: colors.primary.DEFAULT,
+                  border: `1px solid ${colors.primary.light}`,
+                }}
+              >
+                <Image size={18} />
+                <span>Profile review required</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full border border-purple-100">
-              <Image size={18} />
-              <span className="text-sm font-semibold">
-                Profile review required
-              </span>
-            </div>
-          </div>
+
+            <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+          </motion.div>
         )}
 
         {isOpen && (
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
-              Register as Professional
-            </h2>
+          <div className="mb-5 flex items-center justify-between sm:mb-6">
+            <div className="space-y-1">
+              <h2
+                className="text-xl font-bold sm:text-2xl"
+                style={{ color: colors.neutral[700] }}
+              >
+                Register as Professional
+              </h2>
+              <p
+                className="text-xs sm:text-sm"
+                style={{ color: colors.neutral[500] }}
+              >
+                Submit your profile for review and approval.
+              </p>
+            </div>
+
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition"
               type="button"
+              className="group inline-flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 hover:bg-gray-100 active:scale-95 cursor-pointer"
+              style={{}}
             >
-              <X className="w-6 h-6 text-gray-600" />
+              <X
+                className="h-6 w-6 transition-transform duration-200 group-hover:rotate-90"
+                style={{ color: colors.neutral[500] }}
+              />
             </button>
           </div>
         )}
 
-        {message.text && (
-          <div
-            className={`mb-4 rounded-xl px-4 py-3 border ${
-              message.type === "success"
-                ? "bg-green-50 border-green-200 text-green-800"
-                : "bg-red-50 border-red-200 text-red-800"
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
+        {/* Message */}
+        <AnimatePresence mode="wait">
+          {message.text && (
+            <motion.div
+              key={message.type + message.text}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.22, ease }}
+              className="mb-5 rounded-2xl border px-4 py-3 text-sm shadow-sm sm:mb-6"
+              style={
+                message.type === "success"
+                  ? {
+                      background: colors.success.bg,
+                      border: `1px solid ${colors.success.DEFAULT}`,
+                      color: colors.success.DEFAULT,
+                    }
+                  : {
+                      background: colors.error.bg,
+                      border: `1px solid ${colors.error.DEFAULT}`,
+                      color: colors.error.DEFAULT,
+                    }
+              }
+            >
+              {message.text}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Full Name *
-              </label>
-              <div className="relative">
+          <div className="rounded-3xl bg-white/60 p-4 shadow-[0_1px_0_0_rgba(17,24,39,0.03)] ring-1 ring-gray-200/70 backdrop-blur sm:p-6">
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
+              <Field label="Full Name" required rightIcon={<Phone size={18} />}>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className={inputBaseClass(false)}
                   required
                 />
-                <Phone
-                  className="absolute right-3 top-3 text-gray-400"
-                  size={18}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email (optional)
-              </label>
-              <div className="relative">
+              </Field>
+
+              <Field label="Email (optional)" rightIcon={<Mail size={18} />}>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className={inputBaseClass(false)}
                   placeholder="you@example.com"
                 />
-                <Mail
-                  className="absolute right-3 top-3 text-gray-400"
-                  size={18}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Phone *
-              </label>
-              <div className="relative">
+              </Field>
+
+              <Field label="Phone" required rightIcon={<Phone size={18} />}>
                 <input
                   type="tel"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className={inputBaseClass(true)}
                   required
                   readOnly
                 />
-                <Phone
-                  className="absolute right-3 top-3 text-gray-400"
-                  size={18}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Service *
-              </label>
-              <select
-                value={form.serviceId}
-                onChange={(e) =>
-                  setForm({ ...form, serviceId: e.target.value })
-                }
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+              </Field>
+
+              <Field
+                label="Service"
                 required
-                disabled={servicesLoading || services.length === 0}
+                helper={servicesLoading ? "Loading..." : undefined}
               >
-                <option value="">Select Service</option>
-                {services.map((service) => (
-                  <option key={service._id} value={service._id}>
-                    {service.service}
-                  </option>
-                ))}
-              </select>
-              {servicesLoading && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Loading services...
-                </p>
-              )}
-              {!servicesLoading && services.length === 0 && (
-                <p className="text-xs text-red-500 mt-1">
-                  Services not available right now.
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Experience (years) *
-              </label>
-              <div className="relative">
+                <div className="relative">
+                  <select
+                    value={form.serviceId}
+                    onChange={(e) =>
+                      setForm({ ...form, serviceId: e.target.value })
+                    }
+                    className={selectBaseClass(
+                      servicesLoading || services.length === 0,
+                    )}
+                    required
+                    disabled={servicesLoading || services.length === 0}
+                  >
+                    <option value="">Select Service</option>
+                    {services.map((service) => (
+                      <option key={service._id} value={service._id}>
+                        {service.service}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Custom chevron (pure CSS triangle via Tailwind) */}
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M7 10l5 5 5-5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </div>
+
+                {!servicesLoading && services.length === 0 && (
+                  <p
+                    className="mt-2 text-xs"
+                    style={{ color: colors.error.DEFAULT }}
+                  >
+                    Services not available right now.
+                  </p>
+                )}
+              </Field>
+
+              <Field
+                label="Experience (years)"
+                required
+                rightIcon={<Briefcase size={18} />}
+              >
                 <input
                   type="number"
                   min="0"
@@ -539,97 +733,160 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
                   onChange={(e) =>
                     setForm({ ...form, experience: e.target.value })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className={inputBaseClass(false)}
                   required
                 />
-                <Briefcase
-                  className="absolute right-3 top-3 text-gray-400"
-                  size={18}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                District *
-              </label>
-              <select
-                value={form.district}
-                onChange={(e) => setForm({ ...form, district: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                required
-              >
-                <option value="">Select District</option>
-                {SRI_LANKAN_DISTRICTS.map((district) => (
-                  <option key={district} value={district}>
-                    {district}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Location * (Select from Google suggestions)
-              </label>
+              </Field>
 
-              <div className="relative">
-                <input
-                  ref={locationInputRef}
-                  type="text"
-                  value={form.location}
-                  onChange={(e) =>
-                    setForm({ ...form, location: e.target.value })
-                  }
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                  placeholder="Start typing to search location..."
+              <Field label="District" required>
+                <div className="relative">
+                  <select
+                    value={form.district}
+                    onChange={(e) =>
+                      setForm({ ...form, district: e.target.value })
+                    }
+                    className={selectBaseClass(false)}
+                    required
+                  >
+                    <option value="">Select District</option>
+                    {SRI_LANKAN_DISTRICTS.map((district) => (
+                      <option key={district} value={district}>
+                        {district}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M7 10l5 5 5-5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </Field>
+
+              <div className="md:col-span-2">
+                <Field
+                  label="Location"
                   required
-                />
-                <MapPin
-                  className="absolute right-3 top-3 text-gray-400"
-                  size={18}
-                />
+                  helper="Select from Google suggestions"
+                  rightIcon={<MapPin size={18} />}
+                >
+                  <input
+                    ref={locationInputRef}
+                    type="text"
+                    value={form.location}
+                    onChange={(e) =>
+                      setForm({ ...form, location: e.target.value })
+                    }
+                    className={inputBaseClass(false)}
+                    placeholder="Start typing to search location..."
+                    required
+                  />
+                </Field>
+
+                <div className="mt-2">
+                  <AnimatePresence mode="wait">
+                    {form.lat && form.lng ? (
+                      <motion.p
+                        key="coords"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.2, ease }}
+                        className="text-xs font-medium"
+                        style={{ color: colors.success.DEFAULT }}
+                      >
+                        ✓ Location coordinates captured
+                      </motion.p>
+                    ) : (
+                      <motion.p
+                        key="hint"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.2, ease }}
+                        className="text-xs"
+                        style={{ color: colors.neutral[500] }}
+                      >
+                        Please select from Google suggestions to capture exact
+                        location
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
-              {form.lat && form.lng && (
-                <p className="text-xs text-green-600 mt-2">
-                  ✓ Location coordinates captured
-                </p>
-              )}
-              {!form.lat && !form.lng && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Please select from Google suggestions to capture exact
-                  location
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                NIC Number *
-              </label>
-              <div className="relative">
+
+              <Field
+                label="NIC Number"
+                required
+                rightIcon={<IdCard size={18} />}
+              >
                 <input
                   type="text"
                   value={form.nicNumber}
                   onChange={(e) =>
                     setForm({ ...form, nicNumber: e.target.value })
                   }
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                  className={inputBaseClass(false)}
                   required
                 />
-                <IdCard
-                  className="absolute right-3 top-3 text-gray-400"
-                  size={18}
-                />
-              </div>
+              </Field>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Profile Image (optional)
-            </label>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-all">
-                <Upload size={20} />
-                <span className="font-semibold text-sm">Upload</span>
+          {/* Profile Image */}
+          <div className="rounded-3xl bg-white/60 p-4 ring-1 ring-gray-200/70 backdrop-blur sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-gray-800">
+                  Profile Image (optional)
+                </p>
+                <p className="text-xs" style={{ color: colors.neutral[500] }}>
+                  JPEG/PNG up to 5MB.
+                </p>
+              </div>
+
+              {imagePreview ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.25, ease }}
+                  className="relative"
+                >
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-16 w-16 rounded-2xl object-cover shadow-sm sm:h-20 sm:w-20"
+                    style={{ border: `2px solid ${colors.neutral[100]}` }}
+                  />
+                  <span className="absolute -bottom-2 -right-2 rounded-full bg-white p-1 shadow-sm ring-1 ring-gray-200">
+                    <Image className="h-4 w-4 text-gray-600" />
+                  </span>
+                </motion.div>
+              ) : null}
+            </div>
+
+            <div className="mt-4 flex items-center gap-4">
+              <label
+                className="group inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0"
+                style={{
+                  background: colors.neutral[50],
+                  border: `2px dashed ${colors.neutral[100]}`,
+                  borderRadius: "1rem",
+                  padding: "0.75rem 1rem",
+                }}
+              >
+                <Upload
+                  size={18}
+                  className="transition-transform duration-200 group-hover:scale-110"
+                />
+                <span>Upload</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -637,24 +894,92 @@ const RegisterProfessional = ({ isOpen, onClose }) => {
                   className="hidden"
                 />
               </label>
-              {imagePreview && (
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200"
-                />
+
+              {imagePreview ? (
+                <motion.div
+                  initial={{ opacity: 0, x: 6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-xs font-medium text-gray-600"
+                >
+                  Image selected
+                </motion.div>
+              ) : (
+                <div className="text-xs text-gray-500">No image selected</div>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-2">JPEG/PNG up to 5MB.</p>
           </div>
 
-          <button
-            type="submit"
-            disabled={disabledSubmit}
-            className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg shadow-purple-200 hover:shadow-purple-300 transition disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {submitting ? "Submitting..." : "Submit for Review"}
-          </button>
+          {/* Sticky Submit (mobile app feel) */}
+          <div className="sticky bottom-0 -mx-5 px-5 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+            <button
+              type="submit"
+              disabled={disabledSubmit}
+              className={[
+                "group relative inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-semibold",
+                "transition-all duration-200",
+                "disabled:cursor-not-allowed disabled:opacity-60",
+                "hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0",
+                "cursor-pointer",
+                "sm:w-auto sm:px-7",
+              ].join(" ")}
+              style={{
+                background: colors.primary.gradient,
+                color: colors.neutral[50],
+                padding: "0.75rem 2rem",
+                borderRadius: "1rem",
+                boxShadow: `0 4px 16px 0 ${colors.primary.light}44`,
+              }}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {submitting ? (
+                  <motion.span
+                    key="submitting"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18, ease }}
+                    className="inline-flex items-center gap-2"
+                  >
+                    <Loader className="h-4 w-4 animate-spin" />
+                    Submitting...
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="submit"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18, ease }}
+                    className="inline-flex items-center gap-2"
+                  >
+                    Submit for Review
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/15 transition-transform duration-200 group-hover:translate-x-0.5">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M5 12h12M13 6l6 6-6 6"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+
+            {/* micro helper */}
+            <p className="mt-3 text-center text-xs text-gray-500">
+              By submitting, your profile will be marked as{" "}
+              <span className="font-semibold">pending</span> until review.
+            </p>
+          </div>
         </form>
       </div>
     );

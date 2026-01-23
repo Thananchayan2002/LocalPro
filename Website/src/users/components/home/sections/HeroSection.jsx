@@ -18,6 +18,7 @@ import { iconMap } from "../maps/iconMap";
 import { colors } from "../../../../styles/colors";
 import { useBookNow } from "../../../hooks/useBookNow";
 import { getAllServices } from "../../../api/service/service";
+import AppLoader from "../../common/AppLoader";
 
 const HeroSection = ({
   searchQuery,
@@ -179,6 +180,7 @@ const HeroSection = ({
     hasQuery &&
     filteredServices.length === 0 &&
     !servicesLoading;
+  const showAppLoader = servicesLoading && services.length === 0;
 
   // Smooth scroll active item into view
   useEffect(() => {
@@ -206,6 +208,12 @@ const HeroSection = ({
       className="relative overflow-hidden"
       style={{ backgroundColor: colors.background.primary }}
     >
+      {showAppLoader && (
+        <AppLoader
+          title="Loading services"
+          subtitle="Preparing search suggestions"
+        />
+      )}
       <div
         className="pointer-events-none absolute -bottom-32 -left-32 h-[520px] w-[520px] rounded-full blur-3xl"
         style={{
@@ -722,8 +730,8 @@ const HeroSection = ({
               className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4"
             >
               {[
-                { icon: Users, value: "50K+", label: "Happy Customers" },
-                { icon: UserCheck, value: "2K+", label: "Experts" },
+                { icon: Users, value: "50+", label: "Happy Customers" },
+                { icon: UserCheck, value: "4+", label: "Experts" },
                 { icon: ThumbsUp, value: "98%", label: "Satisfaction" },
                 { icon: Star, value: "4.8★", label: "Avg Rating" },
               ].map((stat, index) => (

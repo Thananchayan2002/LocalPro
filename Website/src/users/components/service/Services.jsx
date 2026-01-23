@@ -6,6 +6,7 @@ import {
   getIssuesByServiceId,
 } from "../../api/service/service";
 import { colors } from "../../../styles/colors";
+import AppLoader from "../common/AppLoader";
 const {
   Search,
   Loader,
@@ -124,45 +125,10 @@ export const Services = () => {
 
   if (loading) {
     return (
-      <div
-        className="min-h-[100svh] pt-16 sm:pt-20"
-        style={{ backgroundColor: colors.background.secondary }}
-      >
-        <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
-          <div
-            className="w-full max-w-sm rounded-2xl border p-6 text-center shadow-lg backdrop-blur sm:p-8"
-            style={{
-              backgroundColor: colors.background.primary,
-              borderColor: colors.border.light,
-            }}
-          >
-            <div
-              className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-sm ring-1"
-              style={{
-                backgroundColor: colors.background.secondary,
-                ringColor: colors.border.light,
-              }}
-            >
-              <Loader
-                className="h-7 w-7 animate-spin"
-                style={{ color: colors.text.primary }}
-              />
-            </div>
-            <p
-              className="text-sm font-medium"
-              style={{ color: colors.text.primary }}
-            >
-              Loading services...
-            </p>
-            <p
-              className="mt-1 text-xs"
-              style={{ color: colors.text.secondary }}
-            >
-              Fetching the latest list for you
-            </p>
-          </div>
-        </div>
-      </div>
+      <AppLoader
+        title="Loading services"
+        subtitle="Fetching the latest list for you"
+      />
     );
   }
 

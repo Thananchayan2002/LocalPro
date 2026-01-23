@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { getMyBookings } from "../../api/booking/booking";
 import { canReviewBooking, submitReview } from "../../api/review/review";
+import AppLoader from "../common/AppLoader";
 
 const Bookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -192,6 +193,12 @@ const Bookings = () => {
 
   return (
     <div className="min-h-screen" style={{ background: colors.neutral[50] }}>
+      {loading && (
+        <AppLoader
+          title="Loading bookings"
+          subtitle="Fetching your latest bookings"
+        />
+      )}
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex items-center gap-3 mb-4">
@@ -253,15 +260,7 @@ const Bookings = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto">
-        {loading ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <Loader
-              className="w-8 h-8 animate-spin mx-auto mb-4"
-              style={{ color: colors.primary.DEFAULT }}
-            />
-            <p style={{ color: colors.neutral[500] }}>Loading bookings...</p>
-          </div>
-        ) : filteredBookings.length === 0 ? (
+        {loading ? null : filteredBookings.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8">
             <div className="text-center py-8">
               <div

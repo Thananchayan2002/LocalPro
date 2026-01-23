@@ -5,6 +5,7 @@ import { colors } from "../../../../styles/colors";
 import { iconMap } from "../maps/iconMap";
 import { useAnimations } from "../../animations/animations";
 import { fetchPopularServices } from "../../../../utils/api";
+import AppLoader from "../../common/AppLoader";
 
 const PopularServicesSection = ({ categories = [] }) => {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ const PopularServicesSection = ({ categories = [] }) => {
   }, [services, fallbackItems]);
 
   const skeletonCount = 6;
+  const showAppLoader = loading && services.length === 0;
 
   // (Animations only) local variants – does not change business logic
   const cardVariants = {
@@ -59,6 +61,12 @@ const PopularServicesSection = ({ categories = [] }) => {
       className="relative w-full overflow-hidden py-10 sm:py-12 lg:py-16"
       style={{ backgroundColor: colors.background.primary }}
     >
+      {showAppLoader && (
+        <AppLoader
+          title="Loading popular services"
+          subtitle="Fetching curated picks"
+        />
+      )}
       {/* Decorative background orbs (keep existing color codes exactly) */}
       <div
         className="pointer-events-none absolute -top-24 -right-24 h-[360px] w-[360px] rounded-full blur-3xl"
@@ -366,7 +374,7 @@ const PopularServicesSection = ({ categories = [] }) => {
 
                     {/* Subtle hover lift accent */}
                     <motion.div
-                      className="pointer-events-none absolute inset-x-5 bottom-4 h-1 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      className="pointer-events-none absolute inset-x-5 bottom-2.5 h-1 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                       style={{ backgroundColor: categoryColor.text }}
                       initial={false}
                     />

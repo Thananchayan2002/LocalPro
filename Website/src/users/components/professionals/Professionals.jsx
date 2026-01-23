@@ -8,6 +8,7 @@ import {
 import { getAllServices } from "../../api/service/service";
 import { getUserByPhone } from "../../api/auth/auth";
 import { getReviewsByProfessional } from "../../api/review/review";
+import AppLoader from "../common/AppLoader";
 
 const {
   Search,
@@ -194,12 +195,19 @@ export const Professionals = () => {
     selectedService === "all"
       ? "All Professionals"
       : serviceCategories.find((s) => s.id === selectedService)?.name || "";
+  const showAppLoader = loading && professionals.length === 0;
 
   return (
     <div
       className="min-h-[100svh] pt-0 sm:pt-0"
       style={{ backgroundColor: colors.background.secondary }}
     >
+      {showAppLoader && (
+        <AppLoader
+          title="Loading professionals"
+          subtitle="Finding trusted experts near you"
+        />
+      )}
       {/* Hero */}
       <section className="relative flex items-center justify-center overflow-hidden">
         {/* Background (match the first section style/structure) */}
@@ -627,17 +635,23 @@ export const Professionals = () => {
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
               <div className="transform-gpu transition-all duration-500 ease-out animate-[fadeInUp_700ms_ease-out_both]">
                 <h2
-                  className="text-xl sm:text-2xl font-extrabold tracking-tight leading-tight"
+                  className="text-xl font-semibold tracking-tight sm:text-2xl"
                   style={{ color: colors.text.primary }}
                 >
                   Verified Professionals
                 </h2>
 
                 <p
-                  className="mt-1 text-sm sm:text-base leading-relaxed"
+                  className="mt-1 text-sm"
                   style={{ color: colors.text.secondary }}
                 >
-                  {filteredProfessionals.length} professionals found
+                  <span
+                    className="font-semibold"
+                    style={{ color: colors.text.primary }}
+                  >
+                    {filteredProfessionals.length}
+                  </span>{" "}
+                  professionals found
                   {selectedService !== "all" ? ` in ${activeServiceName}` : ""}
                   {selectedDistrict !== "all"
                     ? ` from ${selectedDistrict}`
@@ -666,18 +680,7 @@ export const Professionals = () => {
 
             {/* Content states */}
             <div className="mt-6">
-              {loading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="text-center animate-[fadeIn_400ms_ease-out_both]">
-                    <div className="mx-auto h-12 w-12 rounded-2xl bg-black/5 flex items-center justify-center shadow-sm">
-                      <Loader className="h-7 w-7 animate-spin text-blue-600" />
-                    </div>
-                    <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                      Loading professionals...
-                    </p>
-                  </div>
-                </div>
-              ) : error ? (
+              {loading ? null : error ? (
                 <div className="rounded-2xl border bg-red-50 dark:bg-red-900/20 p-6 sm:p-8 text-center animate-[fadeInUp_500ms_ease-out_both]">
                   <div className="mx-auto h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center shadow-sm">
                     <X className="h-6 w-6 text-red-600" />
@@ -716,7 +719,7 @@ export const Professionals = () => {
                     return (
                       <div
                         key={professional._id}
-                        className="group relative rounded-2xl  bg-white dark:bg-gray-800 shadow-sm overflow-hidden
+                        className="group relative rounded-2xl bg-white dark:bg-gray-800 shadow-sm overflow-hidden
                transition-all duration-300 transform-gpu
                hover:shadow-md hover:-translate-y-1
                animate-[cardIn_650ms_ease-out_both]
@@ -725,7 +728,7 @@ export const Professionals = () => {
                         style={{ "--i": idx }}
                       >
                         {/* Top accent */}
-                        <div className="h-1 bg-gradient-to-r from-blue-600 to-purple-600" />
+                        <div className="h-1" />
 
                         <div className="relative p-4 sm:p-5">
                           {/* Header */}
@@ -735,7 +738,7 @@ export const Professionals = () => {
                                 <img
                                   src={imageSrc}
                                   alt={professional.name}
-                                  className="h-16 w-16 sm:h-18 sm:w-18 rounded-2xl object-cover border
+                                  className="h-16 w-16 sm:h-18 sm:w-18 rounded-2xl object-cover 
                          transition-transform duration-300 transform-gpu
                          group-hover:scale-[1.03]"
                                 />
@@ -773,11 +776,11 @@ export const Professionals = () => {
 
                                         return (
                                           <div className="min-w-0">
-                                            <p className="truncate text-base sm:text-lg font-extrabold text-gray-900 dark:text-white leading-tight">
+                                            <p className="truncate text-base sm:text-lg  text-gray-900 dark:text-white leading-tight">
                                               {first}
                                             </p>
                                             {rest ? (
-                                              <p className="truncate text-sm sm:text-base font-bold text-gray-700 dark:text-gray-300 leading-tight">
+                                              <p className="truncate text-sm sm:text-base  text-gray-700 dark:text-gray-300 leading-tight">
                                                 {rest}
                                               </p>
                                             ) : null}
@@ -809,9 +812,10 @@ export const Professionals = () => {
                                 {/* RIGHT: Available pill */}
                                 {professional.isAvailable && (
                                   <span
-                                    className="shrink-0 mt-0.5 rounded-full px-2.5 py-1 text-[11px] font-bold
-        bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200
-        transition-transform duration-300 transform-gpu group-hover:scale-[1.02]"
+                                    className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold
+            bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-200
+            transition-transform duration-300 transform-gpu group-hover:scale-[1.02]
+            motion-safe:animate-[chipPop_520ms_ease-out_both]"
                                   >
                                     Available
                                   </span>

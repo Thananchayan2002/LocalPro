@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../../../worker/context/AuthContext";
+import AppLoader from "../common/AppLoader";
 
 function Profile() {
   const navigate = useNavigate();
@@ -145,34 +146,10 @@ function Profile() {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20 flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <div className="rounded-3xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
-            <div className="p-8 sm:p-10 text-center">
-              <div className="mx-auto h-14 w-14 rounded-2xl bg-gray-50 dark:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-600 flex items-center justify-center shadow-sm">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-              <p className="mt-5 text-base sm:text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">
-                Loading profile...
-              </p>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Fetching your account details
-              </p>
-              <div className="mt-6 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-600">
-                <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-600"></div>
-              </div>
-              <div className="mt-7 flex items-center justify-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-blue-600/80 animate-pulse"></div>
-                <div className="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse [animation-delay:150ms]"></div>
-                <div className="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse [animation-delay:300ms]"></div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-5 flex justify-center">
-            <div className="h-1.5 w-24 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-          </div>
-        </div>
-      </div>
+      <AppLoader
+        title="Loading profile"
+        subtitle="Fetching your account details"
+      />
     );
   }
 

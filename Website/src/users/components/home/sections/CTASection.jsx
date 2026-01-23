@@ -3,8 +3,9 @@ import { ArrowRight, Phone, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { colors } from "../../../../styles/colors";
 import { useAnimations } from "../../animations/animations";
+import AppLoader from "../../common/AppLoader";
 
-const CTASection = ({ setShowBookingModal }) => {
+const CTASection = ({ setShowBookingModal, isLoading = false }) => {
   const navigate = useNavigate();
   const { ref, animate, fadeInUp, staggerContainer, staggerItem } =
     useAnimations({ scroll: true });
@@ -15,33 +16,12 @@ const CTASection = ({ setShowBookingModal }) => {
       className="relative overflow-hidden py-12 sm:py-16 lg:py-20"
       style={{ backgroundColor: colors.background.primary }}
     >
-      <div
-        className="pointer-events-none absolute -bottom-40 -left-20 h-80 w-80 animate-pulse rounded-full blur-3xl"
-        style={{
-          background: `linear-gradient(to left, ${colors.secondary.light}, transparent)`,
-          opacity: 0.3,
-        }}
-      />
-
-      {/* Geometric accent elements */}
-      <div
-        className="pointer-events-none absolute top-10 left-5 h-4 w-4 rotate-45 rounded-sm sm:left-10"
-        style={{ backgroundColor: colors.primary.DEFAULT, opacity: 0.3 }}
-      />
-      <div
-        className="pointer-events-none absolute bottom-10 right-5 h-6 w-6 rotate-12 rounded-sm sm:right-10"
-        style={{ backgroundColor: colors.secondary.DEFAULT, opacity: 0.3 }}
-      />
-
-      {/* Subtle grid pattern */}
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage:
-            'url(\'data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\')',
-        }}
-      />
-
+      {isLoading && (
+        <AppLoader
+          title="Loading"
+          subtitle="Getting things ready for you"
+        />
+      )}
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Decorative top element */}
         <motion.div
@@ -223,20 +203,6 @@ const CTASection = ({ setShowBookingModal }) => {
             </motion.div>
           </div>
         </motion.div>
-
-        {/* Floating elements */}
-        <motion.div
-          animate={{ y: [0, -10, 0] }}
-          transition={{ repeat: Infinity, duration: 3 }}
-          className="absolute -bottom-4 left-1/4 hidden h-2 w-2 rounded-full sm:block"
-          style={{ backgroundColor: colors.primary.DEFAULT, opacity: 0.4 }}
-        />
-        <motion.div
-          animate={{ y: [0, -15, 0] }}
-          transition={{ repeat: Infinity, duration: 2.5, delay: 0.2 }}
-          className="absolute -top-2 right-1/3 hidden h-3 w-3 rounded-full sm:block"
-          style={{ backgroundColor: colors.secondary.DEFAULT, opacity: 0.4 }}
-        />
       </div>
     </section>
   );

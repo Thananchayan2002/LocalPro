@@ -8,3 +8,9 @@
     display: none !important;
   }
 }
+
+body.modal-open-full header,
+body.modal-open-full [class*="MobileNavbar"],
+body.modal-open-full nav[class*="mobile"] {
+  display: none !important;
+}

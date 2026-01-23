@@ -110,112 +110,114 @@ exports.register = async (req, res) => {
 
 // Admin Login controller
 exports.adminlogin = async (req, res) => {
-    try {
-        const { phone, password } = req.body;
+  try {
+    const { phone, password } = req.body;
 
-        // Validate input
-        if (!phone || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide phone and password'
-            });
-        }
-
-        // Find user by phone
-        const user = await User.findOne({ phone: phone.trim() });
-
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid phone or password'
-            });
-        }
-
-        // Check user status
-        if (user.status === 'blocked') {
-            const contact = process.env.SUPPORT_PHONE || 'your administrator';
-            return res.status(403).json({
-                success: false,
-                code: 'blocked',
-                message: `Account is blocked. Please contact administrator at ${contact}.`
-            });
-        }
-
-        if (user.status === 'pause' && user.role === 'customer') {
-            return res.status(403).json({
-                success: false,
-                code: 'paused',
-                message: 'Your account is paused. Please contact support.'
-            });
-        }
-
-        if (user.status !== 'active' && !(user.status === 'pause' && user.role !== 'customer')) {
-            return res.status(403).json({
-                success: false,
-                code: 'inactive',
-                message: `Account is ${user.status}. Please contact support.`
-            });
-        }
-
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid phone or password'
-            });
-        }
-
-        // Update last login
-        user.lastLogin = new Date();
-        await user.save();
-
-        // For professionals, fetch professional ID
-        let professionalId = null;
-        if (user.role === 'professional') {
-            const professional = await Professional.findOne({ phone: user.phone });
-            if (professional) {
-                professionalId = professional._id;
-            }
-        }
-
-        // Generate JWT token
-        const token = jwt.sign(
-            {
-                userId: user._id,
-                phone: user.phone,
-                role: user.role
-            },
-            JWT_SECRET,
-            { expiresIn: '1d' } // Token expires in 1 days
-        );
-
-        // Return user data (excluding password hash)
-        res.status(200).json({
-            success: true,
-            message: 'Login successful',
-            token,
-            user: {
-                id: user._id,
-                professionalId: professionalId,
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
-                role: user.role,
-                location: user.location,
-                status: user.status,
-                lastLogin: user.lastLogin
-            }
-        });
-
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error. Please try again later.'
-        });
+    // Validate input
+    if (!phone || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide phone and password",
+      });
     }
+
+    // Find user by phone
+    const user = await User.findOne({ phone: phone.trim() });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid phone or password",
+      });
+    }
+
+    // Check user status
+    if (user.status === "blocked") {
+      const contact = process.env.SUPPORT_PHONE || "your administrator";
+      return res.status(403).json({
+        success: false,
+        code: "blocked",
+        message: `Account is blocked. Please contact administrator at ${contact}.`,
+      });
+    }
+
+    if (user.status === "pause" && user.role === "customer") {
+      return res.status(403).json({
+        success: false,
+        code: "paused",
+        message: "Your account is paused. Please contact support.",
+      });
+    }
+
+    if (
+      user.status !== "active" &&
+      !(user.status === "pause" && user.role !== "customer")
+    ) {
+      return res.status(403).json({
+        success: false,
+        code: "inactive",
+        message: `Account is ${user.status}. Please contact support.`,
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid phone or password",
+      });
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
+    // For professionals, fetch professional ID
+    let professionalId = null;
+    if (user.role === "professional") {
+      const professional = await Professional.findOne({ phone: user.phone });
+      if (professional) {
+        professionalId = professional._id;
+      }
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        phone: user.phone,
+        role: user.role,
+      },
+      JWT_SECRET,
+      { expiresIn: "1d" }, // Token expires in 1 days
+    );
+
+    // Return user data (excluding password hash)
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        professionalId: professionalId,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        location: user.location,
+        status: user.status,
+        lastLogin: user.lastLogin,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+    });
+  }
 };
 
 // Login controller
@@ -319,7 +321,7 @@ exports.logout = async (req, res) => {
       const tokenHash = hashToken(refreshToken);
       await RefreshToken.updateOne(
         { tokenHash, revokedAt: null },
-        { $set: { revokedAt: new Date(), revokedByIp: req.ip } }
+        { $set: { revokedAt: new Date(), revokedByIp: req.ip } },
       );
     }
 
@@ -363,7 +365,7 @@ exports.updatePhone = async (req, res) => {
 
     // Debug log to help track mismatches
     console.log(
-      `updatePhone requested: user.phone=${user.phone}, currentPhone=${currentPhone}`
+      `updatePhone requested: user.phone=${user.phone}, currentPhone=${currentPhone}`,
     );
 
     if ((user.phone || "").trim() !== currentPhone) {
@@ -430,7 +432,7 @@ exports.verifyCredentials = async (req, res) => {
 
     // Debug log to help track mismatches
     console.log(
-      `verifyCredentials requested: user.phone=${user.phone}, provided=${phone}`
+      `verifyCredentials requested: user.phone=${user.phone}, provided=${phone}`,
     );
 
     if ((user.phone || "").trim() !== phone) {
@@ -497,7 +499,7 @@ exports.updatePassword = async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      user.passwordHash
+      user.passwordHash,
     );
     if (!isPasswordValid) {
       return res
@@ -535,7 +537,7 @@ exports.getUserById = async (req, res) => {
     }
 
     const user = await User.findById(id).select(
-      "name email phone location role"
+      "name email phone location role",
     );
 
     if (!user) {
@@ -565,7 +567,7 @@ exports.getUserByPhone = async (req, res) => {
 
     if (!isAdmin(req)) {
       const requester = await User.findById(req.user?.userId).select(
-        "name email phone location role phoneNumber"
+        "name email phone location role phoneNumber",
       );
 
       if (!requester) {
@@ -598,7 +600,7 @@ exports.getUserByPhone = async (req, res) => {
     }
 
     const user = await User.findOne({ phone }).select(
-      "name email phone location role"
+      "name email phone location role",
     );
 
     if (!user) {
@@ -859,7 +861,7 @@ exports.refresh = async (req, res) => {
     if (subject.status && subject.status !== "active") {
       await RefreshToken.updateOne(
         { tokenHash, revokedAt: null },
-        { $set: { revokedAt: new Date(), revokedByIp: req.ip } }
+        { $set: { revokedAt: new Date(), revokedByIp: req.ip } },
       );
       clearAuthCookies(res);
       return res.status(403).json({
@@ -889,7 +891,7 @@ exports.refresh = async (req, res) => {
           revokedByIp: req.ip,
           replacedByTokenHash: newHash,
         },
-      }
+      },
     );
 
     await RefreshToken.create({

@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { colors } from "../../../styles/colors";
 import { getAllServices } from "../../api/service/service";
 import { createBooking } from "../../api/booking/booking";
+import AppLoader from "../common/AppLoader";
 
 const BookService = ({
   isOpen,
@@ -462,6 +463,12 @@ const BookService = ({
     return step === 1 ? "Select Service" : "Booking Details";
   }, [step]);
 
+  const loaderTitle = step === 1 ? "Loading services" : "Creating booking";
+  const loaderSubtitle =
+    step === 1
+      ? "Fetching available services"
+      : "Submitting your booking request";
+
   if (!isOpen) return null;
 
   // Animations
@@ -495,6 +502,9 @@ const BookService = ({
 
   return (
     <AnimatePresence>
+      {loading && (
+        <AppLoader title={loaderTitle} subtitle={loaderSubtitle} />
+      )}
       <motion.div
         className="fixed inset-0 z-50"
         variants={backdrop}

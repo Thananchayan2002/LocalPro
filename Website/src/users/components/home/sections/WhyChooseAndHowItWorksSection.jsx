@@ -4,8 +4,14 @@ import { iconMap } from "../maps/iconMap";
 import { useAnimations } from "../../animations/animations";
 import { CheckCircle, ArrowRight, Sparkles } from "lucide-react";
 import { colors } from "../../../../styles/colors";
+import AppLoader from "../../common/AppLoader";
 
-const WhyChooseAndHowItWorksSection = ({ steps, features, heroRef }) => {
+const WhyChooseAndHowItWorksSection = ({
+  steps,
+  features,
+  heroRef,
+  isLoading = false,
+}) => {
   const [activeTab, setActiveTab] = useState("how");
   const [hoveredTab, setHoveredTab] = useState(null);
   const { ref, animate, staggerContainer, staggerItem } = useAnimations({
@@ -52,6 +58,12 @@ const WhyChooseAndHowItWorksSection = ({ steps, features, heroRef }) => {
       className="relative overflow-hidden py-10 sm:py-12 lg:py-16"
       style={{ backgroundColor: colors.background.primary }}
     >
+      {isLoading && (
+        <AppLoader
+          title="Loading highlights"
+          subtitle="Preparing feature details"
+        />
+      )}
       {/* Background (keep existing color codes exactly; no new palettes) */}
       <div className="pointer-events-none absolute inset-0">
         <div
