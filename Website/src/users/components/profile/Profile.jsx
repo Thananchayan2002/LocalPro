@@ -156,23 +156,49 @@ function Profile() {
   const joined = new Date(profileData.joinedDate).toLocaleDateString();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 sm:pt-20">
+    <div
+      className="profile-mobile-root min-h-screen h-screen w-full bg-gray-50 dark:bg-gray-900 flex flex-col overflow-x-hidden"
+      style={{
+        minHeight: "100vh",
+        height: "100svh",
+        width: "100vw",
+        maxWidth: "100vw",
+        overflowY: "auto",
+        overflowX: "hidden",
+        margin: 0,
+        padding: 0,
+        boxSizing: "border-box",
+        background: "#fff",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* Decorative background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-purple-500/10 blur-3xl" />
+        <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
         <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      <div
+        className="profile-content w-full flex-1 flex flex-col"
+        style={{
+          paddingTop: "env(safe-area-inset-top, 0)",
+          paddingBottom: "env(safe-area-inset-bottom, 0)",
+          paddingLeft: 0,
+          paddingRight: 0,
+          maxWidth: "100vw",
+          margin: 0,
+        }}
+      >
         {/* Header */}
-        <div className="mb-8">
-          <div className="rounded-3xl bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl">
+        <div className="mb-6">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl">
             <div className="p-6 sm:p-8">
               <div className="flex items-start sm:items-center justify-between gap-6 flex-col md:flex-row">
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-100 dark:ring-blue-900/30 flex items-center justify-center shadow-sm">
+                    <div className="h-10 w-10 rounded-2xl bg-blue-50 dark:bg-blue-900/20  ring-blue-100 dark:ring-blue-900/30 flex items-center justify-center shadow-sm">
                       <span className="h-2.5 w-2.5 rounded-full bg-blue-600 animate-pulse" />
                     </div>
                     <div className="min-w-0">
@@ -186,7 +212,7 @@ function Profile() {
                   </div>
 
                   <div className="mt-4 flex items-center gap-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-50 text-gray-700 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-50 text-gray-700  ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600">
                       <Calendar className="w-4 h-4" />
                       Member since {joined}
                     </span>
@@ -200,7 +226,7 @@ function Profile() {
                         <button
                           onClick={handleCancel}
                           className="group flex-1 md:flex-none px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-2xl
-                            bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200/40 dark:ring-gray-700/40
+                            bg-white dark:bg-gray-800 shadow-sm  ring-gray-200/40 dark:ring-gray-700/40
                             hover:bg-gray-100 dark:hover:bg-gray-700 transition
                             active:scale-[0.99] cursor-pointer
                             focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
@@ -213,7 +239,7 @@ function Profile() {
                         <button
                           onClick={handleSave}
                           className="group relative flex-1 md:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-2xl
-                            shadow-sm ring-1 ring-blue-600/20
+                            shadow-sm  ring-blue-600/20
                             hover:bg-blue-700 hover:shadow-lg hover:-translate-y-[1px]
                             transition active:translate-y-0 active:scale-[0.99]
                             flex items-center justify-center gap-2 cursor-pointer
@@ -229,7 +255,7 @@ function Profile() {
                         <button
                           onClick={handleLogout}
                           className="group flex-1 md:flex-none px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-2xl
-                            bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200/40 dark:ring-gray-700/40
+                            bg-white dark:bg-gray-800 shadow-sm  ring-gray-200/40 dark:ring-gray-700/40
                             hover:bg-gray-100 dark:hover:bg-gray-700 transition
                             active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer
                             focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
@@ -240,7 +266,7 @@ function Profile() {
                         <button
                           onClick={() => setIsEditing(true)}
                           className="group relative flex-1 md:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-2xl
-                            shadow-sm ring-1 ring-blue-600/20
+                            shadow-sm  ring-blue-600/20
                             hover:bg-blue-700 hover:shadow-lg hover:-translate-y-[1px]
                             transition active:translate-y-0 active:scale-[0.99]
                             flex items-center justify-center gap-2 cursor-pointer
@@ -259,9 +285,9 @@ function Profile() {
               <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent" />
 
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="group rounded-2xl bg-gray-50 dark:bg-gray-700/60 ring-1 ring-gray-200 dark:ring-gray-700 p-4 shadow-sm flex flex-col items-center transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="group rounded-2xl bg-gray-50 dark:bg-gray-700/60 ring-gray-200 dark:ring-gray-700 p-4 shadow-sm flex flex-col items-center transition hover:-translate-y-0.5 hover:shadow-md">
                   <span
-                    className={`px-3 py-1.5 rounded-full text-xs font-extrabold ring-1 ring-black/5 dark:ring-white/10`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-extrabold ring-black/5 dark:ring-white/10`}
                     style={{
                       background: colors.primary.light,
                       color: colors.primaryText,
@@ -269,16 +295,13 @@ function Profile() {
                   >
                     {profileData.role.toUpperCase()}
                   </span>
-                  <span
-                    className="mt-2 text-xs font-bold"
-                    style={{ color: colors.secondaryText }}
-                  >
+                  <span className="mt-2 text-xs font-bold" style={{}}>
                     Account Type
                   </span>
                 </div>
-                <div className="group rounded-2xl bg-gray-50 dark:bg-gray-700/60 ring-1 ring-gray-200 dark:ring-gray-700 p-4 shadow-sm flex flex-col items-center transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="group rounded-2xl bg-gray-50 dark:bg-gray-700/60  ring-gray-200 dark:ring-gray-700 p-4 shadow-sm flex flex-col items-center transition hover:-translate-y-0.5 hover:shadow-md">
                   <span
-                    className="px-3 py-1.5 rounded-full text-xs font-extrabold ring-1 ring-black/5 dark:ring-white/10"
+                    className="px-3 py-1.5 rounded-full text-xs font-extrabold ring-black/5 dark:ring-white/10"
                     style={{
                       background:
                         profileData.status === "active"
@@ -306,13 +329,13 @@ function Profile() {
                   </span>
                   <span
                     className="mt-2 text-xs font-bold"
-                    style={{ color: colors.secondaryText }}
+                    style={{  }}
                   >
                     Status
                   </span>
                 </div>
-                <div className="group rounded-2xl bg-gray-50 dark:bg-gray-700/60 ring-1 ring-gray-200 dark:ring-gray-700 p-4 shadow-sm flex flex-col items-center transition hover:-translate-y-0.5 hover:shadow-md">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-50 text-green-700 ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-300 dark:ring-green-900/30">
+                <div className="group rounded-2xl bg-gray-50 dark:bg-gray-700/60  ring-gray-200 dark:ring-gray-700 p-4 shadow-sm flex flex-col items-center transition hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/60 dark:text-green-300 dark:ring-green-900/30">
                     <CheckCircle className="w-4 h-4 animate-[pulse_2.2s_ease-in-out_infinite]" />
                     Verified
                   </span>
@@ -321,8 +344,8 @@ function Profile() {
                   </span>
                 </div>
                 {/* Last Login */}
-                <div className="group rounded-2xl bg-gray-50 dark:bg-gray-700/60 ring-1 ring-gray-200 dark:ring-gray-700 p-4 shadow-sm flex flex-col items-center transition hover:-translate-y-0.5 hover:shadow-md">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:ring-yellow-900/30">
+                <div className="group rounded-2xl bg-gray-50 dark:bg-gray-700/60  ring-gray-200 dark:ring-gray-700 p-4 shadow-sm flex flex-col items-center transition hover:-translate-y-0.5 hover:shadow-md">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-50 text-yellow-700  ring-yellow-200 dark:bg-yellow-900/60 dark:text-yellow-300 dark:ring-yellow-900/30">
                     <Calendar className="w-4 h-4" />
                     Last Login
                   </span>
@@ -342,13 +365,13 @@ function Profile() {
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Profile Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden transition-all duration-300 hover:shadow-2xl">
+            <div className="bg-white dark:bg-gray-800 shadow-lg  ring-gray-200 dark:ring-gray-700 overflow-hidden transition-all duration-300 hover:shadow-2xl w-full max-w-full">
               {/* Animated top accent */}
               <div className="h-1.5 w-full bg-gradient-to-r from-[${colors.primary}] via-[${colors.secondary}] to-[${colors.accent}] animate-[pulse_3.2s_ease-in-out_infinite]" />
-              <div className="p-6 sm:p-8">
+              <div className="p-4 sm:p-8">
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                   <div className="relative">
-                    <div className="rounded-3xl bg-gray-50 dark:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-600 p-2 shadow-sm transition hover:shadow-md">
+                    <div className="rounded-3xl bg-gray-50 dark:bg-gray-700  ring-gray-200 dark:ring-gray-600 p-2 shadow-sm transition hover:shadow-md">
                       <img
                         src={formData.profileImage}
                         alt="Profile"
@@ -361,7 +384,7 @@ function Profile() {
 
                     {isEditing && (
                       <button
-                        className="group absolute -bottom-2 -right-2 bg-blue-600 text-white p-2.5 rounded-2xl shadow-sm ring-1 ring-blue-600/20
+                        className="group absolute -bottom-2 -right-2 bg-blue-600 text-white p-2.5 rounded-2xl shadow-sm  ring-blue-600/20
                           hover:bg-blue-700 hover:shadow-lg hover:-translate-y-[1px]
                           transition active:translate-y-0 active:scale-[0.99] cursor-pointer
                           focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
@@ -387,7 +410,7 @@ function Profile() {
                                 onChange={handleInputChange}
                                 className="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-2xl px-4 py-2.5
                                   text-gray-900 dark:text-white w-full sm:w-[600px]
-                                  shadow-sm ring-1 ring-gray-200/40 dark:ring-gray-700/40
+                                  shadow-sm  ring-gray-200/40 dark:ring-gray-700/40
                                   focus:outline-none focus:ring-2 focus:ring-blue-600 transition
                                   hover:shadow-md"
                               />
@@ -404,8 +427,8 @@ function Profile() {
                     <div className="mt-6 space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {/* Email */}
-                        <div className="group flex items-start gap-3 rounded-2xl bg-gray-50/60 dark:bg-gray-700/40 ring-1 ring-gray-200 dark:ring-gray-700 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 shadow-sm transition group-hover:shadow">
+                        <div className="group flex items-start gap-3 rounded-2xl bg-gray-50/60 dark:bg-gray-700/60  ring-gray-200 dark:ring-gray-700 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-gray-800  ring-gray-200 dark:ring-gray-700 shadow-sm transition group-hover:shadow">
                             <Mail
                               className="w-5 h-5"
                               style={{ color: colors.primary }}
@@ -438,8 +461,8 @@ function Profile() {
                         </div>
 
                         {/* Phone */}
-                        <div className="group flex items-start gap-3 rounded-2xl bg-gray-50/60 dark:bg-gray-700/40 ring-1 ring-gray-200 dark:ring-gray-700 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 shadow-sm transition group-hover:shadow">
+                        <div className="group flex items-start gap-3 rounded-2xl bg-gray-50/60 dark:bg-gray-700/60  ring-gray-200 dark:ring-gray-700 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-gray-800  ring-gray-200 dark:ring-gray-700 shadow-sm transition group-hover:shadow">
                             <Phone
                               className="w-5 h-5"
                               style={{ color: colors.secondary }}
@@ -472,8 +495,8 @@ function Profile() {
                         </div>
 
                         {/* Location */}
-                        <div className="group flex items-start gap-3 rounded-2xl bg-gray-50/60 dark:bg-gray-700/40 ring-1 ring-gray-200 dark:ring-gray-700 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 shadow-sm transition group-hover:shadow">
+                        <div className="group flex items-start gap-3 rounded-2xl bg-gray-50/60 dark:bg-gray-700/60  ring-gray-200 dark:ring-gray-700 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-gray-800  ring-gray-200 dark:ring-gray-700 shadow-sm transition group-hover:shadow">
                             <MapPin
                               className="w-5 h-5"
                               style={{ color: colors.accent }}
@@ -515,7 +538,7 @@ function Profile() {
                           : "opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden"
                       }`}
                     >
-                      <div className="rounded-3xl bg-blue-50 ring-1 ring-blue-200 p-4 shadow-sm relative overflow-hidden">
+                      <div className="rounded-3xl bg-blue-50  ring-blue-200 p-4 shadow-sm relative overflow-hidden">
                         <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-blue-600/10 blur-2xl" />
                         <p className="text-sm font-extrabold text-blue-900">
                           Editing mode enabled

@@ -192,7 +192,10 @@ const Bookings = () => {
         : [];
 
   return (
-    <div className="min-h-screen" style={{ background: colors.neutral[50] }}>
+    <div
+      className="min-h-screen p-4"
+      style={{ background: colors.neutral[50] }}
+    >
       {loading && (
         <AppLoader
           title="Loading bookings"
