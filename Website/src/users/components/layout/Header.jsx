@@ -82,9 +82,15 @@ export const Header = () => {
   // Actions
   // -------------------------
   const handleLogout = useCallback(() => {
-    performLogout();
-    closeAll();
-    navigate("/", { replace: true });
+    // Use AuthContext logout to clear user state
+    if (typeof window !== "undefined") {
+      import("../../../worker/context/AuthContext").then(({ useAuth }) => {
+        const { logout } = useAuth();
+        logout();
+        closeAll();
+        navigate("/login", { replace: true });
+      });
+    }
   }, [closeAll, navigate]);
 
   const navLinks = useMemo(

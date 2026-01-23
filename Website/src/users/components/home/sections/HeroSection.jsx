@@ -777,7 +777,7 @@ const HeroSection = ({
               <motion.div
                 whileHover={{ rotateY: 4, rotateX: 3 }}
                 transition={{ type: "spring", damping: 20 }}
-                className="relative overflow-hidden rounded-3xl border border-gray-200/70 bg-white shadow-2xl ring-1 ring-black/5 dark:border-gray-800/70 dark:bg-gray-950 dark:ring-white/10"
+                className="relative overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-gray-950"
                 style={{
                   transformStyle: "preserve-3d",
                   willChange: "transform",
@@ -793,7 +793,7 @@ const HeroSection = ({
                   initial={{ scale: 1.06 }}
                   animate={{ scale: 1 }}
                   transition={{ duration: 0.9, ease: "easeOut" }}
-                  className="h-[360px] w-full object-cover sm:h-[440px] lg:h-[520px]"
+                  className="w-full h-full object-cover sm:h-[440px] lg:h-[520px]"
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-gray-950/20 via-transparent to-transparent" />
               </motion.div>
