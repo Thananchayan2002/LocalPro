@@ -18,8 +18,7 @@ function MobileNavbar() {
     <nav
       role="navigation"
       aria-label="Mobile navigation"
-      className="MobileNavbar fixed left-0 right-0 bottom-0 z-50 lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur"
-      style={{ marginBottom: 0, paddingBottom: 0 }}
+      className="MobileNavbar fixed -mb-4 -pb-4 left-0 right-0 bottom-0 z-50 lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur"
     >
       <motion.ul
         variants={staggerContainer}
