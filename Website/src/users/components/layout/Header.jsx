@@ -21,7 +21,7 @@ import {
   Info,
   MessageSquare,
 } from "lucide-react";
-import { performLogout } from "../../../auth/Logout";
+import toast from "react-hot-toast";
 import { useAuth } from "../../../worker/context/AuthContext";
 import {
   motion,
@@ -35,8 +35,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const headerRef = useRef(null);
-
-  const { user, loading: loadingUser } = useAuth();
+  const { logout, user, loading: authLoading } = useAuth();
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState("English");
@@ -81,17 +80,16 @@ export const Header = () => {
   // -------------------------
   // Actions
   // -------------------------
-  const handleLogout = useCallback(() => {
-    // Use AuthContext logout to clear user state
-    if (typeof window !== "undefined") {
-      import("../../../worker/context/AuthContext").then(({ useAuth }) => {
-        const { logout } = useAuth();
-        logout();
-        closeAll();
-        navigate("/login", { replace: true });
-      });
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
     }
-  }, [closeAll, navigate]);
+  };
 
   const navLinks = useMemo(
     () => [
@@ -492,7 +490,7 @@ export const Header = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-50">
-                            {loadingUser ? "Loading..." : displayName}
+                            {authLoading ? "Loading..." : displayName}
                           </p>
                           <p className="truncate text-xs text-gray-500 dark:text-gray-400">
                             {user?.email || "Not available"}

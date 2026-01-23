@@ -619,13 +619,13 @@ export default function PhoneAuth({
                 type="text"
                 className={[
                   isLoginLayout ? "rounded-lg" : "rounded-xl",
-                  "w-full border-2 px-3 py-3 focus:outline-none focus:ring-2",
+                  "w-full border-2 px-3 py-3 focus:outline-none focus:ring-1",
                 ].join(" ")}
                 style={{
                   borderColor:
                     errors.otp && touched.otp
                       ? colors.error.DEFAULT
-                      : colors.border.DEFAULT,
+                      : colors.primary.DEFAULT,
                   "--tw-ring-color":
                     errors.otp && touched.otp
                       ? colors.error.light
