@@ -18,17 +18,20 @@ function MobileNavbar() {
     <nav
       role="navigation"
       aria-label="Mobile navigation"
-      className="MobileNavbar fixed -mb-4 -pb-4 left-0 right-0 bottom-0 z-50 lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur"
+      className="MobileNavbar fixed left-0 right-0 bottom-0 z-50 lg:hidden border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur w-screen"
+      style={{
+        marginBottom: 0,
+        paddingBottom: 0,
+        paddingTop: 0,
+        width: "100vw",
+      }}
     >
       <motion.ul
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="
-          mx-auto flex max-w-md
-          items-center justify-between
-          px-2 py-2
-        "
+        className="flex w-full items-center justify-between m-0 p-0"
+        style={{ margin: 0, padding: 0, width: "100%" }}
       >
         {navItems.map(({ icon: Icon, label, path }) => (
           <li key={path} className="flex-1">
