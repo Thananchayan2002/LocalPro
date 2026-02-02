@@ -31,7 +31,7 @@ function App() {
       <BrowserRouter>
         <Toaster position="top-right" />
         <Routes>
-          {/* Public auth routes */}
+          {/* Publc auth routes */}
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
