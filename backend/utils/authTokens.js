@@ -16,7 +16,7 @@ const parsePositiveNumber = (name, value, fallback) => {
 const ACCESS_TOKEN_TTL_MINUTES = parsePositiveNumber(
   "ACCESS_TOKEN_TTL_MINUTES",
   process.env.ACCESS_TOKEN_TTL_MINUTES,
-  15,
+  15, 
 );
 const REFRESH_TOKEN_TTL_DAYS = parsePositiveNumber(
   "REFRESH_TOKEN_TTL_DAYS",
@@ -66,15 +66,18 @@ const hashToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
 const setAuthCookies = (res, accessToken, refreshToken) => {
+  const accessMaxAgeMs = ACCESS_TOKEN_TTL_MINUTES * 60 * 1000;
+  const refreshMaxAgeMs = REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
+
   res.cookie(
     "accessToken",
     accessToken,
-    cookieOptions(ACCESS_TOKEN_TTL_MINUTES * 60 * 1000),
+    cookieOptions(accessMaxAgeMs),
   );
   res.cookie(
     "refreshToken",
     refreshToken,
-    cookieOptions(REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
+    cookieOptions(refreshMaxAgeMs),
   );
 };
 

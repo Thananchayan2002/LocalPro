@@ -42,6 +42,9 @@ router.put("/update-email", protect, authController.updateEmail);
 // PUT /api/auth/update-password
 router.put("/update-password", protect, authController.updatePassword);
 
+// GET /api/auth/public/user-by-phone/:phone (public endpoint - for fetching user/professional info without auth)
+router.get("/public/user-by-phone/:phone", authController.getUserByPhone);
+
 // GET /api/auth/user/:id
 router.get("/user/:id", protect, authController.getUserById);
 

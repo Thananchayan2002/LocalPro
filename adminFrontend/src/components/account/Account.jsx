@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { useAuth } from "../../context/AuthContext";
+import { useAdminAuth } from "../../context/AdminAuthContext";
 import {
   UserCog,
   Eye,
@@ -12,10 +12,10 @@ import {
 import { API_BASE_URL } from "../../utils/api";
 
 export const Account = () => {
-  const { user, updateUser } = useAuth();
+  const { admin, updateProfile } = useAdminAuth();
 
   const [verifyForm, setVerifyForm] = useState({
-    currentPhone: user?.phone || "",
+    currentPhone: admin?.phone || "",
     currentPassword: "",
   });
 
@@ -49,7 +49,7 @@ export const Account = () => {
     setUpdatePhoneChecked(false);
     setNewPhone("");
     setPasswords({ newPassword: "", confirmPassword: "" });
-    setVerifyForm({ currentPhone: user?.phone || "", currentPassword: "" });
+    setVerifyForm({ currentPhone: admin?.phone || "", currentPassword: "" });
     setShowPasswords({ current: false, new: false, confirm: false });
   };
 
@@ -58,7 +58,7 @@ export const Account = () => {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/verify-credentials`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/auth/verify-credentials`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -76,7 +76,7 @@ export const Account = () => {
       setVerified(true);
       // Use the verified phone from backend response to ensure exact match
       const verifiedPhone =
-        data.phone || user?.phone || verifyForm.currentPhone;
+        data.phone || admin?.phone || verifyForm.currentPhone;
       setVerifyForm({ ...verifyForm, currentPhone: verifiedPhone });
 
       console.log("Verification successful! Verified phone:", verifiedPhone);
@@ -119,7 +119,7 @@ export const Account = () => {
 
     // Debug logging
     console.log("=== Phone Update Debug ===");
-    console.log("user.phone:", user?.phone);
+    console.log("admin.phone:", admin?.phone);
     console.log("verifyForm.currentPhone:", verifyForm.currentPhone);
     console.log("newPhone:", newPhone);
     console.log("wantsPhone:", wantsPhone);
@@ -154,7 +154,7 @@ export const Account = () => {
         setLoading(false);
         return;
       }
-      if (newPhone === user?.phone) {
+      if (newPhone === admin?.phone) {
         toast.error("New phone must be different from current phone", {
           icon: "⚠️",
           style: {
@@ -209,7 +209,7 @@ export const Account = () => {
 
         console.log("Sending phone update payload:", phonePayload);
 
-        const res = await fetch(`${API_BASE_URL}/api/auth/update-phone`, {
+        const res = await fetch(`${API_BASE_URL}/api/admin/auth/update-phone`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -222,9 +222,9 @@ export const Account = () => {
         console.log("Phone update response:", data);
         if (!res.ok) throw new Error(data.message || "Failed to update phone");
 
-        // Update context user
-        const updatedUser = { ...user, phone: data.user?.phone || newPhone };
-        updateUser(updatedUser);
+        // Update context admin
+        const updatedAdmin = { ...admin, phone: data.user?.phone || newPhone };
+        updateProfile(updatedAdmin);
 
         // CRITICAL: Update verifyForm.currentPhone to the new phone for subsequent password update
         const updatedPhone = data.user?.phone || newPhone.trim();
@@ -243,7 +243,7 @@ export const Account = () => {
           currentPhoneForPasswordUpdate
         );
 
-        const res2 = await fetch(`${API_BASE_URL}/api/auth/update-password`, {
+        const res2 = await fetch(`${API_BASE_URL}/api/admin/auth/update-password`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -340,7 +340,7 @@ export const Account = () => {
                   value={verifyForm.currentPhone}
                   onChange={handleVerifyChange}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
-                  placeholder={user?.phone}
+                  placeholder={admin?.phone}
                   required
                 />
               </div>
@@ -390,7 +390,7 @@ export const Account = () => {
                   type="button"
                   onClick={() =>
                     setVerifyForm({
-                      currentPhone: user?.phone || "",
+                      currentPhone: admin?.phone || "",
                       currentPassword: "",
                     })
                   }

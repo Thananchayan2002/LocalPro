@@ -254,7 +254,7 @@ const HeroSection = ({
       </div>
 
       {/* Content */}
-      <div className="relative mx-auto max-w-7xl px-4 pb-12 pt-12 sm:px-6 sm:pb-16 sm:pt-16 lg:px-8 lg:pb-20 lg:pt-20">
+      <div className="relative mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-10 lg:px-8 lg:pb-20 lg:pt-8">
         <div className="flex flex-col items-center gap-12 lg:flex-row lg:items-center lg:gap-16">
           {/* LEFT */}
           <motion.div
@@ -310,7 +310,7 @@ const HeroSection = ({
                 <span className="block" style={{ color: colors.text.primary }}>
                   Find{" "}
                   <span
-                    className="bg-clip-text text-transparent"
+                    className="bg-clip-text text-transparent px-2 rounded-lg py-0"
                     style={{
                       background: colors.primary.gradient,
                       color: "#ffffff",
@@ -320,7 +320,7 @@ const HeroSection = ({
                   </span>
                 </span>
                 <span
-                  className="block bg-clip-text text-transparent"
+                  className="block bg-clip-text text-transparent pl-2 rounded-lg py-0"
                   style={{
                     background: colors.secondary.gradient,
                     color: "#ffffff",
@@ -339,13 +339,13 @@ const HeroSection = ({
                   border: `1px solid ${colors.border.light}`,
                 }}
               >
-                <Zap className="h-4 w-4" />
+                <Zap className="h-4 w-4 hidden md:block" />
                 Instantly connect with verified experts near you
               </motion.p>
 
               <motion.p
                 variants={staggerItem}
-                className="mx-auto mb-10 max-w-2xl text-base leading-relaxed sm:text-lg lg:mx-0"
+                className="mx-auto mb-6 md:mb-10 max-w-2xl text-base leading-relaxed sm:text-lg lg:mx-0"
                 style={{ color: colors.text.secondary }}
               >
                 Electricians, plumbers, cleaners & more. Vetted profiles, real
@@ -357,7 +357,7 @@ const HeroSection = ({
             <motion.div
               variants={staggerItem}
               ref={searchRef}
-              className="relative mb-8"
+              className="relative mb-4 md:mb-8"
             >
               <div className="relative">
                 {/* glow */}
@@ -367,7 +367,7 @@ const HeroSection = ({
                 />
 
                 <div
-                  className="group relative rounded-2xl border p-2 shadow-lg backdrop-blur-xl transition hover:shadow-xl"
+                  className="group relative rounded-2xl border p-0 md:p-2 shadow-lg backdrop-blur-xl transition hover:shadow-xl"
                   style={{
                     borderColor: colors.border.light,
                     backgroundColor: colors.background.secondary,
@@ -387,7 +387,7 @@ const HeroSection = ({
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onFocus={() => hasQuery && setShowDropdown(true)}
                       onKeyDown={onInputKeyDown}
-                      className="h-14 w-full rounded-xl bg-transparent pl-12 pr-12 text-base focus:outline-none focus:ring-1 sm:text-lg"
+                      className="h-14 w-full rounded-xl bg-transparent px-12 text-base focus:outline-none focus:ring-1 sm:text-lg"
                       style={{
                         color: colors.text.primary,
                         caretColor: colors.primary.DEFAULT,
@@ -731,7 +731,7 @@ const HeroSection = ({
             >
               {[
                 { icon: Users, value: "50+", label: "Happy Customers" },
-                { icon: UserCheck, value: "4+", label: "Experts" },
+                { icon: UserCheck, value: "200+", label: "Experts" },
                 { icon: ThumbsUp, value: "98%", label: "Satisfaction" },
                 { icon: Star, value: "4.8★", label: "Avg Rating" },
               ].map((stat, index) => (
@@ -804,7 +804,7 @@ const HeroSection = ({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ delay: 0.35, duration: 0.55 }}
                 whileHover={{ y: -4 }}
-                className="absolute -bottom-6 -left-4 hidden w-[260px] rounded-2xl border border-gray-200/70 bg-white/90 p-4 shadow-2xl backdrop-blur-xl dark:border-gray-800/70 dark:bg-gray-950/80 sm:block"
+                className="absolute -bottom-6 -left-4 hidden w-[280px] rounded-2xl border border-gray-200/70 bg-white/90 p-4 shadow-2xl backdrop-blur-xl dark:border-gray-800/70 dark:bg-gray-950/80 sm:block"
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -818,7 +818,7 @@ const HeroSection = ({
                       Life Saver!
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Found a plumber in 5 minutes
+                      Found a professional in 5 minutes
                     </p>
                   </div>
                 </div>

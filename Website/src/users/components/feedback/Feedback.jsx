@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { colors } from "../../../styles/colors";
 import {
   Star,
@@ -17,20 +17,23 @@ import {
 } from "lucide-react";
 import AppLoader from "../common/AppLoader";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { createFeedback, getFeaturedFeedback } from "../../api/feedback/feedback";
 
 export const Feedback = () => {
+  const navigate = useNavigate();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [feedbackType, setFeedbackType] = useState("general");
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
-    subject: "",
     message: "",
     experience: "good",
   });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [testimonials, setTestimonials] = useState([]);
+  const [error, setError] = useState(null);
 
   const feedbackTypes = [
     {
@@ -82,30 +85,18 @@ export const Feedback = () => {
     },
   ];
 
-  const testimonials = [
-    {
-      name: "Rajesh Kumar",
-      rating: 5,
-      comment:
-        "The website is incredibly easy to use! Found a plumber within minutes.",
-      date: "2 days ago",
-      type: "suggestion",
-    },
-    {
-      name: "Priya Silva",
-      rating: 4,
-      comment: "Great platform. Would love to see more payment options.",
-      date: "1 week ago",
-      type: "feature",
-    },
-    {
-      name: "Kamal Perera",
-      rating: 5,
-      comment: "Best service platform in Sri Lanka. Keep up the good work!",
-      date: "2 weeks ago",
-      type: "general",
-    },
-  ];
+  // Fetch testimonials on component mount
+  useEffect(() => {
+    const loadTestimonials = async () => {
+      try {
+        const data = await getFeaturedFeedback();
+        setTestimonials(data);
+      } catch (err) {
+        console.error("Failed to load testimonials:", err);
+      }
+    };
+    loadTestimonials();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -115,15 +106,36 @@ export const Feedback = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically send the feedback to your backend
-    console.log("Feedback submitted:", { ...formData, rating, feedbackType });
+
+    // Validate required fields
+    if (!formData.message) {
+      setError("Please fill in all required fields");
+      return;
+    }
 
     setSubmitting(true);
-    setSubmitted(false);
+    setError(null);
 
-    setTimeout(() => {
+    try {
+      // Get user ID from localStorage if available (optional)
+      const userStr = localStorage.getItem("user");
+      const userId = userStr ? JSON.parse(userStr)._id : null;
+
+      const feedbackPayload = {
+        userId: userId || null,
+        feedbackType,
+        rating,
+        subject: formData.name || "User Feedback",
+        message: formData.message,
+        experience: formData.experience,
+        name: formData.name,
+        email: "",
+      };
+
+      await createFeedback(feedbackPayload);
+
       // Show success message
       setSubmitted(true);
       setSubmitting(false);
@@ -132,15 +144,28 @@ export const Feedback = () => {
       setTimeout(() => {
         setSubmitted(false);
         setRating(0);
+        setFeedbackType("general");
         setFormData({
           name: "",
-          email: "",
-          subject: "",
           message: "",
           experience: "good",
         });
+        // Reload testimonials
+        loadTestimonials();
       }, 3000);
-    }, 600);
+    } catch (err) {
+      setError(err.message || "Failed to submit feedback");
+      setSubmitting(false);
+    }
+  };
+
+  const loadTestimonials = async () => {
+    try {
+      const data = await getFeaturedFeedback(6);
+      setTestimonials(data);
+    } catch (err) {
+      console.error("Failed to load testimonials:", err);
+    }
   };
 
   const pageIn = {
@@ -370,6 +395,23 @@ export const Feedback = () => {
                       }}
                     >
                       <form onSubmit={handleSubmit} className="space-y-7">
+                        {/* Error Message */}
+                        {error && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-xl border-l-4 p-4"
+                            style={{
+                              background: "rgba(239, 68, 68, 0.1)",
+                              borderColor: "rgb(239, 68, 68)",
+                            }}
+                          >
+                            <p style={{ color: "rgb(220, 38, 38)" }} className="text-sm font-semibold">
+                              {error}
+                            </p>
+                          </motion.div>
+                        )}
+
                         {/* Overall Rating */}
                         <div className="space-y-3">
                           <div className="flex items-center justify-between gap-3">
@@ -513,7 +555,7 @@ export const Feedback = () => {
                         </div>
 
                         {/* Personal Details */}
-                        <div className="grid md:grid-cols-2 gap-5">
+                        <div className="">
                           <div className="space-y-2">
                             <label
                               className="block text-sm font-semibold"
@@ -536,54 +578,7 @@ export const Feedback = () => {
                               placeholder="Enter your name"
                             />
                           </div>
-
-                          <div className="space-y-2">
-                            <label
-                              className="block text-sm font-semibold"
-                              style={{ color: colors.text.primary }}
-                            >
-                              Email Address
-                            </label>
-                            <motion.input
-                              whileFocus={{ scale: 1.01 }}
-                              type="email"
-                              name="email"
-                              value={formData.email}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-3 rounded-2xl border outline-none transition-all duration-200 focus:ring-4 focus:ring-blue-500/20 cursor-text"
-                              style={{
-                                borderColor: colors.border.light,
-                                background: colors.background.paper,
-                                color: colors.text.primary,
-                              }}
-                              placeholder="your@email.com"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Subject */}
-                        <div className="space-y-2">
-                          <label
-                            className="block text-sm font-semibold"
-                            style={{ color: colors.text.primary }}
-                          >
-                            Subject
-                          </label>
-                          <motion.input
-                            whileFocus={{ scale: 1.01 }}
-                            type="text"
-                            name="subject"
-                            value={formData.subject}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 rounded-2xl border outline-none transition-all duration-200 focus:ring-4 focus:ring-blue-500/20 cursor-text"
-                            style={{
-                              borderColor: colors.border.light,
-                              background: colors.background.paper,
-                              color: colors.text.primary,
-                            }}
-                            placeholder="Brief summary of your feedback"
-                          />
-                        </div>
+                         </div>
 
                         {/* Message */}
                         <div className="space-y-2">
@@ -688,7 +683,7 @@ export const Feedback = () => {
               </div>
 
               <div className="p-6 space-y-4">
-                {testimonials.map((testimonial, index) => (
+                {testimonials.slice(0,3).map((testimonial, index) => (
                   <motion.div
                     key={index}
                     whileHover={{ y: -2 }}
@@ -742,8 +737,8 @@ export const Feedback = () => {
                               : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                         }`}
                       >
-                        {testimonial.type.charAt(0).toUpperCase() +
-                          testimonial.type.slice(1)}
+                        {(testimonial.type || "general").charAt(0).toUpperCase() +
+                          (testimonial.type || "general").slice(1)}
                       </span>
                     </div>
                   </motion.div>
@@ -771,7 +766,7 @@ export const Feedback = () => {
                   <div className="rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-md">
                     <p
                       className="text-xs font-medium"
-                      style={{ color: "black" }}
+                      style={{ color: "white" }}
                     >
                       Feedback Received
                     </p>
@@ -781,7 +776,7 @@ export const Feedback = () => {
                   <div className="rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-md">
                     <p
                       className="text-xs font-medium"
-                      style={{ color: "black" }}
+                      style={{ color: "white" }}
                     >
                       Average Rating
                     </p>
@@ -793,7 +788,7 @@ export const Feedback = () => {
                   <div className="rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-md">
                     <p
                       className="text-xs font-medium"
-                      style={{ color: "black" }}
+                      style={{ color: "white" }}
                     >
                       Suggestions Implemented
                     </p>
@@ -803,66 +798,13 @@ export const Feedback = () => {
                   <div className="rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-md">
                     <p
                       className="text-xs font-medium"
-                      style={{ color: "black" }}
+                      style={{ color: "white" }}
                     >
                       Response Time
                     </p>
                     <p className="mt-2 text-2xl font-extrabold">24-48 hrs</p>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Tips */}
-            <div
-              className="rounded-2xl sm:rounded-3xl shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)] border border-black/5 dark:border-white/10 overflow-hidden"
-              style={{ background: colors.background.paper }}
-            >
-              <div className="px-6 pt-6 pb-4 border-b border-black/5 dark:border-white/10">
-                <h3
-                  className="font-extrabold tracking-tight"
-                  style={{ color: colors.text.primary }}
-                >
-                  Tips for Great Feedback
-                </h3>
-                <p
-                  className="text-xs mt-1"
-                  style={{ color: colors.text.secondary }}
-                >
-                  Quick ways to help us help you
-                </p>
-              </div>
-
-              <div className="p-6">
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span
-                      className="text-sm leading-relaxed"
-                      style={{ color: colors.text.secondary }}
-                    >
-                      Be specific about what you like or dislike
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                      Include suggestions for improvement
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                      Share your use case or scenario
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                      Mention what worked well for you
-                    </span>
-                  </li>
-                </ul>
               </div>
             </div>
           </motion.div>

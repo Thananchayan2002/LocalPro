@@ -12,18 +12,23 @@ exports.getDashboardSummary = async (req, res) => {
     const totalProfessionals = await Professional.countDocuments();
     const totalCustomers = await User.countDocuments({ role: 'customer' });
 
-    // Total bookings
-    const totalBookings = await Booking.countDocuments();
+    // Total bookings (only verified)
+    const totalBookings = await Booking.countDocuments({ status: 'verified' });
 
-    // Revenue calculation: sum of paymentByUser
-    const payments = await Payment.find({});
+    // Revenue calculation: sum of paymentByWorker from verified bookings only
+    // First get all verified booking IDs
+    const verifiedBookings = await Booking.find({ status: 'verified' }).select('_id');
+    const verifiedBookingIds = verifiedBookings.map(b => b._id);
+
+    // Get payments for verified bookings only
+    const payments = await Payment.find({ bookingId: { $in: verifiedBookingIds } });
     let totalRevenue = 0;
 
     payments.forEach(p => {
-      if (p.paymentByUser) totalRevenue += p.paymentByUser;
+      if (p.paymentByWorker) totalRevenue += p.paymentByWorker;
     });
 
-    // Admin commission = 10% of total revenue
+    // Admin commission = 10% of total revenue (paymentByWorker)
     const adminCommission = totalRevenue * 0.1;
 
     res.json({
@@ -48,9 +53,9 @@ exports.getMonthlyRevenue = async (req, res) => {
     const currentYear = now.getFullYear();
     const previousYear = currentYear - 1;
 
-    // Fetch payments for current and previous year
+    // Fetch payments for current and previous year (verified bookings only)
     const payments = await Payment.aggregate([
-      { $match: { paymentByUser: { $ne: null } } },
+      { $match: { paymentByWorker: { $ne: null } } },
       {
         $lookup: {
           from: 'bookings',
@@ -60,11 +65,12 @@ exports.getMonthlyRevenue = async (req, res) => {
         }
       },
       { $unwind: '$booking' },
+      { $match: { 'booking.status': 'verified' } },
       {
         $project: {
           year: { $year: '$booking.createdAt' },
           month: { $month: '$booking.createdAt' },
-          amount: '$paymentByUser'
+          amount: '$paymentByWorker'
         }
       },
       { $match: { year: { $in: [currentYear, previousYear] } } },

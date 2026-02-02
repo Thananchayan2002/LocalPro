@@ -55,6 +55,25 @@ export const getReviewsByProfessional = async (userId) => {
 };
 
 /**
+ * Get reviews for a professional by phone number (public endpoint)
+ */
+export const getReviewsByProfessionalPhone = async (phone) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/reviews/professional-phone/${phone}`
+    );
+    if (!response.ok) {
+      return [];
+    }
+    const data = await response.json();
+    return data.success ? (data.data || []) : [];
+  } catch (error) {
+    console.error("Error fetching reviews by phone:", error);
+    return [];
+  }
+};
+
+/**
  * Get reviews for a service
  */
 export const getReviewsByService = async (serviceId) => {

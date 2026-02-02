@@ -8,6 +8,7 @@ import TestimonialsSection from "./sections/TestimonialsSection";
 import CTASection from "./sections/CTASection";
 import BookService from "../bookService/BookService";
 import RegisterProfessional from "../professionalRegister/RegisterProfessional";
+import { getFeaturedFeedback } from "../../api/feedback/feedback";
 
 import {
   assets,
@@ -15,7 +16,7 @@ import {
   featuredWorkers,
   features,
   steps,
-  testimonials,
+  testimonials as defaultTestimonials, 
 } from "./data/homeData";
 
 export const Home = () => {
@@ -27,9 +28,13 @@ export const Home = () => {
   const [showProfessionalModal, setShowProfessionalModal] = useState(false);
   const [initialService, setInitialService] = useState(null);
   const [initialIssueName, setInitialIssueName] = useState("");
+  const [testimonials, setTestimonials] = useState(defaultTestimonials);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(false);
 
   const handleStartBooking = (service) => {
-    setInitialService(service || null);
+    // If service is an object, extract the service name string
+    const serviceName = service && typeof service === 'object' ? service.service : service;
+    setInitialService(serviceName || null);
     setShowBookingModal(true);
   };
 
@@ -49,13 +54,44 @@ export const Home = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key]);
 
+  // Fetch testimonials from API
   useEffect(() => {
+    const loadTestimonials = async () => {
+      setTestimonialsLoading(true);
+      try {
+        const data = await getFeaturedFeedback(6);
+        console.log("📊 FETCHED TESTIMONIALS:", data.length, "testimonials");
+        data.forEach((t, i) => {
+          console.log(`  [${i}] ${t.name} - ${t.rating}⭐ - "${t.comment?.substring(0, 30)}..."`);
+        });
+        if (data && data.length > 0) {
+          setTestimonials(data);
+          setCurrentIndex(0); // Reset index when testimonials change
+        }
+      } catch (error) {
+        console.error("Failed to load testimonials:", error);
+        // Use default testimonials on error
+        setTestimonials(defaultTestimonials);
+      } finally {
+        setTestimonialsLoading(false);
+      }
+    };
+
+    loadTestimonials();
+  }, []);
+
+  useEffect(() => {
+    if (!testimonials || testimonials.length <= 3) return;
+
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % featuredWorkers.length);
+      setCurrentIndex((prev) => {
+        const next = prev + 1;
+        return next >= testimonials.length ? 0 : next;
+      });
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [testimonials]);
 
   return (
     <div className="min-h-screen text-foreground overflow-x-hidden">
@@ -90,11 +126,12 @@ export const Home = () => {
           testimonials={testimonials}
           currentIndex={currentIndex}
           setCurrentIndex={setCurrentIndex}
+          isLoading={testimonialsLoading}
         />
       </AnimatedSection>
 
       <AnimatedSection>
-        <CTASection setShowBookingModal={setShowBookingModal} />
+        <CTASection setShowBookingModal={setShowBookingModal} setShowRegisterModal={setShowProfessionalModal} />
       </AnimatedSection>
 
       {/* Modals */}

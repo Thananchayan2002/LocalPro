@@ -7,6 +7,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
+const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const workerAuthRoutes = require("./routes/workerAuthRoutes");
 const otpRoutes = require("./routes/otpRoutes");
 const adminDashboardRoutes = require("./routes/adminDashboardRoutes")
@@ -54,7 +55,8 @@ app.use(
     credentials: true, // Required for HttpOnly cookies
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
 
 // Serve static files from uploads directory
@@ -62,6 +64,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/worker", workerAuthRoutes);
 app.use("/api/otp", otpRoutes);
 
@@ -71,12 +74,14 @@ const professionalRoutes = require("./routes/professionalRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const pushNotificationRoutes = require("./routes/pushNotificationRoutes");
+const feedbackRoutes = require("./routes/feedbackRoutes");
 app.use("/api/services", serviceRoutes);
 app.use("/api/issues", issueRoutes);
 app.use("/api/professionals", professionalRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/push", pushNotificationRoutes);
+app.use("/api/feedback", feedbackRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 
 console.log(process.env.MONGO_URI);

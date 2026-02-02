@@ -23,6 +23,7 @@ import {
   Award as AwardIcon,
   Users as UsersIcon,
 } from "lucide-react";
+import bannerImg from "../../../assets/images/bannerAbout.png";
 
 export const About = () => {
   const navigate = useNavigate();
@@ -186,7 +187,7 @@ export const About = () => {
     >
       {/* Hero Section */}
       <section
-        className="relative overflow-hidden text-white py-14 sm:py-16 lg:py-24"
+        className="relative overflow-hidden text-white pb-10 sm:pb-12 lg:pb-16 pt-7 sm:pt-8 lg:pt-12"
         style={{
           background: `linear-gradient(135deg,  ${colors.primary.DEFAULT})`,
         }}
@@ -219,7 +220,8 @@ export const About = () => {
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="flex flex-col lg:flex-row items-center justify-between max-w-11/12 mx-auto px-4 sm:px-6 lg:px-8 gap-8">
+          <div className="lg:max-w-3xl w-full relative">
           <div className="max-w-3xl">
             <motion.div
               {...motionPresets.fadeUp(0)}
@@ -234,7 +236,7 @@ export const About = () => {
 
             <motion.h1
               {...motionPresets.fadeUp(0.05)}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-5 leading-tight tracking-tight"
+              className="text-xl sm:text-4xl lg:text-5xl font-bold mb-5 leading-tight tracking-tight"
             >
               Connecting Trusted{" "}
               <span
@@ -295,60 +297,38 @@ export const About = () => {
                   hover:bg-white/10
                   active:scale-[0.99]
                 "
+                onClick={() => {
+                  window.open("https://wa.me/94740536517", "_blank");
+                }}
                 style={{
                   borderColor: colors.background.paper,
                   color: colors.text.onPrimary,
                 }}
                 {...motionPresets.button}
-                onClick={() => navigate("/app/about")}
               >
                 Contact Team
               </motion.button>
             </motion.div>
-
-            {/* Mobile “native app” quick trust row */}
-            <motion.div
-              {...motionPresets.fadeUp(0.2)}
-              className="mt-8 sm:mt-10 grid grid-cols-3 gap-3 sm:gap-4 max-w-xl"
-            >
-              {[
-                { icon: <Shield className="w-5 h-5" />, label: "Verified" },
-                { icon: <Clock className="w-5 h-5" />, label: "Fast" },
-                {
-                  icon: <TrendingUp className="w-5 h-5" />,
-                  label: "Top Rated",
-                },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="
-                    rounded-2xl
-                    px-3 py-3
-                    border border-white/15
-                    bg-white/10 backdrop-blur
-                    flex flex-col items-center justify-center
-                    text-center
-                  "
-                >
-                  <div
-                    className="mb-1 "
-                    style={{ color: colors.secondary.DEFAULT }}
-                  >
-                    {item.icon}
-                  </div>
-                  <div className="text-xs sm:text-sm font-medium">
-                    {item.label}
-                  </div>
-                </div>
-              ))}
-            </motion.div>
+          </div>
+          </div>
+          <div className="w-full flex justify-center relative hidden md:block">
+                <motion.img
+                  src={bannerImg}
+                  alt="Local service professionals at work"
+                  loading="lazy"
+                  decoding="async"
+                  initial={{ scale: 1.06 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.9, ease: "easeOut" }}
+                  className="w-full h-full object-cover"
+                />
           </div>
         </div>
       </section>
 
       {/* Our Story */}
       <motion.section
-        {...motionPresets.section}
+        {...motionPresets.section} 
         className="py-14 sm:py-16 lg:py-20"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -381,7 +361,7 @@ export const About = () => {
                 style={{ color: colors.text.secondary }}
               >
                 <p>
-                  Founded in 2020, HelpGo started with a simple vision: to solve
+                  Founded in 2025, HelpGo started with a simple vision: to solve
                   the challenge of finding reliable local professionals in Sri
                   Lanka. We noticed that customers struggled to find trustworthy
                   service providers, while skilled professionals lacked a
@@ -425,18 +405,18 @@ export const About = () => {
                   }}
                 />
 
-                <h3 className="text-2xl font-bold mb-4 tracking-tight">
+                <h3 className="text-white text-2xl font-bold mb-4 tracking-tight">
                   Our Mission
                 </h3>
 
-                <p className="mb-7 leading-relaxed">
+                <p className="mb-7 leading-relaxed text-white">
                   To empower local communities by creating reliable connections
                   between customers and verified professionals, while setting
                   new standards for service quality and customer satisfaction in
                   Sri Lanka.
                 </p>
 
-                <div className="space-y-3">
+                <div className="space-y-3 text-white">
                   <div className="flex items-center gap-3">
                     <CheckCircle
                       className="w-5 h-5"
@@ -646,10 +626,13 @@ export const About = () => {
                     className="
                       absolute left-1/2 transform -translate-x-1/2
                       w-4 h-4 rounded-full z-10
-                      ring-4 ring-white/60
+                      ring-4
                       shadow-[0_10px_24px_rgba(2,6,23,0.12)]
                     "
-                    style={{ background: colors.primary.gradient }}
+                    style={{
+                      background: colors.primary.gradient,
+                      ringColor: colors.background.default,
+                    }}
                     animate={{ scale: [1, 1.12, 1] }}
                     transition={{
                       duration: 2.6,
@@ -672,7 +655,6 @@ export const About = () => {
                         hover:shadow-[0_24px_60px_rgba(2,6,23,0.14)]
                         transition-shadow
                         cursor-pointer
-                        bg-white/70
                         backdrop-blur
                       "
                       style={{
@@ -834,9 +816,9 @@ export const About = () => {
             className="mt-10 sm:mt-12 grid grid-cols-3 gap-3 sm:gap-4 max-w-md mx-auto"
           >
             {[
-              { icon: <MessageSquare className="w-5 h-5" />, label: "Chat" },
-              { icon: <Phone className="w-5 h-5" />, label: "Call" },
-              { icon: <Mail className="w-5 h-5" />, label: "Email" },
+              { icon: <MessageSquare className="w-5 h-5 text-white" />, label: "Chat" },
+              { icon: <Phone className="w-5 h-5 text-white" />, label: "Call" },
+              { icon: <Mail className="w-5 h-5 text-white" />, label: "Email" },
             ].map((item, i) => (
               <motion.div
                 key={i}

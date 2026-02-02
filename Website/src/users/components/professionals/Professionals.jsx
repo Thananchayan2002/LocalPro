@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { colors } from "../../../styles/colors";
 import * as LucideIcons from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   getAllProfessionals,
   getProfessionalImageUrl,
 } from "../../api/professional/professional";
 import { getAllServices } from "../../api/service/service";
-import { getUserByPhone } from "../../api/auth/auth";
-import { getReviewsByProfessional } from "../../api/review/review";
+import { getReviewsByProfessionalPhone } from "../../api/review/review";
 import AppLoader from "../common/AppLoader";
+import { ProfessionalModal } from "./ProfessionalModal";
 
 const {
   Search,
@@ -23,6 +24,7 @@ const {
   MessageSquare,
   Loader,
   Users,
+  ChevronDown,
 } = LucideIcons;
 
 export const Professionals = () => {
@@ -37,6 +39,7 @@ export const Professionals = () => {
   const [services, setServices] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [expandedMobileFilter, setExpandedMobileFilter] = useState(null);
 
   const sriLankaDistricts = [
     "Colombo",
@@ -112,20 +115,8 @@ export const Professionals = () => {
       setLoadingReviews(true);
       setReviews([]);
 
-      // First, find the User ID by phone number
-      const userData = await getUserByPhone(professionalPhone);
-
-      if (!userData.success || !userData.data) {
-        console.log("No user found for phone:", professionalPhone);
-        setLoadingReviews(false);
-        return;
-      }
-
-      const userId = userData.data._id;
-      console.log("Found user ID:", userId);
-
-      // Now fetch reviews using the User ID
-      const reviewsData = await getReviewsByProfessional(userId);
+      // Fetch reviews directly by professional phone number
+      const reviewsData = await getReviewsByProfessionalPhone(professionalPhone);
       setReviews(reviewsData || []);
       console.log("Reviews fetched:", reviewsData);
     } catch (error) {
@@ -339,9 +330,10 @@ export const Professionals = () => {
       {/* Content */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          {/* Filters (desktop sidebar / mobile collapses into cards) */}
+          {/* Filters (desktop sidebar / mobile dropdowns) */}
           <aside className="lg:col-span-4 xl:col-span-3">
-            <div className="lg:sticky lg:top-24 space-y-4">
+            {/* DESKTOP SIDEBAR */}
+            <div className="hidden lg:block lg:sticky lg:top-24 space-y-4">
               {/* Service */}
               <div
                 className="rounded-2xl shadow-sm border overflow-hidden"
@@ -610,12 +602,282 @@ export const Professionals = () => {
                 </div>
               </div>
 
-              {/* Mobile reset (also shown on desktop in header area, but handy) */}
+              {/* Reset Button */}
               <button
                 onClick={() => {
                   setSelectedService("all");
                   setSelectedDistrict("all");
                   setSearchQuery("");
+                }}
+                className="w-full cursor-pointer rounded-2xl px-4 py-3 font-semibold shadow-sm border transition-all duration-200 hover:shadow active:scale-[0.99]"
+                style={{
+                  background: colors.neutral[100],
+                  color: colors.text.primary,
+                  borderColor: colors.border?.light || "rgba(0,0,0,0.08)",
+                }}
+              >
+                Reset Filters
+              </button>
+            </div>
+
+            {/* MOBILE DROPDOWNS */}
+            <div className="lg:hidden space-y-3">
+              {/* Service Category Dropdown */}
+              <div
+                className="rounded-2xl shadow-sm border overflow-hidden"
+                style={{
+                  background: colors.background.primary,
+                  borderColor: colors.border?.light || "rgba(0,0,0,0.08)",
+                }}
+              >
+                <button
+                  onClick={() =>
+                    setExpandedMobileFilter(
+                      expandedMobileFilter === "service" ? null : "service",
+                    )
+                  }
+                  className="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Briefcase
+                      className="h-5 w-5"
+                      style={{ color: colors.primary.DEFAULT }}
+                    />
+                    <div className="text-left">
+                      <h2
+                        className="text-sm font-bold"
+                        style={{ color: colors.text.primary }}
+                      >
+                        Service Category
+                      </h2>
+                      <p className="text-xs mt-0.5" style={{ color: colors.text.secondary }}>
+                        {
+                          serviceCategories.find(
+                            (s) => s.id === selectedService,
+                          )?.name
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <motion.span
+                    animate={{
+                      rotate: expandedMobileFilter === "service" ? 180 : 0,
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown
+                      className="h-5 w-5"
+                      style={{ color: colors.text.secondary }}
+                    />
+                  </motion.span>
+                </button>
+
+                <AnimatePresence>
+                  {expandedMobileFilter === "service" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="border-t"
+                      style={{
+                        borderColor: colors.border?.light || "rgba(0,0,0,0.06)",
+                      }}
+                    >
+                      <div className="px-3 py-3 max-h-64 overflow-y-auto space-y-2">
+                        {serviceCategories.map((category) => {
+                          const IconComponent = category.icon;
+                          const isActive = selectedService === category.id;
+                          return (
+                            <button
+                              key={category.id}
+                              onClick={() => {
+                                setSelectedService(category.id);
+                                setExpandedMobileFilter(null);
+                              }}
+                              className={[
+                                "w-full cursor-pointer select-none",
+                                "flex items-center gap-3",
+                                "rounded-xl px-3 py-3",
+                                "transition-all duration-200",
+                                "active:scale-[0.99]",
+                                "hover:shadow-sm",
+                                "border",
+                              ].join(" ")}
+                              style={{
+                                background: isActive
+                                  ? colors.primary.light
+                                  : colors.background.primary,
+                                color: isActive
+                                  ? colors.primary.DEFAULT
+                                  : colors.text.primary,
+                                borderColor: isActive
+                                  ? "transparent"
+                                  : colors.border?.light || "rgba(0,0,0,0.06)",
+                              }}
+                            >
+                              <span className="h-8 w-8 rounded-lg flex items-center justify-center bg-black/5">
+                                <IconComponent className="h-4 w-4" />
+                              </span>
+                              <span className="font-semibold text-sm flex-1 text-left">
+                                {category.name}
+                              </span>
+                              <span
+                                className="px-2 py-1 rounded-full text-xs font-semibold"
+                                style={{
+                                  background: colors.neutral[100],
+                                  color: colors.text.primary,
+                                }}
+                              >
+                                {category.count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* District Dropdown */}
+              <div
+                className="rounded-2xl shadow-sm border overflow-hidden"
+                style={{
+                  background: colors.background.primary,
+                  borderColor: colors.border?.light || "rgba(0,0,0,0.08)",
+                }}
+              >
+                <button
+                  onClick={() =>
+                    setExpandedMobileFilter(
+                      expandedMobileFilter === "district" ? null : "district",
+                    )
+                  }
+                  className="w-full px-4 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <MapPin
+                      className="h-5 w-5"
+                      style={{ color: colors.success.DEFAULT }}
+                    />
+                    <div className="text-left">
+                      <h2
+                        className="text-sm font-bold"
+                        style={{ color: colors.text.primary }}
+                      >
+                        District
+                      </h2>
+                      <p className="text-xs mt-0.5" style={{ color: colors.text.secondary }}>
+                        {selectedDistrict === "all"
+                          ? "All Districts"
+                          : selectedDistrict}
+                      </p>
+                    </div>
+                  </div>
+                  <motion.span
+                    animate={{
+                      rotate: expandedMobileFilter === "district" ? 180 : 0,
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown
+                      className="h-5 w-5"
+                      style={{ color: colors.text.secondary }}
+                    />
+                  </motion.span>
+                </button>
+
+                <AnimatePresence>
+                  {expandedMobileFilter === "district" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="border-t"
+                      style={{
+                        borderColor: colors.border?.light || "rgba(0,0,0,0.06)",
+                      }}
+                    >
+                      <div className="px-3 py-3 max-h-64 overflow-y-auto space-y-2">
+                        <button
+                          onClick={() => {
+                            setSelectedDistrict("all");
+                            setExpandedMobileFilter(null);
+                          }}
+                          className={[
+                            "w-full cursor-pointer select-none",
+                            "rounded-xl px-3 py-3 text-left",
+                            "transition-all duration-200",
+                            "active:scale-[0.99]",
+                            "hover:shadow-sm border",
+                            "font-semibold text-sm",
+                          ].join(" ")}
+                          style={{
+                            background:
+                              selectedDistrict === "all"
+                                ? colors.primary.light
+                                : colors.background.primary,
+                            color:
+                              selectedDistrict === "all"
+                                ? colors.primary.DEFAULT
+                                : colors.text.primary,
+                            borderColor:
+                              selectedDistrict === "all"
+                                ? "transparent"
+                                : colors.border?.light || "rgba(0,0,0,0.06)",
+                          }}
+                        >
+                          All Districts
+                        </button>
+
+                        {sriLankaDistricts.map((district) => {
+                          const isActive = selectedDistrict === district;
+                          return (
+                            <button
+                              key={district}
+                              onClick={() => {
+                                setSelectedDistrict(district);
+                                setExpandedMobileFilter(null);
+                              }}
+                              className={[
+                                "w-full cursor-pointer select-none",
+                                "rounded-xl px-3 py-3 text-left",
+                                "transition-all duration-200",
+                                "active:scale-[0.99]",
+                                "hover:shadow-sm border",
+                                "font-medium text-sm",
+                              ].join(" ")}
+                              style={{
+                                background: isActive
+                                  ? colors.primary.light
+                                  : colors.background.primary,
+                                color: isActive
+                                  ? colors.primary.DEFAULT
+                                  : colors.text.primary,
+                                borderColor: isActive
+                                  ? "transparent"
+                                  : colors.border?.light || "rgba(0,0,0,0.06)",
+                              }}
+                            >
+                              {district}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Reset Button */}
+              <button
+                onClick={() => {
+                  setSelectedService("all");
+                  setSelectedDistrict("all");
+                  setSearchQuery("");
+                  setExpandedMobileFilter(null);
                 }}
                 className="w-full cursor-pointer rounded-2xl px-4 py-3 font-semibold shadow-sm border transition-all duration-200 hover:shadow active:scale-[0.99]"
                 style={{
@@ -634,29 +896,54 @@ export const Professionals = () => {
             {/* Header row */}
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
               <div className="transform-gpu transition-all duration-500 ease-out animate-[fadeInUp_700ms_ease-out_both]">
+
                 <h2
-                  className="text-xl font-semibold tracking-tight sm:text-2xl"
-                  style={{ color: colors.text.primary }}
+                  className="text-xl sm:text-xl lg:text-2xl font-bold tracking-tight bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${colors.primary.DEFAULT}, ${colors.secondary.DEFAULT})`,
+                  }}
                 >
                   Verified Professionals
                 </h2>
 
-                <p
-                  className="mt-1 text-sm"
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="mt-1 text-base sm:text-base font-medium"
                   style={{ color: colors.text.secondary }}
                 >
                   <span
-                    className="font-semibold"
-                    style={{ color: colors.text.primary }}
+                    className="font-bold"
+                    style={{ color: colors.primary.DEFAULT }}
                   >
                     {filteredProfessionals.length}
                   </span>{" "}
-                  professionals found
-                  {selectedService !== "all" ? ` in ${activeServiceName}` : ""}
-                  {selectedDistrict !== "all"
-                    ? ` from ${selectedDistrict}`
-                    : ""}
-                </p>
+                  professional{filteredProfessionals.length !== 1 ? "s" : ""}{" "}
+                  found
+                  {selectedService !== "all" ? (
+                    <span style={{ color: colors.text.primary }}>
+                      {" "}
+                      in{" "}
+                      <span style={{ color: colors.secondary.DEFAULT }}>
+                        {activeServiceName}
+                      </span>
+                    </span>
+                  ) : (
+                    ""
+                  )}
+                  {selectedDistrict !== "all" ? (
+                    <span style={{ color: colors.text.primary }}>
+                      {" "}
+                      from{" "}
+                      <span style={{ color: colors.success.DEFAULT }}>
+                        {selectedDistrict}
+                      </span>
+                    </span>
+                  ) : (
+                    ""
+                  )}
+                </motion.p>
               </div>
 
               <button
@@ -809,17 +1096,14 @@ export const Professionals = () => {
                                   </p>
                                 </div>
 
-                                {/* RIGHT: Available pill */}
-                                {professional.isAvailable && (
                                   <span
-                                    className="shrink-0 mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold
+                                    className="shrink-0 mt-0.5 hidden md:flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold
             bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-200
             transition-transform duration-300 transform-gpu group-hover:scale-[1.02]
             motion-safe:animate-[chipPop_520ms_ease-out_both]"
                                   >
                                     Available
                                   </span>
-                                )}
                               </div>
 
                               {/* Rating + district */}
@@ -852,19 +1136,25 @@ export const Professionals = () => {
                                 {professional.location}
                               </span>
                             </div>
+                            <div className="flex items-center gap-2 mt-1 flex md:hidden">
+                                <Briefcase className="h-4 w-4 text-blue-600" />
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                  {professional.experience} years experience
+                                </span>
+                              </div>
                           </div>
 
                           {/* Footer */}
                           <div className="mt-4 flex items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 hidden md:flex">
                                 <Briefcase className="h-4 w-4 text-blue-600" />
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
                                   {professional.experience} years experience
                                 </span>
                               </div>
 
-                              <div className="mt-1 flex items-center gap-2">
+                              <div className="mt-1 flex items-center gap-2  hidden md:flex">
                                 <AwardIcon className="h-4 w-4 text-green-600" />
                                 <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                                   {selectedService === "all"
@@ -991,283 +1281,18 @@ export const Professionals = () => {
         </div>
       </div>
 
-      {/* Modal */}
-      {selectedProfessional && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          {/* Backdrop */}
-          <button
-            onClick={closeModal}
-            className="absolute inset-0 bg-black/50 cursor-pointer"
-            aria-label="Close modal backdrop"
-          />
-
-          {/* Sheet / Modal */}
-          <div className="relative w-full sm:max-w-4xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-t-3xl sm:rounded-3xl bg-white dark:bg-gray-800 shadow-2xl border border-white/10">
-            {/* Top grabber for mobile */}
-            <div className="sm:hidden pt-3 pb-2 flex items-center justify-center">
-              <div className="h-1 w-10 rounded-full bg-black/10 dark:bg-white/10" />
-            </div>
-
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-white/95 dark:bg-gray-800/95 backdrop-blur border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h2 className="truncate text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white">
-                  {selectedProfessional.name}
-                </h2>
-                <p className="mt-0.5 text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400 truncate">
-                  {selectedProfessional.serviceId?.service || "Professional"}
-                </p>
-              </div>
-              <button
-                onClick={closeModal}
-                className="cursor-pointer rounded-2xl p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                aria-label="Close modal"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="overflow-y-auto px-4 sm:px-6 py-5">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                {/* Left */}
-                <div className="md:col-span-4">
-                  <div className="rounded-3xl border bg-white dark:bg-gray-800 p-5 shadow-sm">
-                    <div className="flex items-center justify-center">
-                      <img
-                        src={
-                          getProfessionalImageUrl(
-                            selectedProfessional.profileImage,
-                          ) ||
-                          `https://api.dicebear.com/7.x/initials/svg?seed=${selectedProfessional.name}`
-                        }
-                        alt={selectedProfessional.name}
-                        className="h-40 w-40 sm:h-48 sm:w-48 rounded-3xl object-cover border-4 border-blue-100 dark:border-blue-900"
-                      />
-                    </div>
-
-                    <div className="mt-5 space-y-3">
-                      {selectedProfessional.status === "accepted" && (
-                        <div className="w-full rounded-2xl px-4 py-3 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 font-bold flex items-center justify-center gap-2">
-                          <Shield className="h-4 w-4" />
-                          Verified Professional
-                        </div>
-                      )}
-
-                      {selectedProfessional.isAvailable && (
-                        <div className="w-full rounded-2xl px-4 py-3 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 font-bold text-center">
-                          Available Now
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right */}
-                <div className="md:col-span-8">
-                  {/* Stats cards */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-3xl border bg-gray-50 dark:bg-gray-700/70 p-4 shadow-sm">
-                      <div className="text-3xl font-extrabold text-gray-900 dark:text-white">
-                        {selectedProfessional.rating || 4}
-                      </div>
-                      <div className="mt-1 flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(selectedProfessional.rating || 4)
-                                ? "text-yellow-500 fill-yellow-500"
-                                : "text-gray-300 dark:text-gray-600"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        {selectedProfessional.totalJobs || 0} jobs completed
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border bg-gray-50 dark:bg-gray-700/70 p-4 shadow-sm">
-                      <div className="text-3xl font-extrabold text-gray-900 dark:text-white">
-                        {selectedProfessional.experience}
-                      </div>
-                      <div className="mt-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                        Years Experience
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border bg-gray-50 dark:bg-gray-700/70 p-4 shadow-sm">
-                      <div className="text-lg font-extrabold text-gray-900 dark:text-white">
-                        <MapPin className="inline h-5 w-5 -mt-0.5" />{" "}
-                        {selectedProfessional.district}
-                      </div>
-                      <div className="mt-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                        District
-                      </div>
-                    </div>
-
-                    <div className="rounded-3xl border bg-gray-50 dark:bg-gray-700/70 p-4 shadow-sm">
-                      <div className="text-lg font-extrabold text-green-600">
-                        {selectedProfessional.isAvailable
-                          ? "Available"
-                          : "Not Available"}
-                      </div>
-                      <div className="mt-2 text-sm font-semibold text-gray-600 dark:text-gray-300">
-                        Availability
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Details */}
-                  <div className="mt-6 rounded-3xl border bg-white dark:bg-gray-800 p-5 shadow-sm">
-                    <h3 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white">
-                      Professional Details
-                    </h3>
-
-                    <div className="mt-4 space-y-4">
-                      <div className="flex items-start gap-3">
-                        <AwardIcon className="h-5 w-5 text-blue-600 mt-0.5" />
-                        <div>
-                          <div className="font-bold text-gray-900 dark:text-white">
-                            Service
-                          </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {selectedProfessional.serviceId?.service || "N/A"}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-blue-600 mt-0.5" />
-                        <div>
-                          <div className="font-bold text-gray-900 dark:text-white">
-                            Location
-                          </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {selectedProfessional.location}
-                          </div>
-                        </div>
-                      </div>
-
-                      {selectedProfessional.serviceId?.description && (
-                        <div className="flex items-start gap-3">
-                          <MessageSquare className="h-5 w-5 text-blue-600 mt-0.5" />
-                          <div>
-                            <div className="font-bold text-gray-900 dark:text-white">
-                              Service Description
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                              {selectedProfessional.serviceId.description}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Reviews */}
-                  <div className="mt-6 rounded-3xl border bg-white dark:bg-gray-800 p-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-4">
-                      <h3 className="text-base sm:text-lg font-extrabold text-gray-900 dark:text-white">
-                        Customer Feedback ({reviews.length})
-                      </h3>
-
-                      {reviews.length > 0 && (
-                        <button
-                          onClick={() => setShowReviews(!showReviews)}
-                          className="cursor-pointer inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
-                        >
-                          {showReviews ? "Hide Reviews" : "Show All Reviews"}
-                          <ChevronRight
-                            className={`h-4 w-4 transition-transform duration-200 ${
-                              showReviews ? "rotate-90" : ""
-                            }`}
-                          />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="mt-4">
-                      {loadingReviews ? (
-                        <div className="py-8 text-center">
-                          <div className="mx-auto h-10 w-10 rounded-2xl bg-black/5 flex items-center justify-center">
-                            <Loader className="h-6 w-6 animate-spin text-blue-600" />
-                          </div>
-                          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                            Loading reviews...
-                          </p>
-                        </div>
-                      ) : reviews.length === 0 ? (
-                        <div className="py-10 text-center text-gray-600 dark:text-gray-400">
-                          <div className="mx-auto h-12 w-12 rounded-2xl bg-black/5 flex items-center justify-center">
-                            <MessageSquare className="h-6 w-6 opacity-60" />
-                          </div>
-                          <p className="mt-3 font-semibold">No reviews yet</p>
-                          <p className="mt-1 text-sm">
-                            Be the first to book and review this professional!
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {(showReviews ? reviews : reviews.slice(0, 1)).map(
-                            (review) => (
-                              <div
-                                key={review._id}
-                                className="rounded-3xl border bg-gray-50 dark:bg-gray-700/70 p-4 shadow-sm"
-                              >
-                                <div className="flex items-start justify-between gap-4">
-                                  <div className="min-w-0">
-                                    <h4 className="truncate font-extrabold text-gray-900 dark:text-white">
-                                      {review.customerId?.name || "Customer"}
-                                    </h4>
-                                    <p className="mt-0.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                      {review.bookingId?.service || "Service"} •{" "}
-                                      {review.bookingId?.issueType || ""}
-                                      {review.createdAt &&
-                                        ` • ${new Date(
-                                          review.createdAt,
-                                        ).toLocaleDateString()}`}
-                                    </p>
-                                  </div>
-
-                                  <div className="flex items-center shrink-0">
-                                    {[...Array(5)].map((_, i) => (
-                                      <Star
-                                        key={i}
-                                        className={`h-4 w-4 ${
-                                          i < review.rating
-                                            ? "text-yellow-500 fill-yellow-500"
-                                            : "text-gray-300 dark:text-gray-600"
-                                        }`}
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-
-                                <p className="mt-3 text-sm text-gray-700 dark:text-gray-200 italic leading-relaxed">
-                                  "{review.comment}"
-                                </p>
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom safe-area spacing for mobile */}
-              <div className="h-3 sm:h-1" />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Component */}
+      <ProfessionalModal
+        selectedProfessional={selectedProfessional}
+        isOpen={Boolean(selectedProfessional)}
+        closeModal={closeModal}
+        reviews={reviews}
+        loadingReviews={loadingReviews}
+        showReviews={showReviews}
+        setShowReviews={setShowReviews}
+      />
     </div>
   );
 };
+
+export default Professionals;

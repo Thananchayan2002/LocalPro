@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Home, Briefcase, MessageSquare, Users, Info } from "lucide-react";
 import { useAnimations } from "../animations/animations";
@@ -12,7 +12,10 @@ const navItems = [
 ];
 
 function MobileNavbar() {
+  const location = useLocation();
   const { staggerContainer, staggerItem } = useAnimations();
+
+  const isActivePath = (path) => location.pathname === path;
 
   return (
     <nav
@@ -33,13 +36,14 @@ function MobileNavbar() {
         className="flex w-full items-center justify-between m-0 p-0"
         style={{ margin: 0, padding: 0, width: "100%" }}
       >
-        {navItems.map(({ icon: Icon, label, path }) => (
-          <li key={path} className="flex-1">
-            <NavLink
-              to={path}
-              className="group flex flex-col items-center gap-1 py-1"
-            >
-              {({ isActive }) => (
+        {navItems.map(({ icon: Icon, label, path }) => {
+          const active = isActivePath(path);
+          return (
+            <li key={path} className="flex-1">
+              <NavLink
+                to={path}
+                className="group flex flex-col items-center gap-1 py-1"
+              >
                 <motion.div
                   variants={staggerItem}
                   className="flex flex-col items-center"
@@ -49,7 +53,7 @@ function MobileNavbar() {
                       flex h-11 w-11 items-center justify-center
                       rounded-2xl transition-all duration-200
                       ${
-                        isActive
+                        active
                           ? "bg-blue-600 text-white shadow-sm"
                           : "text-gray-500 dark:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-gray-800"
                       }
@@ -62,7 +66,7 @@ function MobileNavbar() {
                     className={`
                       text-[11px] font-medium
                       ${
-                        isActive
+                        active
                           ? "text-blue-600 dark:text-blue-400"
                           : "text-gray-500 dark:text-gray-400"
                       }
@@ -71,10 +75,10 @@ function MobileNavbar() {
                     {label}
                   </span>
                 </motion.div>
-              )}
-            </NavLink>
-          </li>
-        ))}
+              </NavLink>
+            </li>
+          );
+        })}
       </motion.ul>
     </nav>
   );

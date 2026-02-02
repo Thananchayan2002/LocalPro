@@ -17,7 +17,6 @@ export const Revenue = () => {
   const [endDate, setEndDate] = useState("");
   const [filterDistrict, setFilterDistrict] = useState("");
   const [filterProfessional, setFilterProfessional] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
   const [professionalsByDistrict, setProfessionalsByDistrict] = useState([]);
 
   // Fetch bookings
@@ -28,8 +27,8 @@ export const Revenue = () => {
       const data = await res.json();
 
       if (data.success) {
-        const allowedStatuses = ["paid", "completed", "verified"];
-        const filteredData = data.data.filter((b) => allowedStatuses.includes(b.status));
+        // Only show verified bookings
+        const filteredData = data.data.filter((b) => b.status === "verified");
         setBookings(filteredData);
       } else {
         toast.error(data.message || "Failed to fetch bookings");
@@ -73,13 +72,12 @@ export const Revenue = () => {
       if (endDate && date > new Date(endDate + "T23:59:59")) return false;
       if (filterDistrict && b.location?.district !== filterDistrict) return false;
       if (filterProfessional && b.professionalId?._id !== filterProfessional) return false;
-      if (filterStatus && b.status !== filterStatus) return false;
       return true;
     });
-  }, [bookings, filterYear, startDate, endDate, filterDistrict, filterProfessional, filterStatus]);
+  }, [bookings, filterYear, startDate, endDate, filterDistrict, filterProfessional]);
 
   // Revenue calculations
-  const totalRevenue = filteredBookings.reduce((sum, b) => sum + (b.payment?.paymentByUser || 0), 0);
+  const totalRevenue = filteredBookings.reduce((sum, b) => sum + (b.payment?.paymentByWorker || 0), 0);
   const totalCommission = filteredBookings.reduce((sum, b) => sum + ((b.payment?.paymentByWorker || 0) * 0.1), 0);
 
   // CSV Export
@@ -170,7 +168,7 @@ export const Revenue = () => {
   const years = Array.from(new Set(bookings.map((b) => new Date(b.scheduledTime).getFullYear()))).sort((a, b) => b - a);
 
   return (
-    <div className="min-h-screen p-4 lg:p-6">
+    <div className="min-h-screen p-4 lg:p-6 mt-12">
       <Toaster position="top-right" />
 
       <div className="flex items-center gap-3 mb-6">
@@ -180,7 +178,7 @@ export const Revenue = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
           {/* Year */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Year</label>
@@ -216,21 +214,6 @@ export const Revenue = () => {
               onChange={(e) => setEndDate(e.target.value)}
               className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl outline-none"
             />
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl outline-none"
-            >
-              <option value="">All Statuses</option>
-              <option value="paid">Paid</option>
-              <option value="verified">Verified</option>
-              <option value="completed">Completed</option>
-            </select>
           </div>
 
           {/* District */}
@@ -274,7 +257,6 @@ export const Revenue = () => {
                 setEndDate("");
                 setFilterDistrict("");
                 setFilterProfessional("");
-                setFilterStatus("");
               }}
               className="px-4 py-2 bg-red-50 text-red-600 rounded-xl w-full"
             >
@@ -354,7 +336,7 @@ export const Revenue = () => {
                   <td className="px-6 py-4">{new Date(b.scheduledTime).toLocaleString()}</td>
                   <td className="px-6 py-4">{b.payment?.paymentByUser || 0}</td>
                   <td className="px-6 py-4">{b.payment?.paymentByWorker || 0}</td>
-                  <td className="px-6 py-4">{b.payment?.paymentByWorker ? (b.payment.paymentByWorker*0.1).toFixed(2) : 0}</td>
+                  <td className="px-6 py-4">{b.payment?.paymentByWorker ? (b.payment.paymentByWorker * 0.1).toFixed(2) : 0}</td>
                 </tr>
               ))
             )}

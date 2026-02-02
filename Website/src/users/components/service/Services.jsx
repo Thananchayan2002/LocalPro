@@ -314,15 +314,6 @@ export const Services = () => {
                     backgroundColor: "rgba(255, 255, 255, 0.05)",
                   }}
                 >
-                  Tip: try "plumbing", "repair", "clean"
-                </span>
-                <span
-                  className="rounded-full border px-3 py-1"
-                  style={{
-                    borderColor: "rgba(255, 255, 255, 0.10)",
-                    backgroundColor: "rgba(255, 255, 255, 0.05)",
-                  }}
-                >
                   Results update instantly
                 </span>
               </div>
@@ -333,47 +324,6 @@ export const Services = () => {
 
       {/* CONTENT */}
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-7 sm:mb-9">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2
-                className="text-xl font-semibold tracking-tight sm:text-2xl"
-                style={{ color: colors.text.primary }}
-              >
-                Available Services
-              </h2>
-              <p
-                className="mt-1 text-sm"
-                style={{ color: colors.text.secondary }}
-              >
-                <span
-                  className="font-semibold"
-                  style={{ color: colors.text.primary }}
-                >
-                  {filteredServices.length}
-                </span>{" "}
-                service{filteredServices.length !== 1 ? "s" : ""} available
-              </p>
-            </div>
-
-            <div
-              className="inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-medium shadow-sm"
-              style={{
-                borderColor: colors.border.light,
-                backgroundColor: colors.background.primary,
-                color: colors.text.secondary,
-              }}
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: colors.primary.DEFAULT }}
-              />
-              Tap a service to view issues & pricing
-            </div>
-          </div>
-        </div>
-
         {/* Empty */}
         {filteredServices.length === 0 ? (
           <div
@@ -503,142 +453,185 @@ export const Services = () => {
         )}
 
         {/* TRUST */}
-        <div className="mt-12 sm:mt-16">
+        <div className="mt-16 sm:mt-20">
           <div
-            className="overflow-hidden rounded-3xl border shadow-[0_18px_55px_rgba(2,6,23,0.10)]"
+            className="relative overflow-hidden rounded-3xl border shadow-[0_20px_70px_rgba(2,6,23,0.12)]"
             style={{
               borderColor: colors.border.light,
-              backgroundColor: colors.background.primary,
+              background: `linear-gradient(to bottom, ${colors.background.primary}, ${colors.background.secondary})`,
             }}
           >
-            <div className="relative p-8 sm:p-10">
-              <div className="pointer-events-none absolute inset-0 opacity-60 " />
-              <div className="relative mx-auto max-w-3xl text-center">
+            {/* Subtle gradient overlay */}
+            <div className="pointer-events-none absolute inset-0 opacity-40">
+              <div
+                className="absolute -top-24 -right-24 h-96 w-96 rounded-full blur-3xl"
+                style={{ backgroundColor: `${colors.primary.light}15` }}
+              />
+              <div
+                className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full blur-3xl"
+                style={{ backgroundColor: `${colors.secondary.light}15` }}
+              />
+            </div>
+
+            <div className="relative px-6 py-12 sm:px-10 sm:py-16">
+              <div className="relative mx-auto max-w-4xl text-center">
+                {/* Badge */}
+                <div className="inline-flex items-center gap-2 rounded-full border px-4 py-1.5 shadow-sm backdrop-blur-sm mb-6"
+                  style={{
+                    borderColor: `${colors.primary.DEFAULT}40`,
+                    backgroundColor: `${colors.primary.light}10`,
+                  }}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full animate-pulse"
+                    style={{ backgroundColor: colors.primary.DEFAULT }}
+                  />
+                  <span className="text-xs font-semibold" style={{ color: colors.primary.DEFAULT }}>
+                    TRUSTED BY HUNDREDS
+                  </span>
+                </div>
+
                 <h3
-                  className="text-xl font-semibold tracking-tight sm:text-2xl"
+                  className="text-lg font-bold tracking-tight sm:text-3xl lg:text-4xl"
                   style={{ color: colors.text.primary }}
                 >
                   Why Choose Our Services?
                 </h3>
                 <p
-                  className="mt-2 text-sm leading-relaxed"
+                  className="mt-3 text-base leading-relaxed sm:text-lg"
                   style={{ color: colors.text.secondary }}
                 >
                   Trusted experts, clear pricing, and quality you can rely on.
                 </p>
 
-                <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+                <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-3 sm:gap-6">
                   <div
-                    className="group rounded-2xl border p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                    className="group relative overflow-hidden border-2 border-gray-300 rounded-2xl p-6 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                     style={{
-                      borderColor: colors.border.light,
-                      backgroundColor: `${colors.background.primary}b3`,
+                      backgroundColor: colors.background.primary,
                     }}
                   >
-                    <div
-                      className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ring-1 transition-transform duration-200 group-hover:scale-[1.03]"
-                      style={{
-                        backgroundColor: colors.primary.dark,
-                        borderColor: `${colors.primary.dark}1a`,
-                      }}
-                    >
-                      <Shield
-                        className="h-5 w-5"
-                        style={{ color: colors.text.inverse }}
+                    {/* Hover gradient effect */}
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <div
+                        className="absolute -top-12 -right-12 h-40 w-40 rounded-full blur-2xl"
+                        style={{ backgroundColor: `${colors.primary.light}20` }}
                       />
                     </div>
-                    <h4
-                      className="text-sm font-semibold"
-                      style={{ color: colors.text.primary }}
-                    >
-                      Verified & Safe
-                    </h4>
-                    <p
-                      className="mt-1 text-sm"
-                      style={{ color: colors.text.secondary }}
-                    >
-                      All professionals are background checked.
-                    </p>
+
+                    <div className="relative">
+                      <div
+                        className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl shadow-md ring-1 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+                        style={{
+                          background: colors.primary.gradient,
+                          borderColor: `${colors.primary.dark}30`,
+                        }}
+                      >
+                        <Shield
+                          className="h-6 w-6"
+                          style={{ color: colors.text.inverse }}
+                        />
+                      </div>
+                      <h4
+                        className="text-base font-bold mb-2"
+                        style={{ color: colors.text.primary }}
+                      >
+                        Verified & Safe
+                      </h4>
+                      <p
+                        className="text-sm leading-relaxed"
+                        style={{ color: colors.text.secondary }}
+                      >
+                        All professionals are background checked.
+                      </p>
+                    </div>
                   </div>
 
                   <div
-                    className="group rounded-2xl border p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                    className="group relative overflow-hidden border-2 border-gray-300 rounded-2xl border p-6 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                     style={{
-                      borderColor: colors.border.light,
-                      backgroundColor: `${colors.background.primary}b3`,
+                      backgroundColor: colors.background.primary,
                     }}
                   >
-                    <div
-                      className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ring-1 transition-transform duration-200 group-hover:scale-[1.03]"
-                      style={{
-                        backgroundColor: colors.primary.dark,
-                        borderColor: `${colors.primary.dark}1a`,
-                      }}
-                    >
-                      <Award
-                        className="h-5 w-5"
-                        style={{ color: colors.text.inverse }}
+                    {/* Hover gradient effect */}
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <div
+                        className="absolute -top-12 -right-12 h-40 w-40 rounded-full blur-2xl"
+                        style={{ backgroundColor: `${colors.primary.light}20` }}
                       />
                     </div>
-                    <h4
-                      className="text-sm font-semibold"
-                      style={{ color: colors.text.primary }}
-                    >
-                      Quality Guaranteed
-                    </h4>
-                    <p
-                      className="mt-1 text-sm"
-                      style={{ color: colors.text.secondary }}
-                    >
-                      We stand behind every job completed.
-                    </p>
+
+                    <div className="relative">
+                      <div
+                        className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl shadow-md ring-1 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+                        style={{
+                          background: colors.primary.gradient,
+                          borderColor: `${colors.primary.dark}30`,
+                        }}
+                      >
+                        <Award
+                          className="h-6 w-6"
+                          style={{ color: colors.text.inverse }}
+                        />
+                      </div>
+                      <h4
+                        className="text-base font-bold mb-2"
+                        style={{ color: colors.text.primary }}
+                      >
+                        Quality Guaranteed
+                      </h4>
+                      <p
+                        className="text-sm leading-relaxed"
+                        style={{ color: colors.text.secondary }}
+                      >
+                        We stand behind every job completed.
+                      </p>
+                    </div>
                   </div>
 
                   <div
-                    className="group rounded-2xl border p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                    className="group relative overflow-hidden border-2 border-gray-300 rounded-2xl border p-6 text-left shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                     style={{
-                      borderColor: colors.border.light,
-                      backgroundColor: `${colors.background.primary}b3`,
+                      backgroundColor: colors.background.primary,
                     }}
                   >
-                    <div
-                      className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ring-1 transition-transform duration-200 group-hover:scale-[1.03]"
-                      style={{
-                        backgroundColor: colors.primary.dark,
-                        borderColor: `${colors.primary.dark}1a`,
-                      }}
-                    >
-                      <ThumbsUp
-                        className="h-5 w-5"
-                        style={{ color: colors.text.inverse }}
+                    {/* Hover gradient effect */}
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <div
+                        className="absolute -top-12 -right-12 h-40 w-40 rounded-full blur-2xl"
+                        style={{ backgroundColor: `${colors.primary.light}20` }}
                       />
                     </div>
-                    <h4
-                      className="text-sm font-semibold"
-                      style={{ color: colors.text.primary }}
-                    >
-                      Transparent Pricing
-                    </h4>
-                    <p
-                      className="mt-1 text-sm"
-                      style={{ color: colors.text.secondary }}
-                    >
-                      Clear pricing with no hidden charges.
-                    </p>
+
+                    <div className="relative">
+                      <div
+                        className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl shadow-md ring-1 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
+                        style={{
+                          background: colors.primary.gradient,
+                          borderColor: `${colors.primary.dark}30`,
+                        }}
+                      >
+                        <ThumbsUp
+                          className="h-6 w-6"
+                          style={{ color: colors.text.inverse }}
+                        />
+                      </div>
+                      <h4
+                        className="text-base font-bold mb-2"
+                        style={{ color: colors.text.primary }}
+                      >
+                        Transparent Pricing
+                      </h4>
+                      <p
+                        className="text-sm leading-relaxed"
+                        style={{ color: colors.text.secondary }}
+                      >
+                        Clear pricing with no hidden charges.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div
-              className="border-t px-8 py-5 text-center text-xs sm:px-10"
-              style={{
-                borderColor: colors.border.light,
-                backgroundColor: colors.background.secondary,
-                color: colors.text.secondary,
-              }}
-            >
-              Tip: open a service to see available issues and base pricing.
             </div>
           </div>
         </div>

@@ -55,24 +55,20 @@ export const Sidebar = ({ isOpen, onClose }) => {
         aria-hidden={!isOpen ? "true" : "false"}
       >
         {/* Header */}
-        <div className="relative flex items-center justify-between px-5 py-5 lg:px-6 lg:py-6">
+        <div className="relative flex items-center justify-between px-5 py-5 lg:px-6 lg:py-6 bg-white shadow-sm">
+          {/* Logo & Title */}
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div />
+            <div className="relative w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+              {/* Add your logo or icon here */}
+              <div className="w-5 h-5 bg-blue-500 rounded-full" />
             </div>
 
             <div className="leading-tight">
-              <h1
-                className="text-lg font-semibold tracking-tight"
-                style={{ color: colors.primary.DEFAULT }}
-              >
-                <span style={{ color: "#0f64c8" }}>Help</span>
-                <span style={{ color: "#1fa34a" }}>Go</span>
+              <h1 className="text-lg md:text-2xl font-bold md:font-bold tracking-tight">
+                <span className="text-blue-700">Help</span>
+                <span className="text-green-600">Go</span>
               </h1>
-              <p
-                className="text-xs"
-                style={{ color: colors.secondary.DEFAULT }}
-              >
+              <p className="text-xs md:text-medium text-gray-500">
                 Service Partner Dashboard
               </p>
             </div>
@@ -82,23 +78,13 @@ export const Sidebar = ({ isOpen, onClose }) => {
           <button
             onClick={onClose}
             type="button"
-            className={[
-              "lg:hidden",
-              "inline-flex items-center justify-center",
-              "h-10 w-10 rounded-xl",
-              "bg-white/5 ring-1 ring-white/10",
-              "shadow-sm",
-              "transition-all duration-200 ease-out",
-              "hover:bg-white/10 hover:ring-white/20",
-              "active:scale-95",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70",
-              "cursor-pointer",
-            ].join(" ")}
+            className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl bg-white/5 ring-1 ring-white/10 shadow-sm transition-all duration-200 ease-out hover:bg-white/10 hover:ring-white/20 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
             aria-label="Close sidebar"
           >
-            <X size={20} style={{ color: colors.neutral[200] }} />
+            <X size={20} className="text-gray-200" />
           </button>
         </div>
+
 
         {/* Divider */}
         <div
@@ -266,7 +252,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5">
+        <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-5 hidden lg:block">
           <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 shadow-sm overflow-hidden">
             <div className="px-4 py-3">
               <div className="flex items-center justify-between">
@@ -310,15 +296,6 @@ export const Sidebar = ({ isOpen, onClose }) => {
               className="h-px"
               style={{ background: colors.primary.light, opacity: 0.12 }}
             />
-            <div className="px-4 py-3">
-              <div
-                className="flex items-center justify-between text-[11px]"
-                style={{ color: colors.secondary.DEFAULT, opacity: 0.7 }}
-              >
-                <span className="tracking-wide">v1.0</span>
-                <span className="tracking-wide">Secure Workspace</span>
-              </div>
-            </div>
           </div>
         </div>
       </aside>

@@ -10,6 +10,7 @@ import {
   Camera,
   LogOut,
   CheckCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -55,7 +56,7 @@ function Profile() {
         typeof user.location === "string"
           ? { location: user.location, area: "", lat: 0, lng: 0 }
           : user.location ||
-            user.In || { location: "", area: "", lat: 0, lng: 0 },
+          user.In || { location: "", area: "", lat: 0, lng: 0 },
       lastLogin: user.lastLogin || new Date().toISOString(),
       status: user.status || "active",
       joinedDate: user.createdAt || new Date().toISOString(),
@@ -127,12 +128,12 @@ function Profile() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
       {/* Decorative background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-blue-500/5 blur-3xl" />
+        <div className="absolute top-1/2 -left-40 w-80 h-80 rounded-full bg-purple-500/5 blur-3xl" />
+        <div className="absolute bottom-40 right-1/4 w-60 h-60 rounded-full bg-green-500/5 blur-3xl" />
       </div>
 
       {/* 
@@ -169,9 +170,20 @@ function Profile() {
           "
         >
           {/* A subtle "card" shell ONLY on desktop (keeps mobile feel unchanged) */}
-          <div className="md:rounded-3xl md:border md:border-gray-200 md:bg-white/80 md:backdrop-blur md:shadow-xl dark:md:border-gray-700 dark:md:bg-gray-800/80 overflow-hidden">
+          <div className="md:rounded-3xl md:border-2 md:border-gray-200 md:bg-white/90 md:backdrop-blur md:shadow-2xl dark:md:border-gray-700 dark:md:bg-gray-800/90 overflow-hidden">
             {/* Mobile keeps full-bleed. Desktop gets padding. */}
-            <div className="p-0 md:p-6 lg:p-8">
+            <div className="p-0 md:p-8 lg:p-10">
+              {/* Back Button */}
+              <div className="px-4 pt-4 pb-2 md:px-0 md:pt-0 md:pb-6">
+                <button
+                  onClick={() => navigate('/app')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 shadow-sm hover:shadow-md font-semibold group"
+                >
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
+                  Back to Home
+                </button>
+              </div>
+
               {/* Header */}
               <div className="mb-6">
                 <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl md:rounded-3xl">
@@ -202,48 +214,9 @@ function Profile() {
 
                       <div className="w-full md:w-auto">
                         <div className="flex gap-3">
-                          {isEditing ? (
-                            <>
-                              <button
-                                onClick={handleCancel}
-                                className="
-                                  group flex-1 md:flex-none px-4 py-2.5 border border-gray-300 dark:border-gray-600
-                                  text-gray-700 dark:text-gray-200 rounded-2xl
-                                  bg-white dark:bg-gray-800 shadow-sm ring-gray-200/40 dark:ring-gray-700/40
-                                  hover:bg-gray-100 dark:hover:bg-gray-700 transition
-                                  active:scale-[0.99] cursor-pointer
-                                  focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2
-                                  focus:ring-offset-white dark:focus:ring-offset-gray-900
-                                "
-                              >
-                                <span className="inline-flex items-center justify-center gap-2">
-                                  <span className="h-2 w-2 rounded-full bg-gray-400 group-hover:bg-gray-500 transition" />
-                                  Cancel
-                                </span>
-                              </button>
-
-                              <button
-                                onClick={handleSave}
-                                className="
-                                  group relative flex-1 md:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-2xl
-                                  shadow-sm ring-blue-600/20
-                                  hover:bg-blue-700 hover:shadow-lg hover:-translate-y-[1px]
-                                  transition active:translate-y-0 active:scale-[0.99]
-                                  flex items-center justify-center gap-2 cursor-pointer
-                                  focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2
-                                  focus:ring-offset-white dark:focus:ring-offset-gray-900
-                                "
-                              >
-                                <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.20),transparent_45%)]" />
-                                <Save className="w-4 h-4 relative" />
-                                <span className="relative">Save Changes</span>
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={handleLogout}
-                                className="
+                          <button
+                            onClick={handleLogout}
+                            className="
                                   group flex-1 md:flex-none px-4 py-2.5 border border-gray-300 dark:border-gray-600
                                   text-gray-700 dark:text-gray-200 rounded-2xl
                                   bg-white dark:bg-gray-800 shadow-sm ring-gray-200/40 dark:ring-gray-700/40
@@ -252,29 +225,10 @@ function Profile() {
                                   focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2
                                   focus:ring-offset-white dark:focus:ring-offset-gray-900
                                 "
-                              >
-                                <LogOut className="w-4 h-4 group-hover:-translate-y-[1px] transition" />
-                                Logout
-                              </button>
-
-                              <button
-                                onClick={() => setIsEditing(true)}
-                                className="
-                                  group relative flex-1 md:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-2xl
-                                  shadow-sm ring-blue-600/20
-                                  hover:bg-blue-700 hover:shadow-lg hover:-translate-y-[1px]
-                                  transition active:translate-y-0 active:scale-[0.99]
-                                  flex items-center justify-center gap-2 cursor-pointer
-                                  focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2
-                                  focus:ring-offset-white dark:focus:ring-offset-gray-900
-                                "
-                              >
-                                <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.20),transparent_45%)]" />
-                                <Edit2 className="w-4 h-4 relative group-hover:rotate-[-6deg] transition" />
-                                <span className="relative">Edit Profile</span>
-                              </button>
-                            </>
-                          )}
+                          >
+                            <LogOut className="w-4 h-4 group-hover:-translate-y-[1px] transition" />
+                            Logout
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -365,9 +319,8 @@ function Profile() {
                     <div
                       className="h-1.5 w-full animate-[pulse_3.2s_ease-in-out_infinite]"
                       style={{
-                        background: `linear-gradient(90deg, ${colors.primary || "#2563eb"}, ${
-                          colors.secondary || "#14b8a6"
-                        }, ${colors.accent || "#f59e0b"})`,
+                        background: `linear-gradient(90deg, ${colors.primary || "#2563eb"}, ${colors.secondary || "#14b8a6"
+                          }, ${colors.accent || "#f59e0b"})`,
                       }}
                     />
 
@@ -416,24 +369,9 @@ function Profile() {
                                     color: colors.primaryText || "#0f172a",
                                   }}
                                 >
-                                  {isEditing ? (
-                                    <input
-                                      type="text"
-                                      name="name"
-                                      value={formData.name}
-                                      onChange={handleInputChange}
-                                      className="
-                                        bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                                        rounded-2xl px-4 py-2.5 text-gray-900 dark:text-white w-full sm:w-[600px]
-                                        shadow-sm ring-gray-200/40 dark:ring-gray-700/40
-                                        focus:outline-none focus:ring-2 focus:ring-blue-600 transition hover:shadow-md
-                                      "
-                                    />
-                                  ) : (
-                                    <span className="truncate inline-block max-w-[22ch] sm:max-w-none">
-                                      {profileData.name || "—"}
-                                    </span>
-                                  )}
+                                  <span className="truncate inline-block max-w-[22ch] sm:max-w-none">
+                                    {profileData.name || "—"}
+                                  </span>
                                 </h2>
                               </div>
                             </div>
@@ -460,24 +398,15 @@ function Profile() {
                                   >
                                     Email
                                   </p>
-                                  {isEditing ? (
-                                    <input
-                                      type="email"
-                                      name="email"
-                                      value={formData.email}
-                                      onChange={handleInputChange}
-                                      className="mt-1 w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-2xl px-4 py-2.5 text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition hover:shadow-md"
-                                    />
-                                  ) : (
-                                    <p
-                                      className="mt-1 text-sm font-semibold truncate"
-                                      style={{
-                                        color: colors.primaryText || "#0f172a",
-                                      }}
-                                    >
-                                      {profileData.email || "—"}
-                                    </p>
-                                  )}
+
+                                  <p
+                                    className="mt-1 text-sm font-semibold truncate"
+                                    style={{
+                                      color: colors.primaryText || "#0f172a",
+                                    }}
+                                  >
+                                    {profileData.email || "—"}
+                                  </p>
                                 </div>
                               </div>
 
@@ -500,24 +429,15 @@ function Profile() {
                                   >
                                     Phone
                                   </p>
-                                  {isEditing ? (
-                                    <input
-                                      type="tel"
-                                      name="phone"
-                                      value={formData.phone}
-                                      onChange={handleInputChange}
-                                      className="mt-1 w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-2xl px-4 py-2.5 text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition hover:shadow-md"
-                                    />
-                                  ) : (
-                                    <p
-                                      className="mt-1 text-sm font-semibold truncate"
-                                      style={{
-                                        color: colors.primaryText || "#0f172a",
-                                      }}
-                                    >
-                                      {profileData.phone || "—"}
-                                    </p>
-                                  )}
+
+                                  <p
+                                    className="mt-1 text-sm font-semibold truncate"
+                                    style={{
+                                      color: colors.primaryText || "#0f172a",
+                                    }}
+                                  >
+                                    {profileData.phone || "—"}
+                                  </p>
                                 </div>
                               </div>
 
@@ -540,24 +460,15 @@ function Profile() {
                                   >
                                     Location
                                   </p>
-                                  {isEditing ? (
-                                    <input
-                                      type="text"
-                                      name="location"
-                                      value={formData.location?.location || ""}
-                                      onChange={handleLocationChange}
-                                      className="mt-1 w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-2xl px-4 py-2.5 text-gray-900 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition hover:shadow-md"
-                                    />
-                                  ) : (
-                                    <p
-                                      className="mt-1 text-sm font-semibold truncate"
-                                      style={{
-                                        color: colors.primaryText || "#0f172a",
-                                      }}
-                                    >
-                                      {profileData.location?.location || "—"}
-                                    </p>
-                                  )}
+
+                                  <p
+                                    className="mt-1 text-sm font-semibold truncate"
+                                    style={{
+                                      color: colors.primaryText || "#0f172a",
+                                    }}
+                                  >
+                                    {profileData.location?.location || "—"}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -565,11 +476,10 @@ function Profile() {
 
                           {/* Editing banner */}
                           <div
-                            className={`mt-6 transition-all duration-300 ${
-                              isEditing
+                            className={`mt-6 transition-all duration-300 ${isEditing
                                 ? "opacity-100 translate-y-0"
                                 : "opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden"
-                            }`}
+                              }`}
                           >
                             <div className="rounded-3xl bg-blue-50 ring-blue-200 p-4 shadow-sm relative overflow-hidden">
                               <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-blue-600/10 blur-2xl" />
@@ -587,11 +497,6 @@ function Profile() {
 
                       {/* Footer hint */}
                       <div className="mt-8 flex items-center justify-between flex-wrap gap-3">
-                        <div className="inline-flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                          <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                          Secure profile view • Changes are local until you
-                          connect backend save
-                        </div>
                         <div className="inline-flex items-center gap-2">
                           <span className="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-600" />
                           <span className="h-1.5 w-1.5 rounded-full bg-gray-300 dark:bg-gray-600" />

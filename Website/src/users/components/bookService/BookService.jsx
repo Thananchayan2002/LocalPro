@@ -130,9 +130,8 @@ const BookService = ({
       };
 
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${
-        import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-      }&libraries=places&callback=initGoogleMaps`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+        }&libraries=places&callback=initGoogleMaps`;
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
@@ -143,6 +142,18 @@ const BookService = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, step]);
+
+  // Auto-close success modal after 10 seconds
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        onClose();
+        resetForm();
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [success]);
 
   const initializeAutocomplete = () => {
     if (
@@ -406,10 +417,6 @@ const BookService = ({
 
       if (data.success) {
         setSuccess(true);
-        setTimeout(() => {
-          onClose();
-          resetForm();
-        }, 2000);
       } else {
         setError(data.message || "Failed to create booking");
       }
@@ -516,7 +523,7 @@ const BookService = ({
         <motion.button
           type="button"
           aria-label="Close modal overlay"
-          className="absolute inset-0 cursor-pointer backdrop-blur-[6px]"
+          className="absolute inset-0 cursor-pointer backdrop-blur-[14px]"
           style={{
             backgroundColor: "rgba(0, 0, 0, 0.6)",
           }}
@@ -582,7 +589,7 @@ const BookService = ({
                 type="button"
                 style={{
                   backgroundColor: palette.primary.light,
-                  color: palette.text.inverse,
+                  color: "black",
                 }}
               >
                 <X className="h-5 w-5" />
@@ -615,15 +622,15 @@ const BookService = ({
                   const done = step > s.n;
                   const circleStyle = active
                     ? {
-                        backgroundColor: palette.background.primary,
-                        color: palette.primary.DEFAULT,
-                      }
+                      backgroundColor: palette.background.primary,
+                      color: palette.primary.DEFAULT,
+                    }
                     : done
-                    ? {
+                      ? {
                         backgroundColor: palette.secondary.light,
                         color: palette.text.inverse,
                       }
-                    : {
+                      : {
                         backgroundColor: palette.background.secondary,
                         color: palette.text.primary,
                         opacity: 0.9,
@@ -707,41 +714,218 @@ const BookService = ({
               <AnimatePresence>
                 {success && (
                   <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2 }}
-                    className="mb-4 flex items-start gap-3 rounded-2xl border p-4"
-                    role="status"
-                    aria-live="polite"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="fixed inset-0 z-[60] flex items-center justify-center"
                     style={{
-                      borderColor: palette.success.light,
-                      backgroundColor: palette.success.bg,
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      backdropFilter: "blur(10px)",
                     }}
                   >
-                    <div
-                      className="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-xl"
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0, y: 20 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0.8, opacity: 0, y: 20 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 100,
+                        damping: 15,
+                      }}
+                      className="mx-4 flex flex-col items-center gap-6 rounded-3xl px-8 py-12 sm:px-12 sm:py-16 max-w-md"
                       style={{
-                        backgroundColor: palette.success.bg,
-                        color: palette.success.DEFAULT,
+                        backgroundColor: palette.background.primary,
+                        boxShadow: `0 25px 70px -20px ${palette.primary.dark}`,
+                        border: `1px solid ${palette.border.light}`,
                       }}
                     >
-                      <Check className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p
-                        className="text-sm font-semibold"
-                        style={{ color: palette.success.light }}
+                      {/* Animated checkmark circle with glow */}
+                      <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.2, type: 'spring', stiffness: 150 }}
+                        className="relative"
                       >
-                        Booking created
-                      </p>
-                      <p
-                        className="mt-0.5 text-sm"
-                        style={{ color: palette.success.DEFAULT }}
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 2, ease: 'easeInOut' }}
+                          className="absolute inset-0 rounded-full opacity-20 blur-lg"
+                          style={{
+                            background: palette.primary.gradient,
+                            width: '120px',
+                            height: '120px',
+                            margin: 'auto'
+                          }}
+                        />
+                        <div className="relative w-24 h-24 bg-gradient-to-br rounded-full flex items-center justify-center shadow-2xl" style={{
+                          background: palette.primary.gradient
+                        }}>
+                          <motion.svg 
+                            className="w-12 h-12" 
+                            fill="currentColor" 
+                            viewBox="0 0 20 20"
+                            style={{ color: palette.text.inverse }}
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.8, delay: 0.3 }}
+                          >
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </motion.svg>
+                        </div>
+                      </motion.div>
+
+                      {/* Success text */}
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="text-center"
                       >
-                        Booking created successfully!
-                      </p>
-                    </div>
+                        <h3
+                          className="text-3xl font-bold"
+                          style={{ color: palette.text.primary }}
+                        >
+                          Success!
+                        </h3>
+                        <p
+                          className="mt-3 text-base"
+                          style={{ color: palette.text.secondary }}
+                        >
+                          Your booking has been successfully created
+                        </p>
+                      </motion.div>
+
+                      {/* Details box */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.5 }}
+                        className="w-full space-y-3 rounded-2xl p-4"
+                        style={{
+                          backgroundColor: palette.background.secondary,
+                          border: `1px solid ${palette.border.light}`,
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex h-10 w-10 items-center justify-center rounded-lg"
+                            style={{
+                              backgroundColor: palette.primary.light,
+                            }}
+                          >
+                            <Package
+                              className="h-5 w-5"
+                              style={{ color: palette.primary.DEFAULT }}
+                            />
+                          </div>
+                          <div>
+                            <p
+                              className="text-xs font-semibold"
+                              style={{ color: palette.text.secondary }}
+                            >
+                              Service
+                            </p>
+                            <p
+                              className="font-semibold"
+                              style={{ color: palette.text.primary }}
+                            >
+                              {selectedService?.service}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex h-10 w-10 items-center justify-center rounded-lg"
+                            style={{
+                              backgroundColor: palette.primary.light,
+                            }}
+                          >
+                            <Calendar
+                              className="h-5 w-5"
+                              style={{ color: palette.primary.DEFAULT }}
+                            />
+                          </div>
+                          <div>
+                            <p
+                              className="text-xs font-semibold"
+                              style={{ color: palette.text.secondary }}
+                            >
+                              Scheduled Time
+                            </p>
+                            <p
+                              className="font-semibold"
+                              style={{ color: palette.text.primary }}
+                            >
+                              {formData.scheduledTime
+                                ? new Date(formData.scheduledTime).toLocaleString()
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex h-10 w-10 items-center justify-center rounded-lg"
+                            style={{
+                              backgroundColor: palette.primary.light,
+                            }}
+                          >
+                            <MapPin
+                              className="h-5 w-5"
+                              style={{ color: palette.primary.DEFAULT }}
+                            />
+                          </div>
+                          <div>
+                            <p
+                              className="text-xs font-semibold"
+                              style={{ color: palette.text.secondary }}
+                            >
+                              Location
+                            </p>
+                            <p
+                              className="line-clamp-1 font-semibold"
+                              style={{ color: palette.text.primary }}
+                            >
+                              {formData.location.address || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Progress bar and timer */}
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                        className="w-full"
+                      >
+                        <div className="flex items-center justify-center gap-2 text-sm mb-3" style={{ color: palette.text.secondary }}>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                            className="w-4 h-4"
+                          >
+                            <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </motion.div>
+                          <span>Closing in 10 seconds...</span>
+                        </div>
+                        <div className="h-1 bg-gray-200 rounded-full overflow-hidden" style={{
+                          backgroundColor: palette.background.secondary
+                        }}>
+                          <motion.div
+                            initial={{ width: '100%' }}
+                            animate={{ width: '0%' }}
+                            transition={{ duration: 10, ease: 'linear' }}
+                            className="h-full rounded-full"
+                            style={{
+                              background: palette.primary.gradient
+                            }}
+                          />
+                        </div>
+                      </motion.div>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -823,19 +1007,26 @@ const BookService = ({
                             className={[
                               "group relative w-full text-left",
                               "rounded-2xl border-2 p-4 sm:p-5",
-                              "transition-all duration-200",
+                              "transition-all duration-300",
                               "cursor-pointer focus:outline-none focus-visible:ring-4",
+                              isSelected ? "scale-[1.02]" : "",
                             ].join(" ")}
                             style={{
                               borderColor: isSelected
                                 ? palette.primary.DEFAULT
-                                : palette.border.light,
+                                : isHovered
+                                  ? palette.primary.light
+                                  : palette.border.light,
                               backgroundColor: isSelected
-                                ? palette.primary.light
-                                : palette.background.primary,
+                                ? palette.primary.DEFAULT
+                                : isHovered
+                                  ? palette.primary.light
+                                  : palette.background.primary,
                               boxShadow: isSelected
-                                ? `0 14px 34px -24px ${palette.primary.dark}`
-                                : `0 8px 24px -20px ${palette.neutral[300]}`,
+                                ? `0 20px 50px -20px ${palette.primary.dark}, inset 0 0 0 2px ${palette.primary.light}`
+                                : isHovered
+                                  ? `0 16px 40px -16px ${palette.primary.dark}`
+                                  : `0 8px 24px -20px ${palette.neutral[300]}`,
                               "--tw-ring-color": palette.primary.light,
                               "--tw-ring-offset-color":
                                 palette.background.primary,
@@ -844,10 +1035,10 @@ const BookService = ({
                             {/* Glow */}
                             <div
                               className={[
-                                "pointer-events-none absolute -inset-0.5 rounded-[18px] opacity-0 blur transition-opacity duration-300",
+                                "pointer-events-none absolute -inset-1 rounded-[18px] opacity-0 blur-lg transition-all duration-300",
                                 isSelected
-                                  ? "opacity-100"
-                                  : "group-hover:opacity-60",
+                                  ? "opacity-100 blur-xl"
+                                  : "group-hover:opacity-40",
                               ].join(" ")}
                               style={{ background: palette.primary.gradient }}
                             />
@@ -855,51 +1046,68 @@ const BookService = ({
                             <div className="relative flex items-start gap-3">
                               <div className="relative">
                                 <div
-                                  className="flex h-12 w-12 items-center justify-center rounded-xl"
+                                  className="flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-300"
                                   style={{
-                                    background: palette.primary.gradient,
-                                    color: palette.text.inverse,
-                                    boxShadow: `0 12px 30px -18px ${palette.primary.dark}`,
+                                    background: isSelected
+                                      ? palette.text.inverse
+                                      : palette.primary.gradient,
+                                    color: isSelected
+                                      ? palette.primary.DEFAULT
+                                      : palette.text.inverse,
+                                    boxShadow: isSelected
+                                      ? `0 12px 30px -10px ${palette.text.inverse}`
+                                      : `0 12px 30px -18px ${palette.primary.dark}`,
+                                    transform: isHovered ? "scale(1.08)" : "scale(1)",
                                   }}
                                 >
                                   <Package className="h-6 w-6" />
                                 </div>
                                 {isSelected && (
-                                  <div
-                                    className="absolute -bottom-2 -right-2 rounded-full p-1 shadow"
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 200,
+                                      damping: 20,
+                                    }}
+                                    className="absolute -bottom-2 -right-2 rounded-full p-1 shadow-lg"
                                     style={{
                                       backgroundColor:
                                         palette.background.primary,
+                                      border: `2px solid ${palette.primary.DEFAULT}`,
                                     }}
                                   >
                                     <Check
                                       className="h-4 w-4"
                                       style={{ color: palette.primary.DEFAULT }}
                                     />
-                                  </div>
+                                  </motion.div>
                                 )}
                               </div>
 
                               <div className="min-w-0 flex-1">
                                 <h4
-                                  className="truncate text-base font-bold"
+                                  className="truncate text-base font-bold transition-colors duration-300"
                                   style={{
-                                    color:
-                                      isHovered || isSelected
-                                        ? palette.text.inverse
+                                    color: isSelected
+                                      ? palette.text.inverse
+                                      : isHovered
+                                        ? palette.primary.dark
                                         : palette.text.primary,
                                   }}
                                 >
                                   {service.service}
                                 </h4>
                                 <p
-                                  className="mt-1 line-clamp-2 text-sm"
+                                  className="mt-1 line-clamp-2 text-sm transition-colors duration-300"
                                   style={{
-                                    color:
-                                      isHovered || isSelected
-                                        ? palette.text.inverse
+                                    color: isSelected
+                                      ? palette.text.inverse
+                                      : isHovered
+                                        ? palette.primary.dark
                                         : palette.text.secondary,
-                                    opacity: isHovered || isSelected ? 0.9 : 1,
+                                    opacity: isSelected || isHovered ? 0.95 : 1,
                                   }}
                                 >
                                   {service.description}
@@ -907,11 +1115,14 @@ const BookService = ({
                               </div>
 
                               <ChevronRight
-                                className="mt-1 h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+                                className="mt-1 h-5 w-5 flex-shrink-0 transition-all duration-300"
                                 style={{
                                   color: isSelected
-                                    ? palette.primary.DEFAULT
-                                    : palette.text.secondary,
+                                    ? palette.text.inverse
+                                    : isHovered
+                                      ? palette.primary.DEFAULT
+                                      : palette.text.secondary,
+                                  transform: isHovered ? "translateX(4px)" : "translateX(0)",
                                 }}
                               />
                             </div>
@@ -1234,12 +1445,12 @@ const BookService = ({
                         backgroundColor: colors.background.primary,
                       }}
                       onMouseEnter={(e) =>
-                        (e.target.style.backgroundColor =
-                          colors.background.secondary)
+                      (e.target.style.backgroundColor =
+                        colors.background.secondary)
                       }
                       onMouseLeave={(e) =>
-                        (e.target.style.backgroundColor =
-                          colors.background.primary)
+                      (e.target.style.backgroundColor =
+                        colors.background.primary)
                       }
                     >
                       Back

@@ -552,3 +552,35 @@ body {
   background: var(--color-danger-soft) !important;
   color: var(--color-danger) !important;
 }
+
+/* Footer styling - keeps same dark gray color in both light and dark modes */
+footer {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.dark footer {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+footer h4,
+.dark footer h4 {
+  color: #ffffff !important;
+}
+
+footer p,
+footer span,
+.dark footer p,
+.dark footer span {
+  color: #d1d5db !important;
+}
+
+footer a,
+.dark footer a {
+  color: #9ca3af !important;
+}

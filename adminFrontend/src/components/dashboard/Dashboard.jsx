@@ -136,7 +136,7 @@ export const Dashboard = () => {
     );
 
   return (
-    <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-12 p-6 bg-gray-50 min-h-screen mt-12"> 
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <LayoutDashboard className="w-7 h-7 text-blue-600" />

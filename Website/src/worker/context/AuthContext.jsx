@@ -12,6 +12,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadSession = async () => {
       try {
+       
         // Use silent401 to prevent redirect loop on initial load
         const res = await authFetch(
           `${API_BASE_URL}/api/auth/me`,
@@ -37,6 +38,8 @@ export const AuthProvider = ({ children }) => {
   // Set auth data (used by Login component)
   const setAuthData = (user) => {
     setUser(user);
+    // Set flag for first login refresh
+    localStorage.setItem("needsFirstLoginRefresh", "true");
   };
 
   // Logout function
@@ -50,6 +53,8 @@ export const AuthProvider = ({ children }) => {
       // Silent logout failure (client-side state still cleared)
     }
     setUser(null);
+    // Clear first login flag on logout
+    localStorage.removeItem("needsFirstLoginRefresh");
   };
 
   // Check if user is authenticated

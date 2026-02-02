@@ -18,3 +18,4 @@ router.post('/:id/pdf', protect, professionalController.generatePDF);
 router.delete('/:id', protect, professionalController.deleteProfessional);
 
 module.exports = router;
+ 

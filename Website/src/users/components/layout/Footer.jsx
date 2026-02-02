@@ -53,7 +53,14 @@ export const Footer = () => {
   };
 
   return (
-    <footer className="relative overflow-hidden">
+    <footer 
+      className="relative overflow-hidden bg-gray-900 text-gray-100"
+      style={{
+        backgroundColor: "#1a1a1a",
+        borderTop: `1px solid ${colors.border.light}`,
+        boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.15)"
+      }}
+    >
       <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-18">
         {/* Main grid */}
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4 lg:gap-14">
@@ -75,7 +82,7 @@ export const Footer = () => {
 
             <p
               className="mt-5 max-w-xs text-sm leading-relaxed"
-              style={{ color: colors.text.secondary }}
+              style={{ color: "#d1d5db" }}
             >
               Book verified local professionals across Sri Lanka. We assign the
               best available worker. Guaranteed quality and satisfaction.
@@ -140,7 +147,7 @@ export const Footer = () => {
           >
             <h4
               className="inline-flex items-center gap-2 text-lg font-semibold"
-              style={{ color: colors.text.primary }}
+              style={{ color: "#ffffff" }}
             >
               <span>Services</span>
               <span
@@ -160,7 +167,7 @@ export const Footer = () => {
                       to="/services"
                       className="group inline-flex cursor-pointer items-center gap-2 text-sm transition-colors duration-300 focus:outline-none focus-visible:ring-4 rounded-md"
                       style={{
-                        color: colors.text.secondary,
+                        color: "#9ca3af",
                         "--tw-ring-color": colors.primary.light,
                       }}
                       onMouseEnter={handleLinkEnter}
@@ -190,7 +197,7 @@ export const Footer = () => {
           >
             <h4
               className="inline-flex items-center gap-2 text-lg font-semibold"
-              style={{ color: colors.text.primary }}
+              style={{ color: "#ffffff" }}
             >
               <span>Company</span>
               <span
@@ -210,7 +217,7 @@ export const Footer = () => {
                       to={`/${item.toLowerCase().replace(/\s+/g, "-")}`}
                       className="group inline-flex cursor-pointer items-center gap-2 text-sm transition-colors duration-300 focus:outline-none focus-visible:ring-4 rounded-md"
                       style={{
-                        color: colors.text.secondary,
+                        color: "#9ca3af",
                         "--tw-ring-color": colors.primary.light,
                       }}
                       onMouseEnter={handleLinkEnter}
@@ -240,7 +247,7 @@ export const Footer = () => {
           >
             <h4
               className="inline-flex items-center gap-2 text-lg font-semibold"
-              style={{ color: colors.text.primary }}
+              style={{ color: "#ffffff" }}
             >
               <span>Contact</span>
               <span
@@ -275,7 +282,7 @@ export const Footer = () => {
                   </div>
                   <span
                     className="text-sm leading-relaxed transition-colors duration-300"
-                    style={{ color: colors.text.secondary }}
+                    style={{ color: "#9ca3af" }}
                   >
                     {text}
                   </span>
@@ -293,11 +300,11 @@ export const Footer = () => {
           viewport={{ once: true, margin: "-80px" }}
           custom={5}
           className="mt-12 flex flex-col items-center justify-between gap-4 pt-8 md:flex-row"
-          style={{ borderTop: `1px solid ${colors.border.light}` }}
+          style={{ borderTop: `1px solid rgba(255, 255, 255, 0.1)` }}
         >
           <p
             className="text-sm transition-colors duration-300"
-            style={{ color: colors.text.secondary }}
+            style={{ color: "#9ca3af" }}
           >
             © {new Date().getFullYear()} HelpGo. All rights reserved.
           </p>
@@ -306,7 +313,7 @@ export const Footer = () => {
             <span className="h-2 w-2 rounded-full bg-gradient-to-r from-red-500 to-pink-500 animate-pulse" />
             <p
               className="text-sm transition-colors duration-300"
-              style={{ color: colors.text.secondary }}
+              style={{ color: "#9ca3af" }}
             >
               Made with{" "}
               <motion.span

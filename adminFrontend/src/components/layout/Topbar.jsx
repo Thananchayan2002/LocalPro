@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Menu, Bell, LogOut, LayoutDashboard, Briefcase, Users, Calendar, ClipboardList, CreditCard, TrendingUp, UserCog } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 
 export const Topbar = ({ onMenuClick }) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout } = useAdminAuth();
 
   // Get page title and icon based on current route
   const getPageInfo = () => {

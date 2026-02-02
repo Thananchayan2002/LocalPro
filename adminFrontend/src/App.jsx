@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./globals.css";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { AuthProvider } from "./context/AuthContext";
+import { AdminAuthProvider } from "./context/AdminAuthContext";
 import { Login } from "./components/auth/Login";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
@@ -18,7 +18,7 @@ import { Account } from "./components/account/Account";
 
 function App() {
   return (
-    <AuthProvider>
+    <AdminAuthProvider>
       <BrowserRouter>
         <Toaster position="top-right" />
         <Routes>
@@ -50,7 +50,7 @@ function App() {
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
+    </AdminAuthProvider>
   );
 }
 

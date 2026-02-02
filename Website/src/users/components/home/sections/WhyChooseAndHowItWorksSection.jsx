@@ -170,7 +170,7 @@ const WhyChooseAndHowItWorksSection = ({
                       boxShadow: "none",
                     }}
                     onFocus={(e) => {
-                      e.currentTarget.style.boxShadow = `0 0 0 4px ${colors.primary.light}`;
+                      e.currentTarget.style.boxShadow = `0 0 0 4px ${colors.secondary.light}`;
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.boxShadow = "none";
@@ -217,15 +217,15 @@ const WhyChooseAndHowItWorksSection = ({
             >
               {/* Desktop progress line */}
               <div
-                className="pointer-events-none absolute left-1/2 top-20 hidden h-1 w-4/5 -translate-x-1/2 rounded-full lg:block"
+                className="pointer-events-none absolute left-1/2 top-20 hidden h-1.5 w-4/5 -translate-x-1/2 rounded-full lg:block"
                 style={{
-                  background: `linear-gradient(90deg, ${colors.primary.light}, ${colors.primary.DEFAULT}, ${colors.primary.light})`,
-                  opacity: 0.55,
+                  background: `linear-gradient(90deg, transparent, ${colors.primary.DEFAULT}, transparent)`,
+                  opacity: 0.4,
                 }}
               />
 
               {/* Mobile/Tablet list */}
-              <div className="space-y-4 lg:hidden">
+              <div className="space-y-3 lg:hidden">
                 {safeSteps.map((step, index) => {
                   const Icon = iconMap?.[step.icon];
                   return (
@@ -239,12 +239,13 @@ const WhyChooseAndHowItWorksSection = ({
                       className="relative"
                     >
                       <div
-                        className={[cardBase, cardHover, "pl-14 sm:pl-16"].join(
+                        className={[cardBase, cardHover, "pl-14 sm:pl-16 border-l-4"].join(
                           " "
                         )}
                         style={{
                           backgroundColor: colors.background.secondary,
-                          borderColor: colors.border.light,
+                          borderColor: colors.primary.light,
+                          borderLeftColor: colors.primary.DEFAULT,
                         }}
                       >
                         <div className="flex items-start gap-4">
@@ -255,53 +256,41 @@ const WhyChooseAndHowItWorksSection = ({
                               stiffness: 280,
                               damping: 18,
                             }}
-                            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl"
+                            className="absolute left-4 top-6 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br"
                             style={{
-                              backgroundColor: colors.primary.light,
-                              border: `1px solid ${colors.border.light}`,
+                              background: `linear-gradient(135deg, ${colors.primary.light}, ${colors.primary.DEFAULT})`,
+                              boxShadow: `0 4px 12px ${colors.primary.light}40`,
                             }}
                           >
                             {Icon ? (
                               <Icon
-                                className="h-6 w-6"
-                                style={{ color: colors.primary.DEFAULT }}
+                                className="h-5 w-5"
+                                style={{ color: colors.text.inverse }}
                               />
                             ) : null}
                           </motion.div>
 
                           <div className="min-w-0 flex-1">
                             <p
-                              className="text-xs font-semibold uppercase tracking-wider"
+                              className="text-xs font-bold uppercase tracking-widest"
                               style={{ color: colors.primary.DEFAULT }}
                             >
                               Step {index + 1}
                             </p>
                             <h3
-                              className="mt-1 text-lg font-bold"
+                              className="mt-1.5 text-base font-bold sm:text-lg"
                               style={{ color: colors.text.primary }}
                             >
                               {step.title}
                             </h3>
                             <p
-                              className="mt-2 text-sm leading-relaxed"
+                              className="mt-2.5 text-sm leading-relaxed"
                               style={{ color: colors.text.secondary }}
                             >
                               {step.desc}
                             </p>
                           </div>
                         </div>
-
-                        {/* Right arrow appears on hover */}
-                        <motion.div
-                          initial={{ opacity: 0, x: -8 }}
-                          whileHover={{ opacity: 1, x: 0 }}
-                          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2"
-                        >
-                          <ArrowRight
-                            className="h-5 w-5"
-                            style={{ color: colors.primary.DEFAULT }}
-                          />
-                        </motion.div>
                       </div>
                     </motion.div>
                   );
@@ -313,7 +302,7 @@ const WhyChooseAndHowItWorksSection = ({
                 variants={staggerContainer}
                 initial="hidden"
                 animate={animate}
-                className="hidden grid-cols-3 gap-7 lg:grid"
+                className="hidden grid-cols-3 gap-8 lg:grid"
               >
                 {safeSteps.map((step, index) => {
                   const Icon = iconMap?.[step.icon];
@@ -322,86 +311,89 @@ const WhyChooseAndHowItWorksSection = ({
                     <motion.div
                       key={(step?.title || "step") + index}
                       variants={staggerItem}
-                      whileHover={{ y: -10, scale: 1.02 }}
+                      whileHover={{ y: -12, scale: 1.02 }}
                       transition={{
                         type: "spring",
                         stiffness: 280,
                         damping: 20,
                       }}
-                      className="relative"
+                      className="group relative border-gray-100 border-1 rounded-2xl"
                     >
                       {/* Connector */}
                       {index < safeSteps.length - 1 && (
                         <div
-                          className="pointer-events-none absolute right-[-14px] top-[66px] h-0.5 w-7"
+                          className="pointer-events-none absolute right-[-32px] top-12 h-1 w-16 hidden lg:block"
                           style={{
-                            background: `linear-gradient(90deg, ${colors.primary.light}, transparent)`,
+                            background: `linear-gradient(90deg, ${colors.primary.DEFAULT}80, transparent)`,
                           }}
                         />
                       )}
 
                       <div
-                        className={[cardBase, cardHover, "pt-10"].join(" ")}
+                        className={[cardBase, cardHover, "pt-12 overflow-hidden"].join(" ")}
                         style={{
                           backgroundColor: colors.background.secondary,
                           borderColor: colors.border.light,
+                          boxShadow: `0 0 1px ${colors.border.light}`,
                         }}
                       >
+                        {/* Gradient overlay on hover */}
+                        <div
+                          className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300"
+                          style={{
+                            background: `linear-gradient(135deg, ${colors.primary.DEFAULT}, transparent)`,
+                          }}
+                        />
+
+                        {/* Icon container */}
                         <motion.div
-                          whileHover={{ rotate: 14, scale: 1.08 }}
+                          whileHover={{ rotate: 14, scale: 1.1 }}
                           transition={{
                             type: "spring",
                             stiffness: 260,
                             damping: 18,
                           }}
-                          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl"
+                          className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl mx-auto bg-gradient-to-br shadow-md"
                           style={{
-                            backgroundColor: colors.primary.light,
-                            border: `1px solid ${colors.border.light}`,
+                            background: `linear-gradient(135deg, ${colors.primary.light}, ${colors.primary.DEFAULT})`,
+                            boxShadow: `0 8px 24px ${colors.primary.DEFAULT}20`,
                           }}
                         >
                           {Icon ? (
                             <Icon
-                              className="h-10 w-10"
-                              style={{ color: colors.primary.DEFAULT }}
+                              className="relative h-7 w-7"
+                              style={{ color: colors.text.inverse }}
                             />
                           ) : null}
                         </motion.div>
 
-                        <p
-                          className="text-sm font-semibold uppercase tracking-wider"
-                          style={{ color: colors.primary.DEFAULT }}
-                        >
-                          Step {index + 1}
-                        </p>
-
                         <h3
-                          className="mt-3 text-xl font-bold"
+                          className="text-lg font-bold text-center"
                           style={{ color: colors.text.primary }}
                         >
                           {step.title}
                         </h3>
 
                         <p
-                          className="mt-3 text-sm leading-relaxed"
+                          className="mt-1 text-sm leading-relaxed text-center"
                           style={{ color: colors.text.secondary }}
                         >
                           {step.desc}
                         </p>
 
-                        {/* Dots indicator - BUG FIX: avoid theme classes (bg-primary/bg-border) since you want fixed colors */}
-                        <div className="mt-6 flex justify-center gap-1.5">
+                        {/* Progress dots */}
+                        <div className="mt-6 flex justify-center gap-2">
                           {[0, 1, 2].map((dot) => (
                             <motion.div
                               key={dot}
                               animate={{
-                                scale: dot === index % 3 ? [1, 1.25, 1] : 1,
-                                opacity: dot === index % 3 ? 1 : 0.35,
+                                scale: dot === index % 3 ? [1, 1.3, 1] : 1,
+                                opacity: dot === index % 3 ? 1 : 0.3,
                               }}
                               transition={{
                                 repeat: Infinity,
-                                duration: 1.9,
-                                delay: dot * 0.15,
+                                duration: 1.8,
+                                delay: dot * 0.12,
                                 ease: "easeInOut",
                               }}
                               className="h-2 w-2 rounded-full"
@@ -542,57 +534,7 @@ const WhyChooseAndHowItWorksSection = ({
           )}
         </AnimatePresence>
 
-        {/* Footer CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6, delay: 0.12, ease: "easeOut" }}
-          className="mt-12 sm:mt-14 lg:mt-16 pt-8 sm:pt-10"
-          style={{ borderTop: `1px solid ${colors.border.light}` }}
-        >
-          <div className="text-center">
-            <p
-              className="text-base sm:text-lg"
-              style={{ color: colors.text.secondary }}
-            >
-              Join thousands of satisfied users who have transformed their
-              workflow
-            </p>
 
-            <motion.button
-              whileHover={{
-                y: -2,
-                scale: 1.04,
-                boxShadow: "0 20px 40px -12px rgba(59, 130, 246, 0.3)",
-              }}
-              whileTap={{ scale: 0.98 }}
-              className="group relative mt-6 inline-flex cursor-pointer items-center justify-center gap-3 rounded-2xl px-8 py-4 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl focus:outline-none focus-visible:ring-4"
-              style={{
-                background: `linear-gradient(90deg,  ${colors.secondary.DEFAULT})`,
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.boxShadow = `0 0 0 4px ${colors.primary.light}`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.boxShadow = "";
-              }}
-              onClick={() => {
-                if (heroRef && heroRef.current) {
-                  heroRef.current.scrollIntoView({ behavior: "smooth" });
-                }
-              }}
-              type="button"
-            >
-              <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-                <span className="absolute -left-24 top-0 h-full w-24 rotate-12 bg-white/20 blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              </span>
-
-              <span className="relative">Get Started Free</span>
-              <ArrowRight className="relative h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </motion.button>
-          </div>
-        </motion.div>
       </div>
     </section>
   );

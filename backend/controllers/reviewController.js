@@ -169,4 +169,47 @@ exports.getProfessionalReviews = async (req, res) => {
     }
 };
 
+// Get reviews for a professional by phone number (public endpoint)
+exports.getProfessionalReviewsByPhone = async (req, res) => {
+    try {
+        const { phone } = req.params;
+        const User = require('../models/User');
+
+        // Find professional user by phone
+        const professional = await User.findOne({ phone });
+        if (!professional) {
+            return res.status(200).json({
+                success: true,
+                data: [],
+                message: 'No professional found with this phone'
+            });
+        }
+
+        // Get reviews for this professional
+        const reviews = await WorkerReview.find({ professionalId: professional._id })
+            .populate('customerId', 'name email')
+            .populate('bookingId', 'service issueType scheduledTime')
+            .sort({ createdAt: -1 });
+
+        const averageRating = reviews.length > 0
+            ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+            : 0;
+
+        res.status(200).json({
+            success: true,
+            data: reviews,
+            count: reviews.length,
+            averageRating: averageRating.toFixed(1)
+        });
+
+    } catch (error) {
+        console.error('Get professional reviews by phone error:', error);
+        res.status(200).json({
+            success: true,
+            data: [],
+            message: 'Error fetching reviews'
+        });
+    }
+};
+
 module.exports = exports;

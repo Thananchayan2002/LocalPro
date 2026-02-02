@@ -116,13 +116,22 @@ const Services = () => {
     <div className="w-full min-h-screen">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pb-20 sm:pb-10 space-y-6">
         {/* Header */}
-        <div
-          className="mt-18 rounded-2xl shadow-[0_10px_30px_rgba(2,6,23,0.06)] ring-1 ring-black/5 p-5 sm:p-6 relative overflow-hidden motion-safe:transition-all motion-safe:duration-300"
-          style={{ background: colors.background.primary }}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 26 }}
+          className="mt-8 rounded-2xl shadow-[0_20px_40px_rgba(2,6,23,0.08)] ring-1 ring-black/5 p-5 sm:p-6 relative overflow-hidden motion-safe:transition-all motion-safe:duration-300 backdrop-blur-sm"
+          style={{ 
+            background: `linear-gradient(135deg, ${colors.background.primary}cc, ${colors.background.primary}99)`
+          }}
         >
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute -top-20 -right-24 h-56 w-56 rounded-full bg-black/5 blur-3xl" />
-            <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-black/5 blur-3xl" />
+            <div className="absolute -top-20 -right-24 h-56 w-56 rounded-full bg-gradient-to-br from-blue-500/10 to-green-500/10 blur-3xl" />
+            <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-gradient-to-tr from-green-500/10 to-blue-500/10 blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-white/5" />
+          </div>
+
+          <div className="h-4 md:h-0">
           </div>
 
           <div className="relative flex flex-col gap-3">
@@ -137,7 +146,7 @@ const Services = () => {
 
                 <div className="min-w-0">
                   <h1
-                    className="text-xl sm:text-2xl font-bold tracking-tight truncate"
+                    className="text-2xl sm:text-3xl font-bold tracking-tight truncate"
                     style={{ color: colors.primary.dark }}
                     title={serviceTitle}
                   >
@@ -145,46 +154,47 @@ const Services = () => {
                   </h1>
 
                   <p
-                    className="mt-1 text-sm font-bold"
-                    style={{ color: colors.text.secondary }}
+                    className="mt-2 text-xs sm:text-sm font-semibold uppercase tracking-wider"
+                    style={{ color: colors.primary.DEFAULT }}
                   >
-                    Base rates and notes are shown below
+                    Service Pricing
                   </p>
                   <p
-                    className="mt-1 text-sm"
+                    className="mt-2 text-sm leading-relaxed"
                     style={{ color: colors.text.secondary }}
                   >
-                    These amounts are starting estimates and can be adjusted or
-                    negotiated based on the situation
+                    Base rates shown below. Adjustable based on job complexity.
                   </p>
                 </div>
               </div>
 
               {loadingProfile ? (
-                <div
-                  className="shrink-0 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold bg-white/60 backdrop-blur ring-1 ring-black/5"
-                  style={{ color: colors.text.secondary }}
+                <motion.div
+                  animate={{ opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold bg-white/10 backdrop-blur-md ring-1 ring-white/20"
+                  style={{ color: colors.primary.DEFAULT }}
                 >
                   <span
-                    className="h-4 w-4 rounded-full border-2 border-t-transparent animate-spin"
-                    style={{
-                      borderColor: colors.primary.DEFAULT,
-                      borderTopColor: "transparent",
-                    }}
+                    className="h-2 w-2 rounded-full animate-pulse"
+                    style={{ background: colors.primary.DEFAULT }}
                   />
                   Loading profile...
-                </div>
+                </motion.div>
               ) : (
-                <div
-                  className="shrink-0 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold bg-black/5"
-                  style={{ color: colors.text.secondary }}
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  className="shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold bg-gradient-to-r from-emerald-500/20 to-emerald-500/10 ring-1 backdrop-blur-sm"
+                  style={{ borderColor: colors.success.light, color: colors.success.DEFAULT }}
                 >
-                  Base pricing
-                </div>
+                  💰 Base Pricing
+                </motion.div>
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Content */}
         {error ? (
@@ -242,56 +252,90 @@ const Services = () => {
             animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 gap-4"
           >
-            {issues.map((issue) => (
-              <div
+            {issues.map((issue, index) => (
+              <motion.div
                 key={issue._id}
-                className="group rounded-2xl p-4 sm:p-5 ring-1 ring-black/5 shadow-sm motion-safe:transition-all motion-safe:duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(2,6,23,0.10)] cursor-pointer"
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    transition: {
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30,
+                      delay: index * 0.05,
+                    },
+                  },
+                }}
+                initial="hidden"
+                animate="visible"
+                whileHover={{ y: -4 }}
+                whileTap={{ scale: 0.98 }}
+                className="group rounded-2xl p-4 sm:p-5 ring-1 ring-black/5 shadow-sm motion-safe:transition-all motion-safe:duration-300 hover:shadow-[0_20px_50px_rgba(2,6,23,0.12)] cursor-pointer relative overflow-hidden"
                 style={{
-                  border: `1px solid ${colors.success.bg}`,
+                  background: colors.background.alt,
+                  borderColor: colors.success.light,
+                  borderOpacity: 0.5
                 }}
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent" />
+                </div>
+
+                <div className="relative flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p
-                      className="text-[11px] uppercase tracking-wide"
-                      style={{ color: colors.text.tertiary }}
+                      className="text-[10px] uppercase tracking-widest font-semibold"
+                      style={{ color: colors.primary.DEFAULT }}
                     >
                       Issue
                     </p>
                     <h3
-                      className="mt-1 text-base sm:text-lg font-extrabold truncate"
-                      style={{ color: colors.primary.light }}
+                      className="mt-2 text-base sm:text-lg font-bold tracking-tight truncate group-hover:text-emerald-600 transition-colors"
+                      style={{ color: colors.primary.dark }}
                       title={issue.issueName}
                     >
                       {issue.issueName}
                     </h3>
                   </div>
-                  <div
-                    className="shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-extrabold shadow-sm ring-1 ring-black/5 motion-safe:transition-transform motion-safe:duration-200 group-hover:scale-[1.02]"
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-bold shadow-sm ring-1 motion-safe:transition-all motion-safe:duration-200"
                     style={{
-                      background: colors.category.emerald.bg,
-                      color: colors.category.emerald.text,
-                      border: `1px solid ${colors.success.bg}`,
+                      background: colors.success.bg,
+                      color: colors.success.DEFAULT,
+                      borderColor: colors.success.light,
                     }}
                   >
-                    LKR {issue.basicCost ?? "—"}
-                  </div>
+                    <span>💸</span>
+                    <span>LKR {issue.basicCost ?? "—"}</span>
+                  </motion.div>
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   <div
-                    className="h-1.5 w-20 rounded-full bg-black/10 overflow-hidden"
+                    className="h-1.5 flex-1 rounded-full bg-black/8 overflow-hidden"
                     aria-hidden="true"
                   >
-                    <div className="h-full w-2/3 rounded-full bg-black/20 motion-safe:animate-pulse" />
+                    <motion.div
+                      className="h-full rounded-full motion-safe:animate-pulse"
+                      style={{
+                        background: colors.success.DEFAULT,
+                      }}
+                      initial={{ width: "66%" }}
+                      animate={{ opacity: [0.6, 1, 0.6] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
                   </div>
                   <span
-                    className="text-xs font-semibold"
+                    className="text-xs font-semibold ml-3 whitespace-nowrap"
                     style={{ color: colors.text.secondary }}
                   >
-                    Base amount
+                    Base rate
                   </span>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </motion.div>
         )}

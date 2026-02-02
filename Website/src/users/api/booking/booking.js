@@ -35,7 +35,7 @@ export const getMyBookings = async () => {
     throw new Error("Failed to fetch bookings");
   }
   const data = await response.json();
-  return data.data || data;
+  return data.bookings || data.data || data;
 };
 
 /**

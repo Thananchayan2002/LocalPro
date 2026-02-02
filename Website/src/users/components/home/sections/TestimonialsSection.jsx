@@ -1,9 +1,9 @@
+import React from "react";
 import { motion } from "framer-motion";
-import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
+import { Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { colors } from "../../../../styles/colors";
 import { useAnimations } from "../../animations/animations";
 import AppLoader from "../../common/AppLoader";
-
 const TestimonialsSection = ({
   testimonials,
   currentIndex,
@@ -13,19 +13,16 @@ const TestimonialsSection = ({
   const { ref, animate, staggerContainer, staggerItem } = useAnimations({
     scroll: true,
   });
-
   const handlePrev = () => {
     setCurrentIndex((prev) =>
-      prev === 0 ? testimonials.length - 1 : prev - 1
+      (prev - 3 + testimonials.length) % testimonials.length
     );
   };
-
   const handleNext = () => {
     setCurrentIndex((prev) =>
-      prev === testimonials.length - 1 ? 0 : prev + 1
+      (prev + 3) % testimonials.length
     );
   };
-
   return (
     <section
       ref={ref}
@@ -49,7 +46,6 @@ const TestimonialsSection = ({
           style={{ backgroundColor: colors.secondary.light, opacity: 0.15 }}
         ></div>
       </div>
-
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header with enhanced animation */}
         <motion.div
@@ -86,126 +82,81 @@ const TestimonialsSection = ({
             experiences
           </p>
         </motion.div>
-
-        {/* Testimonials Grid with enhanced animation */}
+        {/* Testimonials Grid */}
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate={animate}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10 mb-12"
         >
-          {testimonials.map((testimonial, index) => (
-            <motion.div
-              key={index}
-              variants={staggerItem}
-              whileHover={{
-                y: -8,
-                scale: 1.02,
-                transition: { duration: 0.3, ease: "easeOut" },
-              }}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="group relative"
-            >
-              {/* Card gradient border effect */}
-              <div
-                className="absolute inset-0 bg-gradient-to-br rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{
-                  background: `linear-gradient(to bottom right, ${colors.primary.light}, transparent, ${colors.secondary.light})`,
-                }}
-              ></div>
-
-              <div
-                className="relative h-full rounded-2xl backdrop-blur-sm p-7 sm:p-8 shadow-lg transition-all duration-300 group-hover:shadow-2xl"
-                style={{ backgroundColor: colors.background.secondary }}
+          {[0, 1, 2].map((offset) => {
+            const index = (currentIndex + offset) % testimonials.length;
+            const testimonial = testimonials[index];
+            if (!testimonial) return null;
+            return (
+              <motion.div
+                key={testimonial._id || testimonial.id || `${testimonial.name}-${testimonial.date}-${index}`}
+                variants={staggerItem}
+                whileHover={{ y: -4 }}
+                className="rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm hover:shadow-[0_14px_30px_-20px_rgba(0,0,0,0.25)] transition-all duration-300"
+                style={{ background: colors.background.paper }}
               >
-                {/* Quote icon */}
-                <Quote
-                  className="absolute top-6 right-6 w-8 h-8"
-                  style={{ color: colors.primary.light }}
-                />
-
-                {/* User info with enhanced styling */}
-                <div className="flex items-center gap-4 mb-6">
-                  <motion.div whileHover={{ scale: 1.1 }} className="relative">
-                    <div
-                      className="absolute inset-0 rounded-full blur"
-                      style={{ background: colors.primary.gradient }}
-                    ></div>
-                    <img
-                      src={testimonial.image}
-                      alt={testimonial.name}
-                      className="relative w-14 h-14 rounded-full border-2 object-cover"
-                      style={{ borderColor: colors.background.secondary }}
-                    />
+                <div className="flex items-start gap-4 mb-4">
+                  <motion.div
+                    className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                    style={{ background: colors.primary.gradient }}
+                  >
+                    {testimonial.name.charAt(0).toUpperCase()}
                   </motion.div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4
-                      className="font-bold text-lg tracking-tight"
+                      className="font-bold truncate"
                       style={{ color: colors.text.primary }}
                     >
                       {testimonial.name}
                     </h4>
                     <p
-                      className="text-sm font-medium"
-                      style={{ color: colors.primary.DEFAULT }}
+                      className="text-xs mt-0.5"
+                      style={{ color: colors.text.tertiary }}
                     >
-                      {testimonial.role}
+                      {testimonial.date}
                     </p>
                   </div>
                 </div>
-
-                {/* Stars with enhanced animation */}
-                <div className="flex gap-1 mb-5">
+                <div className="flex items-center gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <motion.div
+                    <Star
                       key={i}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: index * 0.1 + i * 0.1 }}
-                      whileHover={{ scale: 1.2, rotate: 5 }}
-                    >
-                      <Star
-                        className="w-5 h-5 transition-transform duration-200"
-                        style={{
-                          color:
-                            i < testimonial.rating
-                              ? colors.warning.DEFAULT
-                              : colors.neutral[200],
-                          fill:
-                            i < testimonial.rating
-                              ? colors.warning.DEFAULT
-                              : "transparent",
-                        }}
-                      />
-                    </motion.div>
+                      className={`w-4 h-4 ${i < testimonial.rating
+                        ? "text-yellow-500 fill-yellow-500"
+                        : "text-gray-300 dark:text-gray-600"
+                        }`}
+                    />
                   ))}
                 </div>
-
-                {/* Testimonial text */}
                 <p
-                  className="leading-relaxed mb-6 italic relative pl-4"
-                  style={{
-                    color: colors.text.secondary,
-                    borderLeftColor: colors.primary.light,
-                    borderLeftWidth: "2px",
-                  }}
+                  className="text-sm leading-relaxed mb-4"
+                  style={{ color: colors.text.secondary }}
                 >
-                  "{testimonial.text}"
+                  {testimonial.comment}
                 </p>
-
-                {/* Decorative bottom accent */}
-                <div
-                  className="h-1 w-12 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{ background: colors.primary.gradient }}
-                ></div>
-              </div>
-            </motion.div>
-          ))}
+                <div className="flex justify-end">
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-full font-semibold ${testimonial.type === "suggestion"
+                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                      : testimonial.type === "feature"
+                        ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                      }`}
+                  >
+                    {(testimonial.type || "general").charAt(0).toUpperCase() +
+                      (testimonial.type || "general").slice(1)}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
         </motion.div>
-
         {/* Navigation Controls */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -229,7 +180,6 @@ const TestimonialsSection = ({
               style={{ color: colors.text.primary }}
             />
           </motion.button>
-
           {/* Indicators */}
           <div className="flex gap-2 mx-6">
             {testimonials.map((_, idx) => (
@@ -238,9 +188,8 @@ const TestimonialsSection = ({
                 whileHover={{ scale: 1.2 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setCurrentIndex(idx)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  idx === currentIndex ? "w-8" : ""
-                }`}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === currentIndex ? "w-8" : ""
+                  }`}
                 style={{
                   backgroundColor:
                     idx === currentIndex
@@ -250,7 +199,6 @@ const TestimonialsSection = ({
               />
             ))}
           </div>
-
           <motion.button
             whileHover={{ scale: 1.1, x: 2 }}
             whileTap={{ scale: 0.95 }}
@@ -268,7 +216,6 @@ const TestimonialsSection = ({
             />
           </motion.button>
         </motion.div>
-
         {/* Stats Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -324,5 +271,4 @@ const TestimonialsSection = ({
     </section>
   );
 };
-
 export default TestimonialsSection;

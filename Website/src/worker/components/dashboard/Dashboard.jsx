@@ -41,6 +41,17 @@ export const Dashboard = () => {
   const [todayTasks, setTodayTasks] = useState([]);
   const [tomorrowTasks, setTomorrowTasks] = useState([]);
 
+  // Handle first login refresh
+  useEffect(() => {
+    const needsRefresh = localStorage.getItem("needsFirstLoginRefresh");
+    if (needsRefresh === "true" && user) {
+      // Clear flag before refreshing
+      localStorage.removeItem("needsFirstLoginRefresh");
+      // Refresh page
+      window.location.reload();
+    }
+  }, [user]);
+
   // Fetch professional details
   useEffect(() => {
     if (!user) return;

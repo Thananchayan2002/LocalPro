@@ -5,7 +5,7 @@ import { colors } from "../../../../styles/colors";
 import { useAnimations } from "../../animations/animations";
 import AppLoader from "../../common/AppLoader";
 
-const CTASection = ({ setShowBookingModal, isLoading = false }) => {
+const CTASection = ({ setShowBookingModal, setShowRegisterModal, isLoading = false }) => {
   const navigate = useNavigate();
   const { ref, animate, fadeInUp, staggerContainer, staggerItem } =
     useAnimations({ scroll: true });
@@ -166,7 +166,7 @@ const CTASection = ({ setShowBookingModal, isLoading = false }) => {
 
               <motion.button
                 variants={staggerItem}
-                onClick={() => navigate("/app")}
+                onClick={() => setShowRegisterModal && setShowRegisterModal(true)}
                 whileHover={{
                   scale: 1.05,
                 }}
@@ -180,7 +180,7 @@ const CTASection = ({ setShowBookingModal, isLoading = false }) => {
               >
                 <span className="flex items-center justify-center gap-3">
                   <Phone className="h-5 w-5 transition-transform group-hover:scale-110" />
-                  Schedule a Consultation
+                  Become a Professional
                 </span>
               </motion.button>
             </motion.div>

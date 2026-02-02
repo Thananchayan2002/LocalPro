@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 import { Mail, Lock, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import loginBG from '../../assets/loginBG.jfif';
 
 export const Login = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login } = useAdminAuth();
 
     const [formData, setFormData] = useState({
         phone: '',

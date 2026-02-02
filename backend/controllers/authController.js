@@ -1,4 +1,6 @@
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { JWT_SECRET } = require("../config/jwt");
 const User = require("../models/User");
 const Professional = require("../models/Professional");
 const RefreshToken = require("../models/RefreshToken");
@@ -825,7 +827,11 @@ exports.completeProfile = async (req, res) => {
 exports.refresh = async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
+    console.log("🔄 [REFRESH] Endpoint called");
+    console.log(`   📝 Refresh token present: ${!!refreshToken}`);
+    
     if (!refreshToken) {
+      console.log("   ❌ No refresh token in cookies");
       return res.status(401).json({
         success: false,
         message: "No refresh token provided",
@@ -834,8 +840,28 @@ exports.refresh = async (req, res) => {
 
     const tokenHash = hashToken(refreshToken);
     const stored = await RefreshToken.findOne({ tokenHash });
+    console.log(`   🔍 Token found in DB: ${!!stored}`);
 
-    if (!stored || stored.revokedAt || stored.expiresAt <= new Date()) {
+    if (!stored) {
+      console.log("   ❌ Token not found in database");
+      clearAuthCookies(res);
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token is invalid or expired",
+      });
+    }
+
+    if (stored.revokedAt) {
+      console.log(`   ❌ Token was revoked at ${stored.revokedAt}`);
+      clearAuthCookies(res);
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token is invalid or expired",
+      });
+    }
+
+    if (stored.expiresAt <= new Date()) {
+      console.log(`   ❌ Token expired at ${stored.expiresAt}`);
       clearAuthCookies(res);
       return res.status(401).json({
         success: false,
@@ -851,6 +877,7 @@ exports.refresh = async (req, res) => {
     }
 
     if (!subject) {
+      console.log("   ❌ User/Professional not found");
       clearAuthCookies(res);
       return res.status(404).json({
         success: false,
@@ -859,6 +886,7 @@ exports.refresh = async (req, res) => {
     }
 
     if (subject.status && subject.status !== "active") {
+      console.log(`   ❌ Account status is "${subject.status}"`);
       await RefreshToken.updateOne(
         { tokenHash, revokedAt: null },
         { $set: { revokedAt: new Date(), revokedByIp: req.ip } },
@@ -903,6 +931,7 @@ exports.refresh = async (req, res) => {
     });
 
     setAuthCookies(res, accessToken, newRefreshToken);
+    console.log("   ✅ New tokens issued successfully");
 
     const userPayload =
       stored.subjectType === "professional"
@@ -921,7 +950,7 @@ exports.refresh = async (req, res) => {
       user: userPayload,
     });
   } catch (error) {
-    console.error("Refresh error:", error);
+    console.error("❌ [REFRESH] Error:", error);
     return res.status(500).json({
       success: false,
       message: "Server error. Please try again later.",

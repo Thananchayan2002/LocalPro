@@ -15,7 +15,7 @@ const Login = () => {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 640 : false,
   );
-
+ 
   const { displayText } = useTypewriter("Welcome to", 80, 200);
   const { displayText: subtitleText } = useTypewriter(
     "To continue, enter your phone number",
@@ -34,7 +34,7 @@ const Login = () => {
 
   // Dedupe: prevent double onVerified calls + double toasts
   const handlingRef = useRef(false);
-  const lastHandledKeyRef = useRef("");
+  const lastHandledKeyRef = useRef(""); 
   const successToastRef = useRef(false);
 
   const showLoginSuccessOnce = useCallback((msg = "Login successful!") => {

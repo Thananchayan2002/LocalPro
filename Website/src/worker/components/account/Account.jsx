@@ -28,6 +28,17 @@ export const Account = () => {
 
   const [loading, setLoading] = useState(false);
 
+  // Handle first login refresh
+  useEffect(() => {
+    const needsRefresh = localStorage.getItem("needsFirstLoginRefresh");
+    if (needsRefresh === "true" && user) {
+      // Clear flag before refreshing
+      localStorage.removeItem("needsFirstLoginRefresh");
+      // Refresh page
+      window.location.reload();
+    }
+  }, [user]);
+
   // Fetch professional details by professionalId
   useEffect(() => {
     const fetchProfessionalData = async () => {
@@ -42,7 +53,7 @@ export const Account = () => {
           const res = await authFetch(
             `${apiUrl}/api/professionals/${user.professionalId}`,
           );
-          const data = await res.json();
+          const data = await res.json(); 
 
           if (data.success) {
             setProfessionalData(data.data);

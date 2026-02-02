@@ -242,7 +242,7 @@ export const Topbar = ({ onMenuClick }) => {
           {/* Availability pill */}
           <div
             className={[
-              "group relative flex items-center gap-2",
+              "group relative hidden items-center gap-2",
               "rounded-2xl border",
               "px-2.5 py-2 sm:px-3",
               "shadow-sm",
@@ -341,7 +341,7 @@ export const Topbar = ({ onMenuClick }) => {
             type="button"
             className={[
               "group inline-flex items-center gap-2",
-              "rounded-2xl",
+              "rounded-xl",
               "px-3 py-2 sm:px-4",
               "shadow-sm",
               "ring-1 ring-black/5",
@@ -363,7 +363,7 @@ export const Topbar = ({ onMenuClick }) => {
               style={{ color: colors.neutral[50] }}
             />
             <span
-              className="hidden sm:block text-sm font-semibold tracking-tight"
+              className="block text-sm font-semibold tracking-tight"
               style={{ color: colors.neutral[50] }}
             >
               Logout

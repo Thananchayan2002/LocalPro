@@ -244,7 +244,7 @@ const PopularServicesSection = ({ categories = [] }) => {
                   : "";
 
               return (
-                <motion.div
+                <motion.button
                   key={(isBackend ? item._id : item.id) || i}
                   variants={staggerItem}
                   whileHover={{ y: -6, scale: 1.02 }}
@@ -379,7 +379,7 @@ const PopularServicesSection = ({ categories = [] }) => {
                       initial={false}
                     />
                   </motion.div>
-                </motion.div>
+                </motion.button>
               );
             })}
         </motion.div>

@@ -9,15 +9,21 @@ let isRedirecting = false;
  * No localStorage token needed - fully secure cookie-based auth
  */
 export const fetchWithAuth = async (url, options = {}) => {
-  const makeRequest = () =>
-    fetch(url, {
+  const makeRequest = () => {
+    const headers = { ...options.headers };
+    
+    // Only set Content-Type if not FormData
+    // FormData body requires browser to set Content-Type with boundary
+    if (!(options.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
+    
+    return fetch(url, {
       ...options,
       credentials: "include", // Always send HttpOnly cookies
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
+      headers,
     });
+  };
 
   let response = await makeRequest();
 

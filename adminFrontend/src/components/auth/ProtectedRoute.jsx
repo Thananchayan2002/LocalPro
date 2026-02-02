@@ -1,9 +1,9 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAdminAuth } from '../../context/AdminAuthContext';
 
 export const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, loading, user } = useAuth();
+    const { admin, loading } = useAdminAuth();
 
     // Show loading state while checking authentication
     if (loading) {
@@ -18,12 +18,12 @@ export const ProtectedRoute = ({ children }) => {
     }
 
     // Redirect to login if not authenticated
-    if (!isAuthenticated()) {
+    if (!admin) {
         return <Navigate to="/login" replace />;
     }
 
     // Check if user is admin
-    if (user && user.role !== 'admin') {
+    if (admin && admin.role !== 'admin') {
         return <Navigate to="/login" replace />;
     }
 

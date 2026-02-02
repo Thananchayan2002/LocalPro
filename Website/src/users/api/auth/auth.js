@@ -90,3 +90,22 @@ export const getUserByPhone = async (phone) => {
   }
   return response.json();
 };
+
+/**
+ * Get user by phone number (public endpoint - no authentication required)
+ */
+export const getPublicUserByPhone = async (phone) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/auth/public/user-by-phone/${phone}`
+    );
+    if (!response.ok) {
+      return { success: false, data: null };
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching public user by phone:", error);
+    return { success: false, data: null };
+  }
+};
